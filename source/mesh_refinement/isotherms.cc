@@ -275,7 +275,7 @@ Isotherms<dim>::parse_parameters (ParameterHandler &prm)
             std::vector<std::string> isotherms_outer_loop = Utilities::split_string_list(prm.get ("List of isotherms"),';');
             // process the List of isotherms to get all data out of the structure
             number_of_isotherms = isotherms_outer_loop.size();
-            isotherms.resize(size_element,std::vector<std::string>(4,"0"));
+            isotherms.resize(number_of_isotherms,std::vector<std::string>(4,"0"));
             // loop through all given isotherms
             for ( unsigned int it1 = 0; it1 != number_of_isotherms; ++it1 )
             {

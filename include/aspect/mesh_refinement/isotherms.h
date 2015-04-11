@@ -73,7 +73,7 @@ namespace aspect
         /**
          * Declare a variable which indicates how many isotherms the user has declared, and a variable to store all those isotherms
          */
-        int number_of_isotherms
+        int number_of_isotherms;
 	std::vector<std::vector<std::string> > isotherms;
         /**
          * Declare a variable to store the global minimum refinement level and a variable to store the global maximum refinement level set by the user
