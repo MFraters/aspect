@@ -1284,7 +1284,7 @@ namespace aspect
        * if we do not need the machinery for doing melt stuff, we do
        * not even allocate it.
        */
-      std_cxx11::shared_ptr<MeltHandler<dim> > melt_handler;
+      std_cxx11::unique_ptr<MeltHandler<dim> > melt_handler;
 
       /**
        * Unique pointer for an instance of the NewtonHandler. This way,
