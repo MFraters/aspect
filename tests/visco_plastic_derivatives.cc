@@ -14,7 +14,8 @@
 
 template <int dim>
 void f(const aspect::SimulatorAccess<dim> &simulator_access,
-       aspect::Assemblers::Manager<dim> &)
+       aspect::Assemblers::Manager<dim> &,
+       unsigned int parameter)
 {
   // Prepare NewtonHandler for test
   const_cast<aspect::NewtonHandler<dim> &> (simulator_access.get_newton_handler()).set_newton_derivative_scaling_factor(1.0);
@@ -250,7 +251,15 @@ template <int dim>
 void signal_connector (aspect::SimulatorSignals<dim> &signals)
 {
   std::cout << "* Connecting signals" << std::endl;
-  signals.set_assemblers.connect (&f<dim>);
+  signals.set_assemblers.connect (std_cxx11::bind(&f<dim>,
+                                                  std_cxx11::_1,
+                                                  std_cxx11::_2,
+                                                  1));
+
+  signals.set_assemblers.connect (std_cxx11::bind(&f<dim>,
+                                                  std_cxx11::_1,
+                                                  std_cxx11::_2,
+                                                  2));
 }
 
 ASPECT_REGISTER_SIGNALS_CONNECTOR(signal_connector<2>,
