@@ -9,6 +9,7 @@
 #include <deal.II/grid/tria.h>
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/std_cxx11/shared_ptr.h>
+#include <deal.II/base/std_cxx11/bind.h>
 
 #include <iostream>
 
@@ -242,7 +243,8 @@ void f(const aspect::SimulatorAccess<dim> &simulator_access,
 
 template <>
 void f(const aspect::SimulatorAccess<3> &simulator_access,
-       aspect::Assemblers::Manager<3> &)
+       aspect::Assemblers::Manager<3> &,
+       unsigned int parameter)
 {
   AssertThrow(false,dealii::ExcInternalError());
 }
@@ -250,6 +252,7 @@ void f(const aspect::SimulatorAccess<3> &simulator_access,
 template <int dim>
 void signal_connector (aspect::SimulatorSignals<dim> &signals)
 {
+  using namespace dealii;
   std::cout << "* Connecting signals" << std::endl;
   signals.set_assemblers.connect (std_cxx11::bind(&f<dim>,
                                                   std_cxx11::_1,
