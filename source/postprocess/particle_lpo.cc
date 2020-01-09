@@ -32,190 +32,6 @@ namespace aspect
 {
   namespace Postprocess
   {
-    namespace internal
-    {
-      template<int dim>
-      void
-      ParticleOutput<dim>::build_patches(const dealii::Particles::ParticleHandler<dim> &particle_handler,
-                                         const aspect::Particle::Property::ParticlePropertyInformation &property_information,
-                                         std::vector<std::string> &exclude_output_properties,
-                                         const bool only_group_3d_vectors)
-      {
-        // First store the names of the data fields
-        dataset_names.reserve(property_information.n_components()+1);
-        dataset_names.push_back("id");
-
-        // just output all properties
-        for (unsigned int field_index = 0; field_index < property_information.n_fields(); ++field_index)
-          {
-            const unsigned n_components = property_information.get_components_by_field_index(field_index);
-            const std::string field_name = property_information.get_field_name_by_index(field_index);
-
-            bool found = false;
-            for (unsigned int i = 0; i < exclude_output_properties.size(); ++i)
-              {
-                if (field_name.find(exclude_output_properties[i]) != std::string::npos)
-                  {
-                    found = true;
-                    break;
-                  }
-              }
-
-            if (found == true)
-              continue;
-
-            // HDF5 only supports 3D vector output, therefore only treat output fields as vector if we
-            // have a dimension of 3 and 3 components.
-            const bool field_is_vector = (!only_group_3d_vectors)
-                                         ?
-                                         n_components == dim
-                                         :
-                                         dim == 3 && n_components == 3;
-
-            // If it is a 1D element, or a vector, print just the name, otherwise append the index after an underscore
-            if ((n_components == 1) || field_is_vector)
-              for (unsigned int component_index=0; component_index<n_components; ++component_index)
-                dataset_names.push_back(field_name);
-            else
-              for (unsigned int component_index=0; component_index<n_components; ++component_index)
-                dataset_names.push_back(field_name + "_" + Utilities::to_string(component_index));
-          }
-
-        // Second store which of these data fields are vectors
-
-        unsigned int field_position = property_information.n_fields() == 0 ? 0 : property_information.get_position_by_field_index(0);
-        for (unsigned int field_index = 0; field_index < property_information.n_fields(); ++field_index)
-          {
-            const unsigned n_components = property_information.get_components_by_field_index(field_index);
-
-            const std::string field_name = property_information.get_field_name_by_index(field_index);
-
-            bool found = false;
-            for (unsigned int i = 0; i < exclude_output_properties.size(); ++i)
-              {
-                if (field_name.find(exclude_output_properties[i]) != std::string::npos)
-                  {
-                    found = true;
-                    break;
-                  }
-              }
-
-            if (found == true)
-              continue;
-
-            // If the property has dim components, we treat it as vector
-            if (n_components == dim)
-              {
-#if DEAL_II_VERSION_GTE(9,1,0)
-                vector_datasets.push_back(std::make_tuple(field_position+1,
-                                                          field_position+n_components,
-                                                          field_name,
-                                                          DataComponentInterpretation::component_is_part_of_vector));
-#else
-                vector_datasets.push_back(std::make_tuple(field_position+1,
-                                                          field_position+n_components,
-                                                          field_name));
-#endif
-              }
-            field_position = field_position+n_components;
-
-          }
-
-        // Third build the actual patch data
-        patches.resize(particle_handler.n_locally_owned_particles());
-
-        typename dealii::Particles::ParticleHandler<dim>::particle_iterator particle = particle_handler.begin();
-
-        for (unsigned int i=0; particle != particle_handler.end(); ++particle, ++i)
-          {
-            patches[i].vertices[0] = particle->get_location();
-            patches[i].patch_index = i;
-            patches[i].n_subdivisions = 1;
-            patches[i].data.reinit(dataset_names.size(),1);
-
-            patches[i].data(0,0) = particle->get_id();
-
-            if (particle->has_properties())
-              {
-                const ArrayView<const double> properties = particle->get_properties();
-
-                unsigned int output_index = 1;
-                unsigned int field_index = 0;
-                unsigned int do_not_increase_for = 0;
-                std::string field_name = "";
-
-                for (unsigned int property_index = 0; property_index < properties.size(); ++property_index)
-                  {
-                    if (do_not_increase_for > 0)
-                      {
-                        do_not_increase_for--;
-                      }
-                    else
-                      {
-                        const unsigned n_components = property_information.get_components_by_field_index(field_index);
-                        field_name = property_information.get_field_name_by_index(field_index);
-
-                        do_not_increase_for = n_components - 1;
-                        field_index++;
-                      }
-
-                    bool found = false;
-                    for (unsigned int i = 0; i < exclude_output_properties.size(); ++i)
-                      {
-                        if (field_name.find(exclude_output_properties[i]) != std::string::npos)
-                          {
-                            found = true;
-                            break;
-                          }
-                      }
-
-                    if (found == true)
-                      continue;
-                    patches[i].data(output_index,0) = properties[property_index];
-                    output_index++;
-                  }
-              }
-          }
-      }
-
-      template <int dim>
-      const std::vector<DataOutBase::Patch<0,dim> > &
-      ParticleOutput<dim>::get_patches () const
-      {
-        return patches;
-      }
-
-      template <int dim>
-      std::vector< std::string >
-      ParticleOutput<dim>::get_dataset_names () const
-      {
-        return dataset_names;
-      }
-
-#if DEAL_II_VERSION_GTE(9,1,0)
-      template <int dim>
-      std::vector<
-      std::tuple<unsigned int,
-          unsigned int, std::string,
-          DataComponentInterpretation::DataComponentInterpretation> >
-          ParticleOutput<dim>::get_nonscalar_data_ranges () const
-      {
-        return vector_datasets;
-      }
-#else
-      template <int dim>
-      std::vector<
-      std::tuple<unsigned int,
-          unsigned int, std::string,
-          DataComponentInterpretation::DataComponentInterpretation> >
-          ParticleOutput<dim>::get_nonscalar_data_ranges () const
-      {
-        return vector_datasets;
-      }
-#endif
-
-    }
-
     template <int dim>
     LPO<dim>::LPO ()
       :
@@ -234,7 +50,8 @@ namespace aspect
     {
       // make sure a thread that may still be running in the background,
       // writing data, finishes
-      background_thread.join ();
+      background_thread_master.join ();
+      background_thread_content.join ();
     }
 
 
@@ -308,68 +125,6 @@ namespace aspect
     }
 
     template <int dim>
-    void
-    LPO<dim>::write_master_files (const internal::ParticleOutput<dim> &data_out,
-                                  const std::string &solution_file_prefix,
-                                  const std::vector<std::string> &filenames)
-    {
-      const double time_in_years_or_seconds = (this->convert_output_to_years() ?
-                                               this->get_time() / year_in_seconds :
-                                               this->get_time());
-      const std::string
-      pvtu_master_filename = (solution_file_prefix +
-                              ".pvtu");
-      std::ofstream pvtu_master ((this->get_output_directory() + "particles/" +
-                                  pvtu_master_filename).c_str());
-      data_out.write_pvtu_record (pvtu_master, filenames);
-
-      // now also generate a .pvd file that matches simulation
-      // time and corresponding .pvtu record
-      times_and_pvtu_file_names.push_back(std::make_pair
-                                          (time_in_years_or_seconds, "particles/"+pvtu_master_filename));
-
-      const std::string
-      pvd_master_filename = (this->get_output_directory() + "particles.pvd");
-      std::ofstream pvd_master (pvd_master_filename.c_str());
-
-      DataOutBase::write_pvd_record (pvd_master, times_and_pvtu_file_names);
-
-      // finally, do the same for Visit via the .visit file for this
-      // time step, as well as for all time steps together
-      const std::string
-      visit_master_filename = (this->get_output_directory()
-                               + "particles/"
-                               + solution_file_prefix
-                               + ".visit");
-      std::ofstream visit_master (visit_master_filename.c_str());
-
-      DataOutBase::write_visit_record (visit_master, filenames);
-
-      {
-        // the global .visit file needs the relative path because it sits a
-        // directory above
-        std::vector<std::string> filenames_with_path;
-        for (std::vector<std::string>::const_iterator it = filenames.begin();
-             it != filenames.end();
-             ++it)
-          {
-            filenames_with_path.push_back("particles/" + (*it));
-          }
-
-        output_file_names_by_timestep.push_back (filenames_with_path);
-      }
-
-      std::ofstream global_visit_master ((this->get_output_directory() +
-                                          "particles.visit").c_str());
-
-      std::vector<std::pair<double, std::vector<std::string> > > times_and_output_file_names;
-      for (unsigned int timestep=0; timestep<times_and_pvtu_file_names.size(); ++timestep)
-        times_and_output_file_names.push_back(std::make_pair(times_and_pvtu_file_names[timestep].first,
-                                                             output_file_names_by_timestep[timestep]));
-      DataOutBase::write_visit_record (global_visit_master, times_and_output_file_names);
-    }
-
-    template <int dim>
     std::pair<std::string,std::string>
     LPO<dim>::execute (TableHandler &statistics)
     {
@@ -390,11 +145,13 @@ namespace aspect
         ++output_file_number;
 
       // Now prepare everything for writing the output and choose output format
-      std::string particle_file_prefix = "LPO-" + Utilities::int_to_string (output_file_number, 5);
+      std::string particle_file_prefix_master = this->get_output_directory() +  "particle_LPO/particles-" + Utilities::int_to_string (output_file_number, 5);
+      std::string particle_file_prefix_content = this->get_output_directory() +  "particle_LPO/LPO-" + Utilities::int_to_string (output_file_number, 5);
 
       const typename Particles::ParticleHandler<dim> &particle_handler = this->get_particle_world().get_particle_handler();
 
-      std::stringstream string_stream;
+      std::stringstream string_stream_master;
+      std::stringstream string_stream_content;
 
       // get particle data
       for (typename Particles::ParticleHandler<dim>::particle_iterator it = particle_handler.begin(); it != particle_handler.end(); ++it)
@@ -411,261 +168,107 @@ namespace aspect
           unsigned int id = it->get_id();
           const ArrayView<double> &properties = it->get_properties();
 
+          const Particle::Property::ParticlePropertyInformation &property_information = this->get_particle_world().get_property_manager().get_data_info();
 
-          for (unsigned int property_index = 0; property_index < properties.size(); ++property_index)
+          AssertThrow(property_information.fieldname_exists("lpo water content") ,
+                      ExcMessage("No LPO particle properties found. Make sure that the LPO particle property plugin is selected."));
+
+          const unsigned int data_position = property_information.n_fields() == 0
+                                             ?
+                                             0
+                                             :
+                                             property_information.get_position_by_field_name("lpo water content");
+
+          Point<dim> position = it->get_location();
+
+          // write master file
+          string_stream_master << id << " " << properties[data_position] << " " << position << std::endl;
+
+          // write content file
+
+          // loop over grain retrieve from data from each grain
+          unsigned int data_grain_i = 0;
+          for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
             {
-              const Particle::Property::ParticlePropertyInformation &property_information = this->get_particle_world().get_property_manager().get_data_info();
-              const unsigned int data_position = property_information.n_fields() == 0
-                                                 ?
-                                                 0
-                                                 :
-                                                 property_information.get_position_by_field_name("lpo water content");
-              AssertThrow(data_position != 0,
-                          ExcMessage("No LPO particle properties found. Make sure that the LPO particle property plugin is selected."));
-              // loop over grain retrieve from data from each grain
-              unsigned int data_grain_i = 0;
-              for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+              // retrieve volume fraction for olvine grains
+              volume_fractions_olivine[grain_i] = properties[data_position + data_grain_i *
+                                                             (Tensor<2,3>::n_independent_components + 1) + 1];
+
+              // retrieve a_{ij} for olvine grains
+              //Tensor<2,dim> a_cosine_matrices_olivine;
+              for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
                 {
-                  // retrieve volume fraction for olvine grains
-                  volume_fractions_olivine[grain_i] = properties[data_position + data_grain_i *
-                                                                 (Tensor<2,3>::n_independent_components + 1) + 1];
-
-                  // retrieve a_{ij} for olvine grains
-                  //Tensor<2,dim> a_cosine_matrices_olivine;
-                  for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                    {
-                      const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                      a_cosine_matrices_olivine[grain_i][index] = properties[data_position + data_grain_i *
-                                                                             (Tensor<2,3>::n_independent_components + 1) + 2 + i];
-                    }
-
-                  // retrieve volume fraction for enstatite grains
-                  volume_fractions_enstatite[grain_i] = properties[data_position + (data_grain_i+1) *
-                                                                   (Tensor<2,3>::n_independent_components + 1) + 1];
-
-                  // retrieve a_{ij} for enstatite grains
-                  //Tensor<2,dim> a_cosine_matrices;
-                  for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                    {
-                      const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                      a_cosine_matrices_enstatite[grain_i][index] = properties[data_position + (data_grain_i+1) *
-                                                                               (Tensor<2,3>::n_independent_components + 1) + 2 + i];
-                    }
-                  data_grain_i = data_grain_i + 2;
+                  const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                  a_cosine_matrices_olivine[grain_i][index] = properties[data_position + data_grain_i *
+                                                                         (Tensor<2,3>::n_independent_components + 1) + 2 + i];
                 }
 
-              for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-                string_stream << id << " "
-                             << volume_fractions_olivine[grain_i] << " "
-                             << a_cosine_matrices_olivine[grain_i][0][0] << " " <<  a_cosine_matrices_olivine[grain_i][0][1] << " " <<  a_cosine_matrices_olivine[grain_i][0][2] << " "
-                             << a_cosine_matrices_olivine[grain_i][1][0] << " " <<  a_cosine_matrices_olivine[grain_i][1][1] << " " <<  a_cosine_matrices_olivine[grain_i][1][2] << " "
-                             << a_cosine_matrices_olivine[grain_i][2][0] << " " <<  a_cosine_matrices_olivine[grain_i][2][1] << " " <<  a_cosine_matrices_olivine[grain_i][2][2] << " "
-                             << volume_fractions_enstatite[grain_i] << " "
-                             << a_cosine_matrices_enstatite[grain_i][0][0] << " " <<  a_cosine_matrices_enstatite[grain_i][0][1] << " " <<  a_cosine_matrices_enstatite[grain_i][0][2] << " "
-                             << a_cosine_matrices_enstatite[grain_i][1][0] << " " <<  a_cosine_matrices_enstatite[grain_i][1][1] << " " <<  a_cosine_matrices_enstatite[grain_i][1][2] << " "
-                             << a_cosine_matrices_enstatite[grain_i][2][0] << " " <<  a_cosine_matrices_enstatite[grain_i][2][1] << " " <<  a_cosine_matrices_enstatite[grain_i][2][2] << std::endl;
+              // retrieve volume fraction for enstatite grains
+              volume_fractions_enstatite[grain_i] = properties[data_position + (data_grain_i+1) *
+                                                               (Tensor<2,3>::n_independent_components + 1) + 1];
+
+              // retrieve a_{ij} for enstatite grains
+              //Tensor<2,dim> a_cosine_matrices;
+              for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+                {
+                  const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                  a_cosine_matrices_enstatite[grain_i][index] = properties[data_position + (data_grain_i+1) *
+                                                                           (Tensor<2,3>::n_independent_components + 1) + 2 + i];
+                }
+              data_grain_i = data_grain_i + 2;
             }
+
+          for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+            string_stream_content << id << " "
+                                  << volume_fractions_olivine[grain_i] << " "
+                                  << a_cosine_matrices_olivine[grain_i][0][0] << " " <<  a_cosine_matrices_olivine[grain_i][0][1] << " " <<  a_cosine_matrices_olivine[grain_i][0][2] << " "
+                                  << a_cosine_matrices_olivine[grain_i][1][0] << " " <<  a_cosine_matrices_olivine[grain_i][1][1] << " " <<  a_cosine_matrices_olivine[grain_i][1][2] << " "
+                                  << a_cosine_matrices_olivine[grain_i][2][0] << " " <<  a_cosine_matrices_olivine[grain_i][2][1] << " " <<  a_cosine_matrices_olivine[grain_i][2][2] << " "
+                                  << volume_fractions_enstatite[grain_i] << " "
+                                  << a_cosine_matrices_enstatite[grain_i][0][0] << " " <<  a_cosine_matrices_enstatite[grain_i][0][1] << " " <<  a_cosine_matrices_enstatite[grain_i][0][2] << " "
+                                  << a_cosine_matrices_enstatite[grain_i][1][0] << " " <<  a_cosine_matrices_enstatite[grain_i][1][1] << " " <<  a_cosine_matrices_enstatite[grain_i][1][2] << " "
+                                  << a_cosine_matrices_enstatite[grain_i][2][0] << " " <<  a_cosine_matrices_enstatite[grain_i][2][1] << " " <<  a_cosine_matrices_enstatite[grain_i][2][2] << std::endl;
         }
 
-      std::string filename = particle_file_prefix + "." + Utilities::int_to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD),4) + ".dat";
+      std::string filename_master = particle_file_prefix_master + "." + Utilities::int_to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD),4) + ".dat";
+      std::string filename = particle_file_prefix_content + "." + Utilities::int_to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD),4) + ".dat";
 
-          std::string *file_contents = new std::string (string_stream.str());
+      std::string *file_contents_master = new std::string (string_stream_master.str());
+      std::string *file_contents = new std::string (string_stream_content.str());
 
-          if (write_in_background_thread)
-            {
-              // Wait for all previous write operations to finish, should
-              // any be still active,
-              background_thread.join ();
-
-              // then continue with writing our own data.
-              background_thread = Threads::new_thread (&writer,
-                                                       filename,
-                                                       temporary_output_location,
-                                                       file_contents);
-            }
-          else
-            writer(filename,temporary_output_location,file_contents);
-
-
-      /*unsigned int timestep_number = this->get_timestep_number();
-      std::ofstream myfile;
-
-      const std::string version_op = "12";
-
-
-      std::string filename = "lpo_particle_" + version_op + "_AM_T_" + std::to_string(timestep_number) + "." + std::to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD)) + ".txt";
-      myfile.open (filename);
-      AssertThrow(myfile.is_open(), ExcMessage("Could not open file"));
-
-      for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
+      if (write_in_background_thread)
         {
-          myfile << a_cosine_matrices_olivine[i_grain][0][0] << " " <<  a_cosine_matrices_olivine[i_grain][0][1] << " " <<  a_cosine_matrices_olivine[i_grain][0][2] << " "
-                 << a_cosine_matrices_olivine[i_grain][1][0] << " " <<  a_cosine_matrices_olivine[i_grain][1][1] << " " <<  a_cosine_matrices_olivine[i_grain][1][2] << " "
-                 << a_cosine_matrices_olivine[i_grain][2][0] << " " <<  a_cosine_matrices_olivine[i_grain][2][1] << " " <<  a_cosine_matrices_olivine[i_grain][2][2] << std::endl;
+          // Wait for all previous write operations to finish, should
+          // any be still active,
+          background_thread_master.join ();
+
+          // then continue with writing the master file
+          background_thread_master = Threads::new_thread (&writer,
+                                                          filename_master,
+                                                          temporary_output_location,
+                                                          file_contents_master);
+
+          // Wait for all previous write operations to finish, should
+          // any be still active,
+          background_thread_content.join ();
+
+          // then continue with writing our own data.
+          background_thread_content = Threads::new_thread (&writer,
+                                                           filename,
+                                                           temporary_output_location,
+                                                           file_contents);
         }
-      myfile.close();
-
-      // Third build the actual patch data
-      patches.resize(particle_handler.n_locally_owned_particles());
-
-      typename dealii::Particles::ParticleHandler<dim>::particle_iterator particle = particle_handler.begin();
-
-      for (unsigned int i=0; particle != particle_handler.end(); ++particle, ++i)
-      */
-
-
-/*
-      const double time_in_years_or_seconds = (this->convert_output_to_years() ?
-                                               this->get_time() / year_in_seconds :
-                                               this->get_time());
-
-      for (std::vector<std::string>::iterator output_format = output_formats.begin();
-           output_format != output_formats.end();
-           ++output_format)
+      else
         {
-          if (*output_format == "none")
-            {
-              // If we do not write output return early with the number of advected particles
-              return std::make_pair("Number of advected particles:",
-                                    Utilities::int_to_string(world.n_global_particles()));
-            }
-          else if (*output_format=="hdf5")
-            {
-              const std::string particle_file_name = "particles/" + particle_file_prefix + ".h5";
-              const std::string xdmf_filename = "particles.xdmf";
-
-              // Do not filter redundant values, there are no duplicate particles
-              DataOutBase::DataOutFilter data_filter(DataOutBase::DataOutFilterFlags(false, true));
-
-              data_out.write_filtered_data(data_filter);
-              data_out.write_hdf5_parallel(data_filter,
-                                           this->get_output_directory()+particle_file_name,
-                                           this->get_mpi_communicator());
-
-              const XDMFEntry new_xdmf_entry = data_out.create_xdmf_entry(data_filter,
-                                                                          particle_file_name,
-                                                                          time_in_years_or_seconds,
-                                                                          this->get_mpi_communicator());
-              xdmf_entries.push_back(new_xdmf_entry);
-              data_out.write_xdmf_file(xdmf_entries, this->get_output_directory() + xdmf_filename,
-                                       this->get_mpi_communicator());
-            }
-          else if (*output_format == "vtu")
-            {
-              // Write master files (.pvtu,.pvd,.visit) on the master process
-              const int my_id = Utilities::MPI::this_mpi_process(this->get_mpi_communicator());
-
-              if (my_id == 0)
-                {
-                  std::vector<std::string> filenames;
-                  const unsigned int n_processes = Utilities::MPI::n_mpi_processes(this->get_mpi_communicator());
-                  const unsigned int n_files = (group_files == 0) ? n_processes : std::min(group_files,n_processes);
-                  for (unsigned int i=0; i<n_files; ++i)
-                    filenames.push_back (particle_file_prefix
-                                         + "." + Utilities::int_to_string(i, 4)
-                                         + ".vtu");
-                  write_master_files (data_out, particle_file_prefix, filenames);
-                }
-
-              const unsigned int n_processes = Utilities::MPI::n_mpi_processes(this->get_mpi_communicator());
-
-              const unsigned int my_file_id = (group_files == 0
-                                               ?
-                                               my_id
-                                               :
-                                               my_id % group_files);
-              const std::string filename = this->get_output_directory()
-                                           + "particles/"
-                                           + particle_file_prefix
-                                           + "."
-                                           + Utilities::int_to_string (my_file_id, 4)
-                                           + ".vtu";
-
-              // pass time step number and time as metadata into the output file
-              DataOutBase::VtkFlags vtk_flags;
-              vtk_flags.cycle = this->get_timestep_number();
-              vtk_flags.time = time_in_years_or_seconds;
-
-              data_out.set_flags (vtk_flags);
-
-              // Write as many files as processes. For this case we support writing in a
-              // background thread and to a temporary location, so we first write everything
-              // into a string that is written to disk in a writer function
-              if ((group_files == 0) || (group_files >= n_processes))
-                {
-                  // Put the content we want to write into a string object that
-                  // we can then write in the background
-                  const std::string *file_contents;
-                  {
-                    std::ostringstream tmp;
-
-                    data_out.write (tmp, DataOutBase::parse_output_format(*output_format));
-                    file_contents = new std::string (tmp.str());
-                  }
-
-                  if (write_in_background_thread)
-                    {
-                      // Wait for all previous write operations to finish, should
-                      // any be still active,
-                      background_thread.join ();
-
-                      // then continue with writing our own data.
-                      background_thread = Threads::new_thread (&writer,
-                                                               filename,
-                                                               temporary_output_location,
-                                                               file_contents);
-                    }
-                  else
-                    writer(filename,temporary_output_location,file_contents);
-                }
-              // Just write one data file in parallel
-              else if (group_files == 1)
-                {
-                  data_out.write_vtu_in_parallel(filename.c_str(),
-                                                 this->get_mpi_communicator());
-                }
-              // Write as many output files as 'group_files' groups
-              else
-                {
-                  int color = my_id % group_files;
-
-                  MPI_Comm comm;
-                  MPI_Comm_split(this->get_mpi_communicator(), color, my_id, &comm);
-
-                  data_out.write_vtu_in_parallel(filename.c_str(), comm);
-                  MPI_Comm_free(&comm);
-                }
-            }
-          // Write in a different format than hdf5 or vtu. This case is supported, but is not
-          // optimized for parallel output in that every process will write one file directly
-          // into the output directory. This may or may not affect performance depending on
-          // the model setup and the network file system type.
-          else
-            {
-              const unsigned int myid = Utilities::MPI::this_mpi_process(this->get_mpi_communicator());
-
-              const std::string filename = this->get_output_directory()
-                                           + "particles/"
-                                           + particle_file_prefix
-                                           + "."
-                                           +  Utilities::int_to_string (myid, 4)
-                                           + DataOutBase::default_suffix
-                                           (DataOutBase::parse_output_format(*output_format));
-
-              std::ofstream out (filename.c_str());
-
-              AssertThrow(out,
-                          ExcMessage("Unable to open file for writing: " + filename +"."));
-
-              data_out.write (out, DataOutBase::parse_output_format(*output_format));
-            }
-        }*/
+          writer(filename_master,temporary_output_location,file_contents_master);
+          writer(filename,temporary_output_location,file_contents);
+        }
 
 
       // up the next time we need output
       set_last_output_time (this->get_time());
 
-      const std::string particle_lpo_output = this->get_output_directory() + "particle_LPO/" + particle_file_prefix;
+      const std::string particle_lpo_output = particle_file_prefix_content;
 
       // record the file base file name in the output file
       statistics.add_value ("Particle LPO file name",
@@ -724,32 +327,11 @@ namespace aspect
                              "'Use years in output instead of seconds' parameter is set; "
                              "seconds otherwise.");
 
-          // now also see about the file format we're supposed to write in
-          // Note: "ascii" is a legacy format used by ASPECT before particle output
-          // in deal.II was implemented. It is nearly identical to the gnuplot format, thus
-          // we now simply replace "ascii" by "gnuplot" should it be selected.
-          /*prm.declare_entry ("Data output format", "vtu",
-                             Patterns::MultipleSelection (DataOutBase::get_output_format_names ()+"|ascii"),
-                             "A comma separated list of file formats to be used for graphical "
-                             "output. The list of possible output formats that can be given "
-                             "here is documented in the appendix of the manual where the current "
-                             "parameter is described.");
-
-          prm.declare_entry ("Number of grouped files", "16",
-                             Patterns::Integer(0),
-                             "VTU file output supports grouping files from several CPUs "
-                             "into a given number of files using MPI I/O when writing on a parallel "
-                             "filesystem. Select 0 for no grouping. This will disable "
-                             "parallel file output and instead write one file per processor. "
-                             "A value of 1 will generate one big file containing the whole "
-                             "solution, while a larger value will create that many files "
-                             "(at most as many as there are MPI ranks).");*/
-
           prm.declare_entry ("Write in background thread", "false",
                              Patterns::Bool(),
                              "File operations can potentially take a long time, blocking the "
                              "progress of the rest of the model run. Setting this variable to "
-                             "`true' moves this process into a background thread, while the "
+                             "`true' moves this process into a background threads, while the "
                              "rest of the model continues.");
 
           prm.declare_entry ("Temporary output location", "",
@@ -792,9 +374,9 @@ namespace aspect
           //            ExcMessage("Postprocessing nonlinear iterations in models with "
           //                       "particles is currently not supported."));
 
-            aspect::Utilities::create_directory (this->get_output_directory() + "particle_LPO/",
-                                                 this->get_mpi_communicator(),
-                                                 true);
+          aspect::Utilities::create_directory (this->get_output_directory() + "particle_LPO/",
+                                               this->get_mpi_communicator(),
+                                               true);
 
           write_in_background_thread = prm.get_bool("Write in background thread");
           temporary_output_location = prm.get("Temporary output location");
@@ -825,14 +407,6 @@ namespace aspect
 {
   namespace Postprocess
   {
-    namespace internal
-    {
-#define INSTANTIATE(dim) \
-  template class ParticleOutput<dim>;
-
-      ASPECT_INSTANTIATE(INSTANTIATE)
-    }
-
     ASPECT_REGISTER_POSTPROCESSOR(LPO,
                                   "lpo",
                                   "A Postprocessor that creates particles that follow the "
