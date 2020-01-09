@@ -182,7 +182,7 @@ namespace aspect
           Point<dim> position = it->get_location();
 
           // write master file
-          string_stream_master << id << " " << properties[data_position] << " " << position << std::endl;
+          string_stream_master << id << " " << position << " " << properties[data_position] << std::endl;
 
           // write content file
 
