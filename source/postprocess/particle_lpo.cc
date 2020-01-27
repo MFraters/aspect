@@ -51,7 +51,19 @@ namespace aspect
       // make sure a thread that may still be running in the background,
       // writing data, finishes
       background_thread_master.join ();
-      background_thread_content.join ();
+      background_thread_content_raw.join ();
+      background_thread_content_draw_volume_weighting.join ();
+    }
+
+    template <int dim>
+    void
+    LPO<dim>::initialize ()
+    {
+      const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+      this->random_number_generator.seed(random_number_seed+my_rank);
+      // todo: check wheter this works correctly. Since the get_random_number function takes a reference
+      // to the random_number_generator function, changing the function should mean that I have to update the
+      // get_random_number function as well. But I will need to test this.
     }
 
 
@@ -146,12 +158,14 @@ namespace aspect
 
       // Now prepare everything for writing the output and choose output format
       std::string particle_file_prefix_master = this->get_output_directory() +  "particle_LPO/particles-" + Utilities::int_to_string (output_file_number, 5);
-      std::string particle_file_prefix_content = this->get_output_directory() +  "particle_LPO/LPO-" + Utilities::int_to_string (output_file_number, 5);
+      std::string particle_file_prefix_content_raw = this->get_output_directory() +  "particle_LPO/LPO-" + Utilities::int_to_string (output_file_number, 5);
+      std::string particle_file_prefix_content_draw_volume_weighting = this->get_output_directory() +  "particle_LPO/weighted_LPO-" + Utilities::int_to_string (output_file_number, 5);
 
       const typename Particles::ParticleHandler<dim> &particle_handler = this->get_particle_world().get_particle_handler();
 
       std::stringstream string_stream_master;
-      std::stringstream string_stream_content;
+      std::stringstream string_stream_content_raw;
+      std::stringstream string_stream_content_draw_volume_weighting;
 
       // get particle data
       for (typename Particles::ParticleHandler<dim>::particle_iterator it = particle_handler.begin(); it != particle_handler.end(); ++it)
@@ -218,23 +232,146 @@ namespace aspect
               data_grain_i = data_grain_i + 2;
             }
 
-          for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-            string_stream_content << id << " "
-                                  << volume_fractions_olivine[grain_i] << " "
-                                  << a_cosine_matrices_olivine[grain_i][0][0] << " " <<  a_cosine_matrices_olivine[grain_i][0][1] << " " <<  a_cosine_matrices_olivine[grain_i][0][2] << " "
-                                  << a_cosine_matrices_olivine[grain_i][1][0] << " " <<  a_cosine_matrices_olivine[grain_i][1][1] << " " <<  a_cosine_matrices_olivine[grain_i][1][2] << " "
-                                  << a_cosine_matrices_olivine[grain_i][2][0] << " " <<  a_cosine_matrices_olivine[grain_i][2][1] << " " <<  a_cosine_matrices_olivine[grain_i][2][2] << " "
-                                  << volume_fractions_enstatite[grain_i] << " "
-                                  << a_cosine_matrices_enstatite[grain_i][0][0] << " " <<  a_cosine_matrices_enstatite[grain_i][0][1] << " " <<  a_cosine_matrices_enstatite[grain_i][0][2] << " "
-                                  << a_cosine_matrices_enstatite[grain_i][1][0] << " " <<  a_cosine_matrices_enstatite[grain_i][1][1] << " " <<  a_cosine_matrices_enstatite[grain_i][1][2] << " "
-                                  << a_cosine_matrices_enstatite[grain_i][2][0] << " " <<  a_cosine_matrices_enstatite[grain_i][2][1] << " " <<  a_cosine_matrices_enstatite[grain_i][2][2] << std::endl;
+          std::vector<std::vector<double> > euler_angles_olivine;
+          std::vector<std::vector<double> > euler_angles_enstatite;
+          if (compute_raw_euler_angles == true)
+            {
+              euler_angles_olivine.resize(n_grains);
+              for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
+                {
+                  euler_angles_olivine[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_olivine[i_grain]);
+                }
+
+              euler_angles_enstatite.resize(n_grains);
+              for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
+                {
+                  euler_angles_enstatite[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_enstatite[i_grain]);
+                }
+            }
+
+          if (write_raw_lpo.size() != 0)
+            {
+              for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                {
+                  string_stream_content_raw << id << " ";
+                  for (unsigned int property_i = 0; property_i < write_raw_lpo.size(); ++property_i)
+                    {
+                      switch (write_raw_lpo[property_i])
+                        {
+                          case Output::olivine_volume_fraction:
+                            string_stream_content_raw << volume_fractions_olivine[grain_i] << " ";
+                            break;
+
+                          case Output::olivine_A_matrix:
+                            string_stream_content_raw << a_cosine_matrices_olivine[grain_i] << " ";
+                            break;
+
+                          case Output::olivine_Euler_angles:
+                            Assert(compute_raw_euler_angles == true,
+                                   ExcMessage("Internal error: writing out raw Euler angles, without them being computed."));
+                            string_stream_content_raw << euler_angles_olivine[grain_i][0] << " " <<  euler_angles_olivine[grain_i][1] << " " <<  euler_angles_olivine[grain_i][2] << " ";
+                            break;
+
+                          case Output::enstatite_volume_fraction:
+                            string_stream_content_raw << volume_fractions_enstatite[grain_i] << " ";
+                            break;
+
+                          case Output::enstatite_A_matrix:
+                            string_stream_content_raw << a_cosine_matrices_enstatite[grain_i] << " ";
+                            break;
+
+                          case Output::enstatite_Euler_angles:
+                            Assert(compute_raw_euler_angles == true,
+                                   ExcMessage("Internal error: writing out raw Euler angles, without them being computed."));
+                            string_stream_content_raw << euler_angles_enstatite[grain_i][0] << " " <<  euler_angles_enstatite[grain_i][1] << " " <<  euler_angles_enstatite[grain_i][2] << " ";
+                            break;
+
+                          default:
+                            Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
+                            break;
+                        }
+                    }
+                  string_stream_content_raw << std::endl;
+                }
+
+            }
+          if (write_draw_volume_weighted_lpo.size() != 0)
+            {
+              std::vector<std::vector<double> > weighted_euler_angles_olivine = random_draw_volume_weighting(volume_fractions_olivine, euler_angles_olivine);
+              Assert(weighted_angles_olivine.size() == euler_angles_olivine.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_angles.size()) +
+                     ") has different size from input angles (size = " + std::to_string(euler_angles_olivine.size()) + ")."));
+              std::vector<std::vector<double> > weighted_euler_angles_enstatite = random_draw_volume_weighting(volume_fractions_olivine, euler_angles_enstatite);
+              Assert(weighted_angles_enstatite.size() == euler_angles_enstatite.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_angles.size()) +
+                     ") has different size from input angles (size = " + std::to_string(euler_angles_enstatite.size()) + ")."));
+
+              std::vector<Tensor<2,3> > weighted_a_cosine_matrices_olivine;
+              std::vector<Tensor<2,3> > weighted_a_cosine_matrices_enstatite;
+              if (compute_weighted_A_matrix == true)
+                {
+                  weighted_a_cosine_matrices_olivine.resize(weighted_euler_angles_olivine.size());
+                  for (unsigned int i = 0; i < weighted_euler_angles_olivine.size(); ++i)
+                    {
+                      weighted_a_cosine_matrices_olivine[i] = euler_angles_to_rotation_matrix(weighted_euler_angles_olivine[i][0],
+                                                                                              weighted_euler_angles_olivine[i][1],
+                                                                                              weighted_euler_angles_olivine[i][2]);
+                    }
+
+                  weighted_a_cosine_matrices_enstatite.resize(weighted_euler_angles_enstatite.size());
+                  for (unsigned int i = 0; i < weighted_euler_angles_enstatite.size(); ++i)
+                    {
+                      weighted_a_cosine_matrices_enstatite[i] = euler_angles_to_rotation_matrix(weighted_euler_angles_enstatite[i][0],
+                                                                                                weighted_euler_angles_enstatite[i][1],
+                                                                                                weighted_euler_angles_enstatite[i][2]);
+                    }
+                }
+              for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                {
+                  string_stream_content_draw_volume_weighting << id << " ";
+                  for (unsigned int property_i = 0; property_i < write_draw_volume_weighted_lpo.size(); ++property_i)
+                    {
+                      switch (write_draw_volume_weighted_lpo[property_i])
+                        {
+                          case Output::olivine_volume_fraction:
+                            string_stream_content_draw_volume_weighting << volume_fractions_olivine[grain_i] << " ";
+                            break;
+
+                          case Output::olivine_A_matrix:
+                            string_stream_content_draw_volume_weighting << a_cosine_matrices_olivine[grain_i] << " ";
+                            break;
+
+                          case Output::olivine_Euler_angles:
+                            string_stream_content_draw_volume_weighting << weighted_euler_angles_olivine[grain_i][0] << " " <<  weighted_euler_angles_olivine[grain_i][1] << " " <<  weighted_euler_angles_olivine[grain_i][2] << " ";
+                            break;
+
+                          case Output::enstatite_volume_fraction:
+                            string_stream_content_draw_volume_weighting << volume_fractions_enstatite[grain_i] << " ";
+                            break;
+
+                          case Output::enstatite_A_matrix:
+                            string_stream_content_draw_volume_weighting << a_cosine_matrices_enstatite[grain_i] << " ";
+                            break;
+
+                          case Output::enstatite_Euler_angles:
+                            string_stream_content_draw_volume_weighting << weighted_euler_angles_enstatite[grain_i][0] << " " <<  weighted_euler_angles_enstatite[grain_i][1] << " " <<  weighted_euler_angles_enstatite[grain_i][2] << " ";
+                            break;
+
+                          default:
+                            Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
+                            break;
+                        }
+                    }
+                  string_stream_content_draw_volume_weighting << std::endl;
+                }
+            }
         }
 
       std::string filename_master = particle_file_prefix_master + "." + Utilities::int_to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD),4) + ".dat";
-      std::string filename = particle_file_prefix_content + "." + Utilities::int_to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD),4) + ".dat";
+      std::string filename_raw = particle_file_prefix_content_raw + "." + Utilities::int_to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD),4) + ".dat";
+      std::string filename_draw_volume_weighting = particle_file_prefix_content_draw_volume_weighting + "." + Utilities::int_to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD),4) + ".dat";
 
       std::string *file_contents_master = new std::string (string_stream_master.str());
-      std::string *file_contents = new std::string (string_stream_content.str());
+      std::string *file_contents_raw = new std::string (string_stream_content_raw.str());
+      std::string *file_contents_draw_volume_weighting = new std::string (string_stream_content_draw_volume_weighting.str());
 
       if (write_in_background_thread)
         {
@@ -248,32 +385,164 @@ namespace aspect
                                                           temporary_output_location,
                                                           file_contents_master);
 
-          // Wait for all previous write operations to finish, should
-          // any be still active,
-          background_thread_content.join ();
+          if (write_raw_lpo.size() != 0)
+            {
+              // Wait for all previous write operations to finish, should
+              // any be still active,
+              background_thread_content_raw.join ();
 
-          // then continue with writing our own data.
-          background_thread_content = Threads::new_thread (&writer,
-                                                           filename,
-                                                           temporary_output_location,
-                                                           file_contents);
+              // then continue with writing our own data.
+              background_thread_content_raw = Threads::new_thread (&writer,
+                                                                   filename_raw,
+                                                                   temporary_output_location,
+                                                                   file_contents_raw);
+            }
+
+          if (write_draw_volume_weighted_lpo.size() != 0)
+            {
+              // Wait for all previous write operations to finish, should
+              // any be still active,
+              background_thread_content_draw_volume_weighting.join ();
+
+              // then continue with writing our own data.
+              background_thread_content_draw_volume_weighting = Threads::new_thread (&writer,
+                                                                                     filename_draw_volume_weighting,
+                                                                                     temporary_output_location,
+                                                                                     file_contents_draw_volume_weighting);
+            }
         }
       else
         {
           writer(filename_master,temporary_output_location,file_contents_master);
-          writer(filename,temporary_output_location,file_contents);
+          if (write_raw_lpo.size() != 0)
+            writer(filename_raw,temporary_output_location,file_contents_raw);
+          if (write_draw_volume_weighted_lpo.size() != 0)
+            writer(filename_draw_volume_weighting,temporary_output_location,file_contents_draw_volume_weighting);
         }
 
 
       // up the next time we need output
       set_last_output_time (this->get_time());
 
-      const std::string particle_lpo_output = particle_file_prefix_content;
+      const std::string particle_lpo_output = particle_file_prefix_content_raw;
 
       // record the file base file name in the output file
       statistics.add_value ("Particle LPO file name",
                             particle_lpo_output);
       return std::make_pair("Writing particle lpo output:", particle_lpo_output);
+    }
+
+    template<int dim>
+    std::vector<std::vector<double> >
+    LPO<dim>::random_draw_volume_weighting(std::vector<double> fv,
+                                           std::vector<std::vector<double>> angles) const
+    {
+      // Get volume weighted euler angles, using random draws to convert odf
+      // to a discrete number of orientations, weighted by volume
+      // 1a. Get index that would sort volume fractions AND
+      //ix = np.argsort(fv[q,:]);
+      // 1b. Get the sorted volume and angle arrays
+      std::vector<double> fv_to_sort = fv;
+      std::vector<double> fv_sorted = fv;
+      std::vector<std::vector<double>> angles_sorted = angles;
+
+      unsigned int n_grain = fv_to_sort.size();
+
+
+      /**
+       * ...
+       */
+      for (int i = n_grain-1; i >= 0; --i)
+        {
+          unsigned int index_max_fv = std::distance(fv_to_sort.begin(),max_element(fv_to_sort.begin(), fv_to_sort.end()));
+
+          fv_sorted[i] = fv_to_sort[index_max_fv];
+          angles_sorted[i] = angles[index_max_fv];
+          Assert(angles[index_max_fv].size() == 3, ExcMessage("angles vector (size = " + std::to_string(angles[index_max_fv].size()) +
+                                                              ") should have size 3."));
+          Assert(angles_sorted[i].size() == 3, ExcMessage("angles_sorted vector (size = " + std::to_string(angles_sorted[i].size()) +
+                                                          ") should have size 3."));
+          fv_to_sort[index_max_fv] = -1;
+        }
+
+
+      // 2. Get cumulative weight for volume fraction
+      std::vector<double> cum_weight(n_grains);
+      std::partial_sum(fv_sorted.begin(),fv_sorted.end(),cum_weight.begin());
+      // 3. Generate random indices
+      boost::random::uniform_real_distribution<> dist(0, 1);
+      std::vector<double> idxgrain(n_grains);
+      for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+        idxgrain[grain_i] = dist(this->random_number_generator); //random.rand(ngrains,1);
+
+      // 4. Find the maximum cum_weight that is less than the random value.
+      // the euler angle index is +1. For example, if the idxGrain(g) < cumWeight(1),
+      // the index should be 1 not zero)
+      std::vector<std::vector<double>> angles_out(n_grains,std::vector<double>(3));
+      for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+        {
+          unsigned int counter = 0;
+          for (unsigned int grain_j = 0; grain_j < n_grains-1; ++grain_j)
+            {
+              if (cum_weight[grain_j] < idxgrain[grain_i])
+                {
+                  counter++;
+                }
+
+              Assert(angles_sorted[counter].size() == 3, ExcMessage("angles_sorted vector (size = " + std::to_string(angles_sorted[counter].size()) +
+                                                                    ") should have size 3."));
+              angles_out[grain_i] = angles_sorted[counter];
+              Assert(angles_out[counter].size() == 3, ExcMessage("angles_out vector (size = " + std::to_string(angles_out[counter].size()) +
+                                                                 ") should have size 3."));
+            }
+        }
+      return angles_out;
+    }
+
+
+    template <int dim>
+    double
+    LPO<dim>::wrap_angle(const double angle) const
+    {
+      return angle - 360.0*std::floor(angle/360.0);
+    }
+
+    template <int dim>
+    std::vector<double>
+    LPO<dim>::euler_angles_from_rotation_matrix(const Tensor<2,3> &rotation_matrix) const
+    {
+      std::vector<double> euler_angles(3);
+      //const double s2 = std::sqrt(rotation_matrix[2][1] * rotation_matrix[2][1] + rotation_matrix[2][0] * rotation_matrix[2][0]);
+      const double phi1  = std::atan2(rotation_matrix[2][0],-rotation_matrix[2][1]) * rad_to_degree;
+      const double theta = std::acos(rotation_matrix[2][2]) * rad_to_degree;
+      const double phi2  = std::atan2(rotation_matrix[0][2],rotation_matrix[1][2]) * rad_to_degree;
+
+      euler_angles[0] = wrap_angle(phi1);
+      euler_angles[1] = wrap_angle(theta);
+      euler_angles[2] = wrap_angle(phi2);
+
+      return euler_angles;
+    }
+
+    template <int dim>
+    Tensor<2,3>
+    LPO<dim>::euler_angles_to_rotation_matrix(double phi1, double theta, double phi2) const
+    {
+      Tensor<2,3> rot_matrix;
+
+
+      rot_matrix[0][0] = cos(phi2)*cos(phi1) - cos(theta)*sin(phi1)*sin(phi2);
+      rot_matrix[0][1] = cos(phi2)*sin(phi1) + cos(theta)*cos(phi1)*sin(phi2);
+      rot_matrix[0][2] = sin(phi2)*sin(theta);
+
+      rot_matrix[1][0] = -1.0*sin(phi2)*cos(phi1) - cos(theta)*sin(phi1)*cos(phi2);
+      rot_matrix[1][1] = -1.0*sin(phi2)*sin(phi1) + cos(theta)*cos(phi1)*cos(phi2);
+      rot_matrix[1][2] = cos(phi2)*sin(theta);
+
+      rot_matrix[2][0] = sin(theta)*sin(phi1);
+      rot_matrix[2][1] = -1.0*sin(theta)*cos(phi1);
+      rot_matrix[2][2] = cos(theta);
+      return rot_matrix;
     }
 
 
@@ -295,6 +564,27 @@ namespace aspect
           const double magic = 1.0+2.0*std::numeric_limits<double>::epsilon();
           last_output_time = last_output_time + std::floor((current_time-last_output_time)/output_interval*magic) * output_interval/magic;
         }
+    }
+
+    template <int dim>
+    typename LPO<dim>::Output
+    LPO<dim>::string_to_output_enum(std::string string)
+    {
+      //olivine volume fraction, olivine A matrix, olivine Euler angles, enstatite volume fraction, enstatite A matrix, enstatite Euler angles
+      if (string == "olivine volume fraction")
+        return Output::olivine_volume_fraction;
+      if (string == "olivine A matrix")
+        return Output::olivine_A_matrix;
+      if (string == "olivine Euler angles")
+        return Output::olivine_Euler_angles;
+      if (string == "enstatite volume fraction")
+        return Output::enstatite_volume_fraction;
+      if (string == "enstatite A matrix")
+        return Output::enstatite_A_matrix;
+      if (string == "enstatite Euler angles")
+        return Output::enstatite_Euler_angles;
+
+      return Output::not_found;
     }
 
 
@@ -327,6 +617,13 @@ namespace aspect
                              "'Use years in output instead of seconds' parameter is set; "
                              "seconds otherwise.");
 
+          prm.declare_entry ("Random number seed", "1",
+                             Patterns::Integer (0),
+                             "The seed used to generate random numbers. This will make sure that "
+                             "results are reproducable as long as the problem is run with the "
+                             "same amount of MPI processes. It is implemented as final seed = "
+                             "user seed + MPI Rank. ");
+
           prm.declare_entry ("Write in background thread", "false",
                              Patterns::Bool(),
                              "File operations can potentially take a long time, blocking the "
@@ -341,6 +638,41 @@ namespace aspect
                              "move this file to a network file system. If this variable is "
                              "set to a non-empty string it will be interpreted as a "
                              "temporary storage location.");
+
+          prm.declare_entry ("Write out raw lpo data",
+                             "olivine volume fraction,olivine Euler angles,enstatite volume fraction,enstatite Euler angles",
+                             Patterns::List(Patterns::Anything()),
+                             "A list containing the what part of the particle lpo data needs "
+                             "to be written out after the particle id. This writes out the raw "
+                             "lpo data files for each MPI process. It can write out the following data: "
+                             "olivine volume fraction, olivine A matrix, olivine Euler angles, "
+                             "enstatite volume fraction, enstatite A matrix, enstatite Euler angles. \n"
+                             "Note that the A matrix and Euler angles both contain the same "
+                             "information, but in a different format. Euler angles are recommended "
+                             "over the A matrix since they only require to write 3 values instead "
+                             "of 9. If the list is empty, this file will not be written."
+                             "Furthermore, the entries will be written out in the order given, "
+                             "and if entries are entered muliple times, they will be written "
+                             "out multiple times.");
+
+          prm.declare_entry ("Write out draw volume weighted lpo data",
+                             "olivine Euler angles,enstatite Euler angles",
+                             Patterns::List(Patterns::Anything()),
+                             "A list containing the what part of the random draw volume "
+                             "weighted particle lpo data needs to be written out after "
+                             "the particle id. after using a random draw volume weighting. "
+                             "The random draw volume weigthing uses a uniform random distribution "
+                             "This writes out the raw lpo data files for "
+                             "each MPI process. It can write out the following data: "
+                             "olivine volume fraction, olivine A matrix, olivine Euler angles, "
+                             "enstatite volume fraction, enstatite A matrix, enstatite Euler angles. \n"
+                             "Note that the A matrix and Euler angles both contain the same "
+                             "information, but in a different format. Euler angles are recommended "
+                             "over the A matrix since they only require to write 3 values instead "
+                             "of 9. If the list is empty, this file will not be written. "
+                             "Furthermore, the entries will be written out in the order given, "
+                             "and if entries are entered muliple times, they will be written "
+                             "out multiple times.");
         }
         prm.leave_subsection ();
       }
@@ -370,6 +702,8 @@ namespace aspect
           if (this->convert_output_to_years())
             output_interval *= year_in_seconds;
 
+          random_number_seed = prm.get_integer ("Random number seed");
+
           //AssertThrow(this->get_parameters().run_postprocessors_on_nonlinear_iterations == false,
           //            ExcMessage("Postprocessing nonlinear iterations in models with "
           //                       "particles is currently not supported."));
@@ -392,6 +726,40 @@ namespace aspect
                                      "there is a terminal available to move the files to their final location "
                                      "after writing. The system() command did not succeed in finding such a terminal."));
             }
+          std::vector<std::string> write_raw_lpo_tmp = Utilities::split_string_list(prm.get("Write out raw lpo data"));
+          write_raw_lpo.resize(write_raw_lpo_tmp.size());
+          bool found_euler_angles = false;
+          for (unsigned int i = 0; i < write_raw_lpo_tmp.size(); ++i)
+            {
+              write_raw_lpo[i] = string_to_output_enum(write_raw_lpo_tmp[i]);
+              AssertThrow(write_raw_lpo[i] != Output::not_found,
+                          ExcMessage("Value \""+ write_raw_lpo_tmp[i] +"\", set in \"Write out raw lpo data\", is not a correct option."))
+
+              if (write_raw_lpo[i] == Output::enstatite_Euler_angles || write_raw_lpo[i] == Output::olivine_Euler_angles)
+                found_euler_angles = true;
+            }
+
+          std::vector<std::string> write_draw_volume_weighted_lpo_tmp = Utilities::split_string_list(prm.get("Write out draw volume weighted lpo data"));
+          write_draw_volume_weighted_lpo.resize(write_draw_volume_weighted_lpo_tmp.size());
+          bool found_A_matrix = false;
+          for (unsigned int i = 0; i < write_draw_volume_weighted_lpo_tmp.size(); ++i)
+            {
+              write_draw_volume_weighted_lpo[i] = string_to_output_enum(write_draw_volume_weighted_lpo_tmp[i]);
+              AssertThrow(write_draw_volume_weighted_lpo[i] != Output::not_found,
+                          ExcMessage("Value \""+ write_draw_volume_weighted_lpo_tmp[i] +"\", set in \"Write out raw lpo data\", is not a correct option."));
+
+              if (write_raw_lpo[i] == Output::olivine_A_matrix || write_raw_lpo[i] == Output::enstatite_A_matrix)
+                found_A_matrix = true;
+            }
+          if (write_draw_volume_weighted_lpo_tmp.size() != 0 || found_euler_angles == true)
+            compute_raw_euler_angles = true;
+          else
+            compute_raw_euler_angles = false;
+
+          if (write_draw_volume_weighted_lpo_tmp.size() != 0 && found_A_matrix == true)
+            compute_weighted_A_matrix = true;
+          else
+            compute_weighted_A_matrix = false;
         }
         prm.leave_subsection ();
       }

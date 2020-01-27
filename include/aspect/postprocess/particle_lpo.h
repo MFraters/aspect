@@ -59,6 +59,11 @@ namespace aspect
 
 
         /**
+         * Initialize function.
+         */
+        virtual void initialize ();
+
+        /**
          * Execute this postprocessor. Derived classes will implement this
          * function to do whatever they want to do to evaluate the solution at
          * the current time step.
@@ -79,8 +84,29 @@ namespace aspect
         std::pair<std::string,std::string> execute (TableHandler &statistics);
 
         /**
-         * Declare the parameters this class takes through input files.
+         * Todo
          */
+        std::vector<std::vector<double>> random_draw_volume_weighting(std::vector<double> fv,
+                                                                      std::vector<std::vector<double>> angles) const;
+
+        /**
+        * Todo
+        */
+        double wrap_angle(const double angle) const;
+
+        /**
+         * Todo
+         */
+        std::vector<double> euler_angles_from_rotation_matrix(const Tensor<2,3> &rotation_matrix) const;
+
+        /**
+         * Todo
+         */
+        Tensor<2,3> euler_angles_to_rotation_matrix(double phi1, double theta, double phi2) const;
+
+        /**
+        * Declare the parameters this class takes through input files.
+        */
         static
         void
         declare_parameters (ParameterHandler &prm);
@@ -93,6 +119,24 @@ namespace aspect
         parse_parameters (ParameterHandler &prm);
 
       private:
+        /**
+         * todo
+         */
+        enum class Output
+        {
+          olivine_volume_fraction, olivine_A_matrix, olivine_Euler_angles,
+          enstatite_volume_fraction, enstatite_A_matrix, enstatite_Euler_angles,
+          not_found
+        };
+
+        Output string_to_output_enum(std::string string);
+
+        const double rad_to_degree = 180.0/M_PI;
+        const double degree_to_rad = M_PI/180.0;
+
+        mutable boost::lagged_fibonacci44497            random_number_generator;
+
+        unsigned int random_number_seed;
 
         /**
          * todo
@@ -196,10 +240,36 @@ namespace aspect
         Threads::Thread<void> background_thread_master;
 
         /**
+         * What raw lpo data to write out
+         */
+        std::vector<Output> write_raw_lpo;
+
+        /**
+         * Whether computing raw Euler angles is needed.
+         */
+        bool compute_raw_euler_angles;
+
+        /**
          * Handle to a thread that is used to write content file data in the
          * background. The writer() function runs on this background thread.
          */
-        Threads::Thread<void> background_thread_content;
+        Threads::Thread<void> background_thread_content_raw;
+
+        /**
+         * What draw volume weighted lpo data to write out
+         */
+        std::vector<Output> write_draw_volume_weighted_lpo;
+
+        /**
+         * Whether computing weighted A matrix is needed.
+         */
+        bool compute_weighted_A_matrix;
+
+        /**
+         * Handle to a thread that is used to write content file data in the
+         * background. The writer() function runs on this background thread.
+         */
+        Threads::Thread<void> background_thread_content_draw_volume_weighting;
 
         /**
          * Stores the particle property fields which are ouptut to the
