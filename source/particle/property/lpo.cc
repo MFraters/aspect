@@ -673,8 +673,8 @@ namespace aspect
       }
 
       template<int dim>
-      std::vector<std::vector<double>>
-                                    LPO<dim>::volume_weighting(std::vector<double> fv, std::vector<std::vector<double>> angles) const
+      std::vector<std::vector<double> >
+      LPO<dim>::volume_weighting(std::vector<double> fv, std::vector<std::vector<double>> angles) const
       {
         // Get volume weighted euler angles, using random draws to convert odf
         // to a discrete number of orientations, weighted by volume
@@ -1041,6 +1041,7 @@ namespace aspect
           }
 
         Assert(sum_volume_fractions != 0, ExcMessage("sum_volume_fractions is zero, which should never happen."));
+
 
         return sum_volume_fractions;
       }

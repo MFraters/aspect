@@ -159,8 +159,8 @@ namespace aspect
                               const DeformationType deformation_type,
                               const std::array<double,4> &ref_resolved_shear_stress) const;
 
-          std::vector<std::vector<double>>
-                                        volume_weighting(std::vector<double> fv, std::vector<std::vector<double>> angles) const;
+          std::vector<std::vector<double> >
+          volume_weighting(std::vector<double> fv, std::vector<std::vector<double> > angles) const;
 
           double
           wrap_angle(const double angle) const;
