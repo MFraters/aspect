@@ -298,10 +298,10 @@ namespace aspect
           if (write_draw_volume_weighted_lpo.size() != 0)
             {
               std::vector<std::vector<double> > weighted_euler_angles_olivine = random_draw_volume_weighting(volume_fractions_olivine, euler_angles_olivine);
-              Assert(weighted_angles_olivine.size() == euler_angles_olivine.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_angles.size()) +
+              Assert(weighted_euler_angles_olivine.size() == euler_angles_olivine.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_euler_angles_olivine.size()) +
                      ") has different size from input angles (size = " + std::to_string(euler_angles_olivine.size()) + ")."));
               std::vector<std::vector<double> > weighted_euler_angles_enstatite = random_draw_volume_weighting(volume_fractions_olivine, euler_angles_enstatite);
-              Assert(weighted_angles_enstatite.size() == euler_angles_enstatite.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_angles.size()) +
+              Assert(weighted_euler_angles_enstatite.size() == euler_angles_enstatite.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_euler_angles_enstatite.size()) +
                      ") has different size from input angles (size = " + std::to_string(euler_angles_enstatite.size()) + ")."));
 
               std::vector<Tensor<2,3> > weighted_a_cosine_matrices_olivine;
