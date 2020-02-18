@@ -178,6 +178,22 @@ namespace aspect
             for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
               data.push_back(a_cosine_matrix[i_grain][Tensor<2,dim>::unrolled_to_component_indices(i)]);
           }
+
+        /*
+        // they are all the same size, so the random draw weighting should not be better in this case.
+        std::vector<double> fv = std::vector<double>(n_grains, initial_volume_fraction);
+        std::vector<Tensor<2,3> > olivine_a_matrices(n_grains);
+        std::vector<Tensor<2,3> > enstatite_a_matrices(n_grains);
+        unsigned int counter = 0;
+        for (unsigned int i_grain = 0; i_grain < 2*n_grains; i_grain = i_grain+2)
+        {
+          olivine_a_matrices[counter] = a_cosine_matrix[i_grain];
+          enstatite_a_matrices[counter] = a_cosine_matrix[i_grain+1];
+        }
+
+        std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(fv, olivine_a_matrices);
+        std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(fv, enstatite_a_matrices);
+        */
         // get the averaged a, b and c axes
         std::vector<double> a_olivine(3,0);
         std::vector<double> b_olivine(3,0);
@@ -185,6 +201,9 @@ namespace aspect
         std::vector<double> a_enstatite(3,0);
         std::vector<double> b_enstatite(3,0);
         std::vector<double> c_enstatite(3,0);
+
+
+
         for (unsigned int i_grain = 0; i_grain < 2*n_grains; i_grain = i_grain+2)
           {
             for (unsigned int j = 0; j < 3; j++)
@@ -223,6 +242,99 @@ namespace aspect
         data.push_back(c_enstatite[1]);
         data.push_back(c_enstatite[2]);
 
+      }
+
+      template<int dim>
+      std::vector<Tensor<2,3> >
+      LPO<dim>::random_draw_volume_weighting(std::vector<double> fv,
+                                             std::vector<Tensor<2,3>> matrices,
+                                             unsigned int n_output_grains) const
+      {
+        // Get volume weighted euler angles, using random draws to convert odf
+        // to a discrete number of orientations, weighted by volume
+        // 1a. Get index that would sort volume fractions AND
+        //ix = np.argsort(fv[q,:]);
+        // 1b. Get the sorted volume and angle arrays
+        std::vector<double> fv_to_sort = fv;
+        std::vector<double> fv_sorted = fv;
+        std::vector<Tensor<2,3>> matrices_sorted = matrices;
+
+        unsigned int n_grain = fv_to_sort.size();
+
+
+        /**
+         * ...
+         */
+        for (int i = n_grain-1; i >= 0; --i)
+          {
+            unsigned int index_max_fv = std::distance(fv_to_sort.begin(),max_element(fv_to_sort.begin(), fv_to_sort.end()));
+
+            fv_sorted[i] = fv_to_sort[index_max_fv];
+            matrices_sorted[i] = matrices[index_max_fv];
+            /*Assert(matrices[index_max_fv].size() == 3, ExcMessage("matrices vector (size = " + std::to_string(matrices[index_max_fv].size()) +
+                                                                ") should have size 3."));
+            Assert(matrices_sorted[i].size() == 3, ExcMessage("matrices_sorted vector (size = " + std::to_string(matrices_sorted[i].size()) +
+                                                            ") should have size 3."));*/
+            fv_to_sort[index_max_fv] = -1;
+          }
+
+        /*for (size_t i = 0; i < n_grains-1; i++)
+        {
+          std::cout << i << ": fv = " << fv_sorted[i] << ", a = " << matrices_sorted[i] << std::endl;
+        }
+        std::cout << "flag 1 " << std::endl;*/
+
+
+        // 2. Get cumulative weight for volume fraction
+        std::vector<double> cum_weight(n_grains);
+        std::partial_sum(fv_sorted.begin(),fv_sorted.end(),cum_weight.begin());
+        // 3. Generate random indices
+        boost::random::uniform_real_distribution<> dist(0, 1);
+        std::vector<double> idxgrain(n_output_grains);
+        //std::cout << "flag 2 " << std::endl;
+        for (unsigned int grain_i = 0; grain_i < n_output_grains; ++grain_i)
+          {
+            idxgrain[grain_i] = dist(this->random_number_generator); //random.rand(ngrains,1);
+            //std::cout << grain_i << " " << idxgrain[grain_i] << std::endl;
+          }
+
+        //std::cout << "flag 3 " << std::endl;
+        // 4. Find the maximum cum_weight that is less than the random value.
+        // the euler angle index is +1. For example, if the idxGrain(g) < cumWeight(1),
+        // the index should be 1 not zero)
+        std::vector<Tensor<2,3>> matrices_out(n_output_grains);
+        for (unsigned int grain_i = 0; grain_i < n_output_grains; ++grain_i)
+          {
+            //std::cout << "flag 4 " << std::endl;
+            unsigned int counter = 0;
+            for (unsigned int grain_j = 0; grain_j < n_grains; ++grain_j)
+              {
+                //if(cum_weight[grain_j] > 1.0)
+                //std::cout << "cum_weight[" << grain_j << "] = " << cum_weight[grain_j] << ", diff = " << fv_sorted[grain_j] << std::endl;
+                // find the first cummulative weight which is larger than the random number
+                // todo: there are algorithms to do this faster
+                if (cum_weight[grain_j] < idxgrain[grain_i])
+                  {
+                    counter++;
+                  }
+                else
+                  {
+                    break;
+                  }
+
+
+                /*Assert(matrices_sorted[counter].size() == 3, ExcMessage("matrices_sorted vector (size = " + std::to_string(matrices_sorted[counter].size()) +
+                                                                      ") should have size 3."));*/
+
+                /*Assert(matrices_out[counter].size() == 3, ExcMessage("matrices_out vector (size = " + std::to_string(matrices_out[counter].size()) +
+                                                                   ") should have size 3."));*/
+              }
+            matrices_out[grain_i] = matrices_sorted[counter];
+            if (this->get_timestep_number() == 100)
+              std::cout << grain_i << " " << counter << " " << idxgrain[grain_i] << " " << fv_sorted[counter] << " " << cum_weight[counter] << std::endl;
+            //std::cout << "cum_weight[" << grain_i << "] = " << cum_weight[counter] << ", fv = " << fv_sorted[counter] << ", rn = " << idxgrain[grain_i] << std::endl;
+          }
+        return matrices_out;
       }
 
       template <int dim>
@@ -508,7 +620,7 @@ namespace aspect
 
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
-            // make tolarnce variable
+            // make tolerance variable
             if (std::abs(determinant(a_cosine_matrices_olivine[grain_i]) - 1.0) > 1e-10)
               {
                 FullMatrix<double> matrix_olivine(3);
@@ -585,35 +697,159 @@ namespace aspect
           }
 
         // now compute the average grain a,b and c axes of the particle
-        std::vector<double> a_olivine(3,0);
-        std::vector<double> b_olivine(3,0);
-        std::vector<double> c_olivine(3,0);
-        for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
+
+        /*
+        // they are all the same size, so the random draw weighting should not be better in this case.
+        std::vector<double> fv = std::vector<double>(n_grains, initial_volume_fraction);
+        std::vector<Tensor<2,3> > olivine_a_matrices(n_grains);
+        std::vector<Tensor<2,3> > enstatite_a_matrices(n_grains);
+        unsigned int counter = 0;
+        for (unsigned int i_grain = 0; i_grain < 2*n_grains; i_grain = i_grain+2)
+        {
+        olivine_a_matrices[counter] = a_cosine_matrix[i_grain];
+        enstatite_a_matrices[counter] = a_cosine_matrix[i_grain+1];
+        }*/
+        //unsigned int n_output_grains = 5000;
+
+        std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine,n_samples);
+        std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite,n_samples);
+        double inv_n_samples = 1.0/double(n_samples);
+        /*if(Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+        {
+          std::cout << "ngrains = " << n_grains << ", inv_n_samples = " << inv_n_samples << std::endl;
+          std::cout << "unweighted: " << std::endl;
+          for (size_t i = 0; i < n_grains; i++)
+          {
+            std::cout << i << ": fv = "<< volume_fractions_olivine[i] << ", A = " << a_cosine_matrices_olivine[i] << std::endl;
+          }
+
+          std::cout << "weighted: " << std::endl;
+                    for (size_t i = 0; i < weighted_olivine_a_matrices.size(); i++)
+          {
+            std::cout << i << ":" << ": fv = 0.000100, A = " << weighted_olivine_a_matrices[i] << std::endl;
+          }
+
+        }*/
+
+        SymmetricTensor< 2, 3, double > sum_matrix_a;
+        SymmetricTensor< 2, 3, double > sum_matrix_b;
+        SymmetricTensor< 2, 3, double > sum_matrix_c;
+        std::vector<std::vector<double> > a_vectors_olivine(weighted_olivine_a_matrices.size(),std::vector<double>(3,0));
+        std::vector<std::vector<double> > b_vectors_olivine(weighted_olivine_a_matrices.size(),std::vector<double>(3,0));
+        std::vector<std::vector<double> > c_vectors_olivine(weighted_olivine_a_matrices.size(),std::vector<double>(3,0));
+
+        // extracting the a, b and c orientations from the olivine a matrix
+        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
+          {
+            for (unsigned int j = 0; j < 3; j++)
+              {
+                a_vectors_olivine[i_grain][j] += weighted_olivine_a_matrices[i_grain][0][j];
+                b_vectors_olivine[i_grain][j] += weighted_olivine_a_matrices[i_grain][1][j];
+                c_vectors_olivine[i_grain][j] += weighted_olivine_a_matrices[i_grain][2][j];
+
+              }
+            sum_matrix_a[0][0] += weighted_olivine_a_matrices[i_grain][0][0] * weighted_olivine_a_matrices[i_grain][0][0]; // SUM(l^2)
+            sum_matrix_a[1][1] += weighted_olivine_a_matrices[i_grain][0][1] * weighted_olivine_a_matrices[i_grain][0][1]; // SUM(m^2)
+            sum_matrix_a[2][2] += weighted_olivine_a_matrices[i_grain][0][2] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(n^2)
+            sum_matrix_a[0][1] += weighted_olivine_a_matrices[i_grain][0][0] * weighted_olivine_a_matrices[i_grain][0][1]; // SUM(l*m)
+            sum_matrix_a[0][2] += weighted_olivine_a_matrices[i_grain][0][0] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(l*n)
+            sum_matrix_a[1][2] += weighted_olivine_a_matrices[i_grain][0][1] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(m*n)
+
+          }
+        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
+
+        /*
+        std::vector<double> before_averaged_a_olivine(3,0);
+        std::vector<double> before_averaged_b_olivine(3,0);
+        std::vector<double> before_averaged_c_olivine(3,0);
+        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
           for (unsigned int j = 0; j < 3; j++)
             {
-              a_olivine[j] += volume_fractions_olivine[i_grain] * a_cosine_matrices_olivine[i_grain][0][j];
-              b_olivine[j] += volume_fractions_olivine[i_grain] * a_cosine_matrices_olivine[i_grain][1][j];
-              c_olivine[j] += volume_fractions_olivine[i_grain] * a_cosine_matrices_olivine[i_grain][2][j];
+              before_averaged_a_olivine[j] += inv_n_samples * a_vectors_olivine[i_grain][j];
+              before_averaged_b_olivine[j] += inv_n_samples * b_vectors_olivine[i_grain][j];
+              before_averaged_c_olivine[j] += inv_n_samples * c_vectors_olivine[i_grain][j];
+            }*/
+
+
+        // The orientations of vectors v and -v are the same for our purpose.
+        // To prevent flipping we make sure that all vectors are pointing in
+        // the same direction.
+        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
+          {
+            if (a_vectors_olivine[i_grain][0] < 0)
+              {
+                //std::cout << "happening" << std::endl;
+                a_vectors_olivine[i_grain][0] *= -1;
+                a_vectors_olivine[i_grain][1] *= -1;
+                a_vectors_olivine[i_grain][2] *= -1;
+              }
+            /*else
+            {
+              std::cout << "not happening" << std::endl;
+            }
+            if(a_vectors_olivine[i_grain][0] < 0)
+            {
+              std::cout << "not solved" << std::endl;
+            }
+            else
+            {
+              std::cout << "solved." << std::endl;
+            }*/
+
+
+
+            if (b_vectors_olivine[i_grain][0] < 0)
+              {
+                b_vectors_olivine[i_grain][0] *= -1;
+                b_vectors_olivine[i_grain][1] *= -1;
+                b_vectors_olivine[i_grain][2] *= -1;
+              }
+
+            if (c_vectors_olivine[i_grain][0] < 0)
+              {
+                c_vectors_olivine[i_grain][0] *= -1;
+                c_vectors_olivine[i_grain][1] *= -1;
+                c_vectors_olivine[i_grain][2] *= -1;
+              }
+          }
+
+        std::vector<double> averaged_a_olivine(3,0);
+        std::vector<double> averaged_b_olivine(3,0);
+        std::vector<double> averaged_c_olivine(3,0);
+        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
+          for (unsigned int j = 0; j < 3; j++)
+            {
+              averaged_a_olivine[j] += inv_n_samples * a_vectors_olivine[i_grain][j];
+              averaged_b_olivine[j] += inv_n_samples * b_vectors_olivine[i_grain][j];
+              averaged_c_olivine[j] += inv_n_samples * c_vectors_olivine[i_grain][j];
             }
 
-        for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 1 + i] = a_olivine[i];
+        averaged_a_olivine[0] = eigenvector_array[0].second[0];
+        averaged_a_olivine[1] = eigenvector_array[0].second[1];
+        averaged_a_olivine[2] = eigenvector_array[0].second[2];
+
+        //std::cout << "before_averaged_a_olivine = " << before_averaged_a_olivine[0] << ":" << before_averaged_a_olivine[1] << ":" << before_averaged_a_olivine[2] << std::endl
+        //         << ", averaged_a_olivine      = " << averaged_a_olivine[0] << ":" << averaged_a_olivine[1] << ":" <<averaged_a_olivine[2] << std::endl;
+
 
         for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 4 + i] = b_olivine[i];
+          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 1 + i] = averaged_a_olivine[i];
 
         for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 7 + i] = c_olivine[i];
+          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 4 + i] = averaged_b_olivine[i];
+
+        for (unsigned int i = 0; i < 3; i++)
+          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 7 + i] = averaged_c_olivine[i];
 
         std::vector<double> a_enstatite(3,0);
         std::vector<double> b_enstatite(3,0);
         std::vector<double> c_enstatite(3,0);
-        for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
+        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
           for (unsigned int j = 0; j < 3; j++)
             {
-              a_enstatite[j] += volume_fractions_enstatite[i_grain] * a_cosine_matrices_enstatite[i_grain][0][j];
-              b_enstatite[j] += volume_fractions_enstatite[i_grain] * a_cosine_matrices_enstatite[i_grain][1][j];
-              c_enstatite[j] += volume_fractions_enstatite[i_grain] * a_cosine_matrices_enstatite[i_grain][2][j];
+              a_enstatite[j] += inv_n_samples * weighted_enstatite_a_matrices[i_grain][0][j];
+              b_enstatite[j] += inv_n_samples * weighted_enstatite_a_matrices[i_grain][1][j];
+              c_enstatite[j] += inv_n_samples * weighted_enstatite_a_matrices[i_grain][2][j];
             }
 
 
@@ -712,7 +948,9 @@ namespace aspect
         boost::random::uniform_real_distribution<> dist(0, 1);
         std::vector<double> idxgrain(n_grains);
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          idxgrain[grain_i] = dist(this->random_number_generator); //random.rand(ngrains,1);
+          {
+            idxgrain[grain_i] = dist(this->random_number_generator); //random.rand(ngrains,1);
+          }
 
         // 4. Find the maximum cum_weight that is less than the random value.
         // the euler angle index is +1. For example, if the idxGrain(g) < cumWeight(1),
@@ -1364,6 +1602,12 @@ namespace aspect
               prm.declare_entry ("Threshold GBS", "0.3",
                                  Patterns::Double(0),
                                  "This is the grain-boundary sliding threshold. ");
+
+              prm.declare_entry ("Number of samples", "0",
+                                 Patterns::Double(0),
+                                 "This determines how many samples are taken when using the random "
+                                 "draw volume averaging. Setting it to zero means that the number of "
+                                 "samples is set to be equal to the number of grains.");
             }
             prm.leave_subsection ();
           }
@@ -1393,6 +1637,9 @@ namespace aspect
               exponent_p = prm.get_double("Exponents p"); //1.5;
               nucliation_efficientcy = prm.get_double("Nucliation efficientcy"); //5;
               threshold_GBS = prm.get_double("Threshold GBS"); //0.0;
+              n_samples = prm.get_integer("Number of samples"); // 0
+              if (n_samples == 0)
+                n_samples = n_grains;
             }
             prm.leave_subsection ();
           }

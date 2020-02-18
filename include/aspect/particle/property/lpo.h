@@ -135,6 +135,11 @@ namespace aspect
           std::vector<std::pair<std::string, unsigned int> >
           get_property_information() const;
 
+          std::vector<Tensor<2,3> >
+          random_draw_volume_weighting(std::vector<double> fv,
+                                       std::vector<Tensor<2,3>> matrices,
+                                       unsigned int n_output_grains) const;
+
           /**
            * derivatives: Todo
            */
@@ -216,6 +221,9 @@ namespace aspect
           unsigned int random_number_seed;
 
           unsigned int n_grains;
+
+          // when doing the random draw volume weighting, this sets how many samples are taken.
+          unsigned int n_samples;
 
           double x_olivine;
 
