@@ -84,6 +84,14 @@ namespace aspect
         std::pair<std::string,std::string> execute (TableHandler &statistics);
 
         /**
+         * This funcion ensures that the particle postprocessor is run before
+         * this postprocessor.
+         */
+        virtual
+        std::list<std::string>
+        required_other_postprocessors () const;
+
+        /**
          * Todo
          */
         std::vector<std::vector<double>> random_draw_volume_weighting(std::vector<double> fv,
