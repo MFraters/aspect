@@ -755,8 +755,26 @@ namespace aspect
             sum_matrix_a[0][2] += weighted_olivine_a_matrices[i_grain][0][0] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(l*n)
             sum_matrix_a[1][2] += weighted_olivine_a_matrices[i_grain][0][1] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(m*n)
 
+
+            sum_matrix_b[0][0] += weighted_olivine_a_matrices[i_grain][1][0] * weighted_olivine_a_matrices[i_grain][1][0]; // SUM(l^2)
+            sum_matrix_b[1][1] += weighted_olivine_a_matrices[i_grain][1][1] * weighted_olivine_a_matrices[i_grain][1][1]; // SUM(m^2)
+            sum_matrix_b[2][2] += weighted_olivine_a_matrices[i_grain][1][2] * weighted_olivine_a_matrices[i_grain][1][2]; // SUM(n^2)
+            sum_matrix_b[0][1] += weighted_olivine_a_matrices[i_grain][1][0] * weighted_olivine_a_matrices[i_grain][1][1]; // SUM(l*m)
+            sum_matrix_b[0][2] += weighted_olivine_a_matrices[i_grain][1][0] * weighted_olivine_a_matrices[i_grain][1][2]; // SUM(l*n)
+            sum_matrix_b[1][2] += weighted_olivine_a_matrices[i_grain][1][1] * weighted_olivine_a_matrices[i_grain][1][2]; // SUM(m*n)
+
+
+            sum_matrix_c[0][0] += weighted_olivine_a_matrices[i_grain][2][0] * weighted_olivine_a_matrices[i_grain][2][0]; // SUM(l^2)
+            sum_matrix_c[1][1] += weighted_olivine_a_matrices[i_grain][2][1] * weighted_olivine_a_matrices[i_grain][2][1]; // SUM(m^2)
+            sum_matrix_c[2][2] += weighted_olivine_a_matrices[i_grain][2][2] * weighted_olivine_a_matrices[i_grain][2][2]; // SUM(n^2)
+            sum_matrix_c[0][1] += weighted_olivine_a_matrices[i_grain][2][0] * weighted_olivine_a_matrices[i_grain][2][1]; // SUM(l*m)
+            sum_matrix_c[0][2] += weighted_olivine_a_matrices[i_grain][2][0] * weighted_olivine_a_matrices[i_grain][2][2]; // SUM(l*n)
+            sum_matrix_c[1][2] += weighted_olivine_a_matrices[i_grain][2][1] * weighted_olivine_a_matrices[i_grain][2][2]; // SUM(m*n)
+
           }
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
 
         /*
         std::vector<double> before_averaged_a_olivine(3,0);
@@ -774,7 +792,7 @@ namespace aspect
         // The orientations of vectors v and -v are the same for our purpose.
         // To prevent flipping we make sure that all vectors are pointing in
         // the same direction.
-        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
+        /*for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
           {
             if (a_vectors_olivine[i_grain][0] < 0)
               {
@@ -783,7 +801,7 @@ namespace aspect
                 a_vectors_olivine[i_grain][1] *= -1;
                 a_vectors_olivine[i_grain][2] *= -1;
               }
-            /*else
+            / *else
             {
               std::cout << "not happening" << std::endl;
             }
@@ -794,7 +812,7 @@ namespace aspect
             else
             {
               std::cout << "solved." << std::endl;
-            }*/
+            }* /
 
 
 
@@ -812,21 +830,31 @@ namespace aspect
                 c_vectors_olivine[i_grain][2] *= -1;
               }
           }
-
+        */
         std::vector<double> averaged_a_olivine(3,0);
         std::vector<double> averaged_b_olivine(3,0);
         std::vector<double> averaged_c_olivine(3,0);
+
+        /*
         for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
           for (unsigned int j = 0; j < 3; j++)
             {
               averaged_a_olivine[j] += inv_n_samples * a_vectors_olivine[i_grain][j];
               averaged_b_olivine[j] += inv_n_samples * b_vectors_olivine[i_grain][j];
               averaged_c_olivine[j] += inv_n_samples * c_vectors_olivine[i_grain][j];
-            }
+            }*/
 
-        averaged_a_olivine[0] = eigenvector_array[0].second[0];
-        averaged_a_olivine[1] = eigenvector_array[0].second[1];
-        averaged_a_olivine[2] = eigenvector_array[0].second[2];
+        averaged_a_olivine[0] = eigenvector_array_a[0].second[0];
+        averaged_a_olivine[1] = eigenvector_array_a[0].second[1];
+        averaged_a_olivine[2] = eigenvector_array_a[0].second[2];
+
+        averaged_b_olivine[0] = eigenvector_array_b[0].second[0];
+        averaged_b_olivine[1] = eigenvector_array_b[0].second[1];
+        averaged_b_olivine[2] = eigenvector_array_b[0].second[2];
+
+        averaged_c_olivine[0] = eigenvector_array_c[0].second[0];
+        averaged_c_olivine[1] = eigenvector_array_c[0].second[1];
+        averaged_c_olivine[2] = eigenvector_array_c[0].second[2];
 
         //std::cout << "before_averaged_a_olivine = " << before_averaged_a_olivine[0] << ":" << before_averaged_a_olivine[1] << ":" << before_averaged_a_olivine[2] << std::endl
         //         << ", averaged_a_olivine      = " << averaged_a_olivine[0] << ":" << averaged_a_olivine[1] << ":" <<averaged_a_olivine[2] << std::endl;

@@ -66,6 +66,13 @@ namespace aspect
       // get_random_number function as well. But I will need to test this.
     }
 
+    template <int dim>
+    std::list<std::string>
+    LPO<dim>::required_other_postprocessors () const
+    {
+      return {"particles"};
+    }
+
 
     template <int dim>
     // We need to pass the arguments by value, as this function can be called on a separate thread:
