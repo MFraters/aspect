@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _aspect_particle_property_integrated_strain_h
-#define _aspect_particle_property_integrated_strain_h
+#ifndef _aspect_particle_property_lpo_h
+#define _aspect_particle_property_lpo_h
 
 #include <aspect/particle/property/interface.h>
 #include <aspect/simulator_access.h>
