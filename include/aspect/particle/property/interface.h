@@ -770,6 +770,7 @@ namespace aspect
           void
           write_plugin_graph (std::ostream &output_stream);
 
+
         private:
           /**
            * Stores the names of the plugins which are present
