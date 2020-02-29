@@ -30,6 +30,8 @@ namespace aspect
     namespace Property
     {
 
+      template <int dim>
+      unsigned int LPO<dim>::n_grains = 0;
 
       template <int dim>
       LPO<dim>::LPO ()
@@ -55,6 +57,96 @@ namespace aspect
 
       template <int dim>
       void
+      LPO<dim>::load_lpo_particle_data(unsigned int lpo_data_position,
+                                       const ArrayView<double> &data,
+                                       unsigned int n_grains,
+                                       std::vector<double> &volume_fractions_olivine,
+                                       std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                       std::vector<double> &volume_fractions_enstatite,
+                                       std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite)
+      {
+        // resize the vectors to fit n_grains
+        volume_fractions_olivine.resize(n_grains);
+        a_cosine_matrices_olivine.resize(n_grains);
+        volume_fractions_enstatite.resize(n_grains);
+        a_cosine_matrices_enstatite.resize(n_grains);
+
+        // loop over grain retrieve from data from each grain
+        unsigned int data_grain_i = 0;
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            // retrieve volume fraction for olvine grains
+            volume_fractions_olivine[grain_i] = data[lpo_data_position + data_grain_i *
+                                                     (Tensor<2,3>::n_independent_components + 1) + 1];
+
+            // retrieve a_{ij} for olvine grains
+            //Tensor<2,dim> a_cosine_matrices_olivine;
+            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+              {
+                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                a_cosine_matrices_olivine[grain_i][index] = data[lpo_data_position + data_grain_i *
+                                                                 (Tensor<2,3>::n_independent_components + 1) + 2 + i];
+              }
+
+            // retrieve volume fraction for enstatite grains
+            volume_fractions_enstatite[grain_i] = data[lpo_data_position + (data_grain_i+1) *
+                                                       (Tensor<2,3>::n_independent_components + 1) + 1];
+
+            // retrieve a_{ij} for enstatite grains
+            //Tensor<2,dim> a_cosine_matrices;
+            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+              {
+                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                a_cosine_matrices_enstatite[grain_i][index] = data[lpo_data_position + (data_grain_i+1) *
+                                                                   (Tensor<2,3>::n_independent_components + 1) + 2 + i];
+              }
+            data_grain_i = data_grain_i + 2;
+          }
+      }
+
+
+      template <int dim>
+      void
+      LPO<dim>::store_lpo_particle_data(unsigned int lpo_data_position,
+                                        const ArrayView<double> &data,
+                                        unsigned int n_grains,
+                                        std::vector<double> &volume_fractions_olivine,
+                                        std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                        std::vector<double> &volume_fractions_enstatite,
+                                        std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite)
+      {
+        Assert(volume_fractions_olivine.size() == n_grains, ExcMessage("Internal error: volume_fractions_olivine is not the same as n_grains."));
+        Assert(a_cosine_matrices_olivine.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_olivine is not the same as n_grains."));
+        Assert(volume_fractions_enstatite.size() == n_grains, ExcMessage("Internal error: volume_fractions_enstatite is not the same as n_grains."));
+        Assert(a_cosine_matrices_enstatite.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite is not the same as n_grains."));
+
+        // loop over grains to store the data of each grain
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            // store volume fraction for olvine grains
+            data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 1] = volume_fractions_olivine[grain_i];
+
+            // store a_{ij} for olvine grains
+            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+              {
+                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 2 + i] = a_cosine_matrices_olivine[grain_i][index];
+              }
+
+            // store volume fraction for enstatite grains
+            data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 11] = volume_fractions_enstatite[grain_i];
+
+            // store a_{ij} for enstatite grains
+            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+              {
+                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 12 + i] = a_cosine_matrices_enstatite[grain_i][index];
+              }
+          }
+      }
+
+      template <int dim>
+      void
       LPO<dim>::initialize_one_particle_property(const Point<dim> &,
                                                  std::vector<double> &data) const
       {
@@ -73,33 +165,13 @@ namespace aspect
         //    2.4. a_cosine_matrix enstatite -> 9 (Tensor<2,dim>::n_independent_components) doubles, starts at:
         //                                      data_position + i_grain * 20 + 12, or
         //                                      data_position + i_grain * (Tensor<2,3>::n_independent_components + 2) + 12
-        // 3.1 averaged a axis of olivine -> 3 (dim) doubles, starts at:
-        //                                   data_position + n_grain * 20 + 1, or
-        //                                   data_position + n_grain * (Tensor<2,3>::n_independent_components + 2) + 1
-        // 3.2 averaged b axis of olivine -> 3 (dim) doubles, starts at:
-        //                                   data_position + n_grain * 20 + 4, or
-        //                                   data_position + n_grain * (Tensor<2,3>::n_independent_components + 2) + 4
-        // 3.3 averaged c axis of olivine -> 3 (dim) doubles, starts at:
-        //                                   data_position + n_grain * 20 + 7, or
-        //                                   data_position + n_grain * (Tensor<2,3>::n_independent_components + 2)  + 7
-        // 3.4 averaged a axis of enstatite -> 3 (dim) doubles, starts at:
-        //                                    data_position + n_grain * 20 + 10, or
-        //                                    data_position + n_grain * (Tensor<2,3>::n_independent_components + 2) + 10
-        // 3.5 averaged b axis of enstatite -> 3 (dim) doubles, starts at:
-        //                                    data_position + n_grain * 20 + 13, or
-        //                                    data_position + n_grain * (Tensor<2,3>::n_independent_components + 2) + 13
-        // 3.6 averaged c axis of enstatite -> 3 (dim) doubles, starts at:
-        //                                    data_position + n_grain * 20 + 16, or
-        //                                    data_position + n_grain * (Tensor<2,3>::n_independent_components + 2) + 16
         // We store it this way because this is also the order in which it is read, so this should
-        // theoretically minimize chache misses. Note: It has not been tested wheter this is faster.
+        // theoretically minimize chache misses. Note: It has not been tested wheter this is faster then storing it in another way.
         //
         // An other note is that we store exactly the same amount of olivine and enstatite grain, although
         // the volume may not be the same. This has to do with that we need a minimum amount of grains
         // per tracer to perform reliable statistics on it. This miminum is the same for both olivine and
         // enstatite.
-
-        // initialize n grains. N should be set as a .prm file parameter.
 
         // set water content
         // for now no water. Later it might be composition dependent or set by a function.
@@ -178,70 +250,6 @@ namespace aspect
             for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
               data.push_back(a_cosine_matrix[i_grain][Tensor<2,dim>::unrolled_to_component_indices(i)]);
           }
-
-        /*
-        // they are all the same size, so the random draw weighting should not be better in this case.
-        std::vector<double> fv = std::vector<double>(n_grains, initial_volume_fraction);
-        std::vector<Tensor<2,3> > olivine_a_matrices(n_grains);
-        std::vector<Tensor<2,3> > enstatite_a_matrices(n_grains);
-        unsigned int counter = 0;
-        for (unsigned int i_grain = 0; i_grain < 2*n_grains; i_grain = i_grain+2)
-        {
-          olivine_a_matrices[counter] = a_cosine_matrix[i_grain];
-          enstatite_a_matrices[counter] = a_cosine_matrix[i_grain+1];
-        }
-
-        std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(fv, olivine_a_matrices);
-        std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(fv, enstatite_a_matrices);
-        */
-        // get the averaged a, b and c axes
-        std::vector<double> a_olivine(3,0);
-        std::vector<double> b_olivine(3,0);
-        std::vector<double> c_olivine(3,0);
-        std::vector<double> a_enstatite(3,0);
-        std::vector<double> b_enstatite(3,0);
-        std::vector<double> c_enstatite(3,0);
-
-
-
-        for (unsigned int i_grain = 0; i_grain < 2*n_grains; i_grain = i_grain+2)
-          {
-            for (unsigned int j = 0; j < 3; j++)
-              {
-                a_olivine[j] += initial_volume_fraction * a_cosine_matrix[i_grain][0][j];
-                b_olivine[j] += initial_volume_fraction * a_cosine_matrix[i_grain][1][j];
-                c_olivine[j] += initial_volume_fraction * a_cosine_matrix[i_grain][2][j];
-
-                a_enstatite[j] += initial_volume_fraction * a_cosine_matrix[i_grain+1][0][j];
-                b_enstatite[j] += initial_volume_fraction * a_cosine_matrix[i_grain+1][1][j];
-                c_enstatite[j] += initial_volume_fraction * a_cosine_matrix[i_grain+1][2][j];
-              }
-          }
-
-        data.push_back(a_olivine[0]);
-        data.push_back(a_olivine[1]);
-        data.push_back(a_olivine[2]);
-
-        data.push_back(b_olivine[0]);
-        data.push_back(b_olivine[1]);
-        data.push_back(b_olivine[2]);
-
-        data.push_back(c_olivine[0]);
-        data.push_back(c_olivine[1]);
-        data.push_back(c_olivine[2]);
-
-        data.push_back(a_enstatite[0]);
-        data.push_back(a_enstatite[1]);
-        data.push_back(a_enstatite[2]);
-
-        data.push_back(b_enstatite[0]);
-        data.push_back(b_enstatite[1]);
-        data.push_back(b_enstatite[2]);
-
-        data.push_back(c_enstatite[0]);
-        data.push_back(c_enstatite[1]);
-        data.push_back(c_enstatite[2]);
-
       }
 
       template<int dim>
@@ -278,39 +286,26 @@ namespace aspect
             fv_to_sort[index_max_fv] = -1;
           }
 
-        /*for (size_t i = 0; i < n_grains-1; i++)
-        {
-          std::cout << i << ": fv = " << fv_sorted[i] << ", a = " << matrices_sorted[i] << std::endl;
-        }
-        std::cout << "flag 1 " << std::endl;*/
-
-
         // 2. Get cumulative weight for volume fraction
         std::vector<double> cum_weight(n_grains);
         std::partial_sum(fv_sorted.begin(),fv_sorted.end(),cum_weight.begin());
         // 3. Generate random indices
         boost::random::uniform_real_distribution<> dist(0, 1);
         std::vector<double> idxgrain(n_output_grains);
-        //std::cout << "flag 2 " << std::endl;
         for (unsigned int grain_i = 0; grain_i < n_output_grains; ++grain_i)
           {
-            idxgrain[grain_i] = dist(this->random_number_generator); //random.rand(ngrains,1);
-            //std::cout << grain_i << " " << idxgrain[grain_i] << std::endl;
+            idxgrain[grain_i] = dist(this->random_number_generator);
           }
 
-        //std::cout << "flag 3 " << std::endl;
         // 4. Find the maximum cum_weight that is less than the random value.
         // the euler angle index is +1. For example, if the idxGrain(g) < cumWeight(1),
         // the index should be 1 not zero)
         std::vector<Tensor<2,3>> matrices_out(n_output_grains);
         for (unsigned int grain_i = 0; grain_i < n_output_grains; ++grain_i)
           {
-            //std::cout << "flag 4 " << std::endl;
             unsigned int counter = 0;
             for (unsigned int grain_j = 0; grain_j < n_grains; ++grain_j)
               {
-                //if(cum_weight[grain_j] > 1.0)
-                //std::cout << "cum_weight[" << grain_j << "] = " << cum_weight[grain_j] << ", diff = " << fv_sorted[grain_j] << std::endl;
                 // find the first cummulative weight which is larger than the random number
                 // todo: there are algorithms to do this faster
                 if (cum_weight[grain_j] < idxgrain[grain_i])
@@ -330,9 +325,6 @@ namespace aspect
                                                                    ") should have size 3."));*/
               }
             matrices_out[grain_i] = matrices_sorted[counter];
-            if (this->get_timestep_number() == 100)
-              std::cout << grain_i << " " << counter << " " << idxgrain[grain_i] << " " << fv_sorted[counter] << " " << cum_weight[counter] << std::endl;
-            //std::cout << "cum_weight[" << grain_i << "] = " << cum_weight[counter] << ", fv = " << fv_sorted[counter] << ", rn = " << idxgrain[grain_i] << std::endl;
           }
         return matrices_out;
       }
@@ -345,14 +337,16 @@ namespace aspect
                                              const std::vector<Tensor<1,dim> > &gradients,
                                              const ArrayView<double> &data) const
       {
-        double water_content = data[data_position];
+        // Load data which is needed
+
         // need access to the pressure, viscosity,
         // get velocity
         Tensor<1,dim> velocity;
         for (unsigned int i = 0; i < dim; ++i)
           velocity[i] = solution[this->introspection().component_indices.velocities[i]];
 
-        // if the velocity is zero, return.
+        // if the velocity is zero, we do not need to update because
+        // no LPO is formed.
         if (velocity.norm() < 1e-15)
           return;
 
@@ -381,191 +375,77 @@ namespace aspect
         // The water content is stored on every particle and the stress is computed here.
         // To compute the stress we need the pressure, the compressible_strain_rate and the
         // viscosity at the location of the particle.
-        // Get local pressure
+
         double pressure = solution[this->introspection().component_indices.pressure];
+        double temperature = solution[this->introspection().component_indices.temperature];
+        double water_content = data[data_position];
+        const double dt = this->get_timestep();
+        const double strain_rate_second_invariant = std::sqrt(std::abs(second_invariant(strain_rate)));
+        Assert(!std::isnan(strain_rate_second_invariant), ExcMessage("The second invariant of the strain rate is not a number."));
 
 
-        /**
-         * To compute the local viscosity we need to create a MaterialModelInputs class
-         * which (may) contain the the following information
-         * - position
-         * - temperature
-         * - pressure
-         * - pressure gradient -> I don't thing this is needed for material models
-         * - velocity -> don't think it is needed, but I have it anyway
-         * - composition
-         * - strain-rate
-         * - current cell -> not needed
-         * - additional inputs -> not needed (I think)
-         *
-         * we already have the position, velocity, pressure and the strain-rate, but
-         * we need to get the others.
-         */
         // get the composition of the particle
         std::vector<double> compositions;
-        //std::vector<double> temp_compositions;
         for (unsigned int i = 0; i < this->n_compositional_fields(); i++)
           {
             const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
             compositions.push_back(solution[solution_component]);
           }
-        //compositions.push_back(temp_compositions);
 
-        // get the temperature
-        double temperature = solution[this->introspection().component_indices.temperature];
-
-        unsigned int number_of_particles = 1;
         // construct the material model inputs and outputs
+        // Since this function is only evaluating one particle,
+        // we use 1 for the amount of quadrature points.
+        MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
+        material_model_inputs.position[0] = position;
+        material_model_inputs.temperature[0] = temperature;
+        material_model_inputs.pressure[0] = pressure;
+        material_model_inputs.velocity[0] = velocity;
+        material_model_inputs.composition[0] = compositions;
+        material_model_inputs.strain_rate[0] = strain_rate;
 
-        MaterialModel::MaterialModelInputs<dim> material_model_inputs(number_of_particles,this->n_compositional_fields());
-        for (unsigned int i = 0; i < number_of_particles; ++i)
-          {
-            material_model_inputs.position[i] = position;
-            material_model_inputs.temperature[i] = temperature;
-            material_model_inputs.pressure[i] = pressure;
-            material_model_inputs.velocity[i] = velocity;
-            material_model_inputs.composition[i] = compositions;
-            material_model_inputs.strain_rate[i] = strain_rate;
-          }
-        MaterialModel::MaterialModelOutputs<dim> material_model_outputs(number_of_particles,this->n_compositional_fields());
-
+        MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
         this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
         double eta = material_model_outputs.viscosities[0];
-
 
         const SymmetricTensor<2,dim> stress = 2*eta*compressible_strain_rate +
                                               pressure * unit_symmetric_tensor<dim>();
 
-        // Now compute what type of deformation takes place.
-        // for now just use type A
+        // Now compute what type of deformation takes place. For now just use type A
         DeformationType deformation_type = DeformationType::A_type;
 
-        std::array<double,4> ref_resolved_shear_stress;
-
-        // can't really use std::numeric_limits<double>::max() or infinity, because need
-        // to be able to square it without becomming infinite. Fortran D-Rex uses 1e60,
-        // which is also used here.
-        switch (deformation_type)
-          {
-            // from Kaminski and Ribe, GJI 2004.
-            case DeformationType::A_type :
-              ref_resolved_shear_stress[0] = 1;
-              ref_resolved_shear_stress[1] = 2;
-              ref_resolved_shear_stress[2] = 3;
-              ref_resolved_shear_stress[3] = 1e60;
-              break;
-
-            // from Kaminski and Ribe, GJI 2004.
-            case DeformationType::B_type :
-              ref_resolved_shear_stress[0] = 3;
-              ref_resolved_shear_stress[1] = 2;
-              ref_resolved_shear_stress[2] = 1;
-              ref_resolved_shear_stress[3] = 1e60;
-              break;
-
-            // from Kaminski and Ribe, GJI 2004.
-            case DeformationType::C_type :
-              ref_resolved_shear_stress[0] = 3;
-              ref_resolved_shear_stress[1] = 1e60;
-              ref_resolved_shear_stress[2] = 2;
-              ref_resolved_shear_stress[3] = 1;
-              break;
-
-            // from Kaminski and Ribe, GRL 2002.
-            case DeformationType::D_type :
-              ref_resolved_shear_stress[0] = 1;
-              ref_resolved_shear_stress[1] = 1;
-              ref_resolved_shear_stress[2] = 1e60;
-              ref_resolved_shear_stress[3] = 3;
-              break;
-
-            // using this form the matlab code, not sure where it comes from
-            case DeformationType::E_type :
-              ref_resolved_shear_stress[0] = 2;
-              ref_resolved_shear_stress[1] = 1;
-              ref_resolved_shear_stress[2] = 1e60;
-              ref_resolved_shear_stress[3] = 3;
-              break;
-
-            // from Kaminski and Ribe, GJI 2004.
-            // Todo: this one is not used in practice, since there is an optimalisation in
-            // the code. So maybe remove it in the future.
-            case DeformationType::enstatite :
-              ref_resolved_shear_stress[0] = 1e60;
-              ref_resolved_shear_stress[1] = 1e60;
-              ref_resolved_shear_stress[2] = 1e60;
-              ref_resolved_shear_stress[3] = 1;
-              break;
-
-            default:
-              break;
-          }
-
-
-        // compute derivatives
-
-        // Make the strain-rate and velocity gradient tensor non-dimensional
-        // by dividing it through the second invariant
-
-        Assert(!std::isnan(second_invariant(strain_rate)), ExcMessage("second_invariant(strain_rate) is not a number"));
-
-        const double strain_rate_second_invariant = std::sqrt(std::abs(second_invariant(strain_rate)));
-        Assert(!std::isnan(strain_rate_second_invariant), ExcMessage("strain_rate_second_invariant is not a number"));
-        const SymmetricTensor<2,dim> strain_rate_nondimensional = strain_rate / strain_rate_second_invariant;
-        const Tensor<2,dim> velocity_gradient_nondimensional = grad_u / strain_rate_second_invariant;
+        const std::array<double,4> ref_resolved_shear_stress = reference_resolved_shear_stress_from_deformation_type(deformation_type);
 
         std::vector<double> volume_fractions_olivine(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
         std::vector<double> volume_fractions_enstatite(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
 
-        // loop over grain retrieve from data from each grain
-        unsigned int data_grain_i = 0;
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            // retrieve volume fraction for olvine grains
-            volume_fractions_olivine[grain_i] = data[data_position + data_grain_i *
-                                                     (Tensor<2,3>::n_independent_components + 1) + 1];
+        //std::cout << "data_position = " << data_position << ", n_grains" << n_grains << std::endl;
+        load_lpo_particle_data(data_position,
+                               data,
+                               n_grains,
+                               volume_fractions_olivine,
+                               a_cosine_matrices_olivine,
+                               volume_fractions_enstatite,
+                               a_cosine_matrices_enstatite);
 
-            // retrieve a_{ij} for olvine grains
-            //Tensor<2,dim> a_cosine_matrices_olivine;
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                a_cosine_matrices_olivine[grain_i][index] = data[data_position + data_grain_i *
-                                                                 (Tensor<2,3>::n_independent_components + 1) + 2 + i];
-              }
+        // Make the strain-rate and velocity gradient tensor non-dimensional
+        // by dividing it through the second invariant
+        const SymmetricTensor<2,dim> strain_rate_nondimensional = strain_rate / strain_rate_second_invariant;
+        const Tensor<2,dim> velocity_gradient_nondimensional = grad_u / strain_rate_second_invariant;
 
-            // retrieve volume fraction for enstatite grains
-            volume_fractions_enstatite[grain_i] = data[data_position + (data_grain_i+1) *
-                                                       (Tensor<2,3>::n_independent_components + 1) + 1];
-
-            // retrieve a_{ij} for enstatite grains
-            //Tensor<2,dim> a_cosine_matrices;
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                a_cosine_matrices_enstatite[grain_i][index] = data[data_position + (data_grain_i+1) *
-                                                                   (Tensor<2,3>::n_independent_components + 1) + 2 + i];
-              }
-            data_grain_i = data_grain_i + 2;
-          }
-
-
-        const double dt = this->get_timestep();
-
-        // Use a 4th order R-K integration to calculate the change in the direction cosines matrix
-        // and the volume (call function to calculate derivatives 4 times).
-        // dt is the time-step.
-        // w_i is the solution from the previous time-setp (or the inital condition).
+        // Now we have loaded all the data and can do the actual computation.
+        //
+        // Use a 4th order R-K integration to calculate the change in the
+        // direction cosines matrix and the volume (call function to calculate
+        // derivatives 4 times). dt is the time-step, w_i is the solution from
+        // the previous time-setp (or the inital condition).
         // new solution w_{i+1} = w_i + (1/6)*(k1 + 2.0 * k2 + 2.0 * k3 + k4)
-        // compute it for olivine
         const double sum_volume_olivine = this->compute_runge_kutta(volume_fractions_olivine, a_cosine_matrices_olivine,
                                                                     strain_rate_nondimensional, velocity_gradient_nondimensional,
                                                                     deformation_type, ref_resolved_shear_stress,
                                                                     strain_rate_second_invariant, dt);
 
-        // compute it for enstatite
         const double sum_volume_enstatite = this->compute_runge_kutta(volume_fractions_enstatite, a_cosine_matrices_enstatite,
                                                                       strain_rate_nondimensional, velocity_gradient_nondimensional,
                                                                       deformation_type, ref_resolved_shear_stress,
@@ -574,13 +454,6 @@ namespace aspect
         // normalize both the olivine and enstatite volume fractions
         const double inv_sum_volume_olivine = 1/sum_volume_olivine;
         const double inv_sum_volume_enstatite = 1/sum_volume_enstatite;
-
-        Assert(!std::isnan(inv_sum_volume_olivine),
-               ExcMessage("inv_sum_volume_olivine is not a number. sum_volume_enstatite = "
-                          + std::to_string(sum_volume_olivine)));
-        Assert(!std::isnan(inv_sum_volume_enstatite),
-               ExcMessage("inv_sum_volume_enstatite is not a number. sum_volume_enstatite = "
-                          + std::to_string(sum_volume_enstatite)));
 
         Assert(std::isfinite(inv_sum_volume_olivine),
                ExcMessage("inv_sum_volume_olivine is not finite. sum_volume_enstatite = "
@@ -604,337 +477,129 @@ namespace aspect
                               + std::to_string(inv_sum_volume_enstatite) + "."));
           }
 
-
-        // check correct direction cosine matrises for numerical error
-        // todo: I think the goal here is to restore orthonormality.
-        // check.
         /**
          * Correct direction cosine matrices numerical error (orthnormality) after integration
          * Follows same method as in matlab version from Thissen of finding the nearest orthonormal
          * matrix using the SVD
          */
-        LAPACKFullMatrix<double> identity_matrix(3);
-        identity_matrix.set(0,0,1);
-        identity_matrix.set(1,1,1);
-        identity_matrix.set(2,2,1);
-
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
             // make tolerance variable
-            if (std::abs(determinant(a_cosine_matrices_olivine[grain_i]) - 1.0) > 1e-10)
-              {
-                FullMatrix<double> matrix_olivine(3);
-                LAPACKFullMatrix<double> lapack_matrix_olivine(3);
-                LAPACKFullMatrix<double> result(3);
-                LAPACKFullMatrix<double> result2(3);
-
-                // todo: find or add dealii functionallity to copy in one step.
-                matrix_olivine.copy_from(a_cosine_matrices_olivine[grain_i]);
-                lapack_matrix_olivine.copy_from(matrix_olivine);
-
-                // now compute the svd of the matrices
-                lapack_matrix_olivine.compute_svd();
-
-                // Use the SVD results to orthogonalize: ((U*I)*V^T)^T
-                lapack_matrix_olivine.get_svd_u().mmult(result,identity_matrix);
-                result.mmult(result2,(lapack_matrix_olivine.get_svd_vt()));
-                //result2.transpose(result);
-
-                // todo: find or add dealii functionallity to copy in one step.
-                matrix_olivine = result2;
-                matrix_olivine.copy_to(a_cosine_matrices_olivine[grain_i]);
-              }
-
-            if (std::abs(determinant(a_cosine_matrices_olivine[grain_i]) - 1.0) > 1e-10)
-              {
-                FullMatrix<double> matrix_enstatite(3);
-                LAPACKFullMatrix<double> lapack_matrix_enstatite(3);
-                LAPACKFullMatrix<double> result(3);
-                LAPACKFullMatrix<double> result2(3);
-
-                // todo: find or add dealii functionallity to copy in one step.
-                matrix_enstatite.copy_from(a_cosine_matrices_enstatite[grain_i]);
-                lapack_matrix_enstatite.copy_from(matrix_enstatite);
-
-                // now compute the svd of the matrices
-                lapack_matrix_enstatite.compute_svd();
-
-                // Use the SVD results to orthogonalize: ((U*I)*V^T)^T
-                lapack_matrix_enstatite.get_svd_u().mmult(result,identity_matrix);
-                result.mmult(result2,(lapack_matrix_enstatite.get_svd_vt()));
-                //result2.transpose(result);
-
-                // todo: find or add dealii functionallity to copy in one step.
-                matrix_enstatite = result2;
-                matrix_enstatite.copy_to(a_cosine_matrices_enstatite[grain_i]);
-              }
-
+            double tolerance = 1e-10;
+            orthogonalize_matrix(a_cosine_matrices_olivine[grain_i], tolerance);
+            orthogonalize_matrix(a_cosine_matrices_enstatite[grain_i], tolerance);
           }
 
-
-        // loop over grains to store the data of each grain
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            // store volume fraction for olvine grains
-            data[data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 1] = volume_fractions_olivine[grain_i];
-
-            // store a_{ij} for olvine grains
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                data[data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 2 + i] = a_cosine_matrices_olivine[grain_i][index];
-              }
-
-            // store volume fraction for enstatite grains
-            data[data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 11] = volume_fractions_enstatite[grain_i];
-
-            // store a_{ij} for enstatite grains
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                data[data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 12 + i] = a_cosine_matrices_enstatite[grain_i][index];
-              }
-          }
-
-        // now compute the average grain a,b and c axes of the particle
-
-        /*
-        // they are all the same size, so the random draw weighting should not be better in this case.
-        std::vector<double> fv = std::vector<double>(n_grains, initial_volume_fraction);
-        std::vector<Tensor<2,3> > olivine_a_matrices(n_grains);
-        std::vector<Tensor<2,3> > enstatite_a_matrices(n_grains);
-        unsigned int counter = 0;
-        for (unsigned int i_grain = 0; i_grain < 2*n_grains; i_grain = i_grain+2)
-        {
-        olivine_a_matrices[counter] = a_cosine_matrix[i_grain];
-        enstatite_a_matrices[counter] = a_cosine_matrix[i_grain+1];
-        }*/
-        //unsigned int n_output_grains = 5000;
-
-        std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine,n_samples);
-        std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite,n_samples);
-        double inv_n_samples = 1.0/double(n_samples);
-        /*if(Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
-        {
-          std::cout << "ngrains = " << n_grains << ", inv_n_samples = " << inv_n_samples << std::endl;
-          std::cout << "unweighted: " << std::endl;
-          for (size_t i = 0; i < n_grains; i++)
-          {
-            std::cout << i << ": fv = "<< volume_fractions_olivine[i] << ", A = " << a_cosine_matrices_olivine[i] << std::endl;
-          }
-
-          std::cout << "weighted: " << std::endl;
-                    for (size_t i = 0; i < weighted_olivine_a_matrices.size(); i++)
-          {
-            std::cout << i << ":" << ": fv = 0.000100, A = " << weighted_olivine_a_matrices[i] << std::endl;
-          }
-
-        }*/
-
-        SymmetricTensor< 2, 3, double > sum_matrix_a;
-        SymmetricTensor< 2, 3, double > sum_matrix_b;
-        SymmetricTensor< 2, 3, double > sum_matrix_c;
-        std::vector<std::vector<double> > a_vectors_olivine(weighted_olivine_a_matrices.size(),std::vector<double>(3,0));
-        std::vector<std::vector<double> > b_vectors_olivine(weighted_olivine_a_matrices.size(),std::vector<double>(3,0));
-        std::vector<std::vector<double> > c_vectors_olivine(weighted_olivine_a_matrices.size(),std::vector<double>(3,0));
-
-        // extracting the a, b and c orientations from the olivine a matrix
-        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
-          {
-            for (unsigned int j = 0; j < 3; j++)
-              {
-                a_vectors_olivine[i_grain][j] += weighted_olivine_a_matrices[i_grain][0][j];
-                b_vectors_olivine[i_grain][j] += weighted_olivine_a_matrices[i_grain][1][j];
-                c_vectors_olivine[i_grain][j] += weighted_olivine_a_matrices[i_grain][2][j];
-
-              }
-            sum_matrix_a[0][0] += weighted_olivine_a_matrices[i_grain][0][0] * weighted_olivine_a_matrices[i_grain][0][0]; // SUM(l^2)
-            sum_matrix_a[1][1] += weighted_olivine_a_matrices[i_grain][0][1] * weighted_olivine_a_matrices[i_grain][0][1]; // SUM(m^2)
-            sum_matrix_a[2][2] += weighted_olivine_a_matrices[i_grain][0][2] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(n^2)
-            sum_matrix_a[0][1] += weighted_olivine_a_matrices[i_grain][0][0] * weighted_olivine_a_matrices[i_grain][0][1]; // SUM(l*m)
-            sum_matrix_a[0][2] += weighted_olivine_a_matrices[i_grain][0][0] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(l*n)
-            sum_matrix_a[1][2] += weighted_olivine_a_matrices[i_grain][0][1] * weighted_olivine_a_matrices[i_grain][0][2]; // SUM(m*n)
-
-
-            sum_matrix_b[0][0] += weighted_olivine_a_matrices[i_grain][1][0] * weighted_olivine_a_matrices[i_grain][1][0]; // SUM(l^2)
-            sum_matrix_b[1][1] += weighted_olivine_a_matrices[i_grain][1][1] * weighted_olivine_a_matrices[i_grain][1][1]; // SUM(m^2)
-            sum_matrix_b[2][2] += weighted_olivine_a_matrices[i_grain][1][2] * weighted_olivine_a_matrices[i_grain][1][2]; // SUM(n^2)
-            sum_matrix_b[0][1] += weighted_olivine_a_matrices[i_grain][1][0] * weighted_olivine_a_matrices[i_grain][1][1]; // SUM(l*m)
-            sum_matrix_b[0][2] += weighted_olivine_a_matrices[i_grain][1][0] * weighted_olivine_a_matrices[i_grain][1][2]; // SUM(l*n)
-            sum_matrix_b[1][2] += weighted_olivine_a_matrices[i_grain][1][1] * weighted_olivine_a_matrices[i_grain][1][2]; // SUM(m*n)
-
-
-            sum_matrix_c[0][0] += weighted_olivine_a_matrices[i_grain][2][0] * weighted_olivine_a_matrices[i_grain][2][0]; // SUM(l^2)
-            sum_matrix_c[1][1] += weighted_olivine_a_matrices[i_grain][2][1] * weighted_olivine_a_matrices[i_grain][2][1]; // SUM(m^2)
-            sum_matrix_c[2][2] += weighted_olivine_a_matrices[i_grain][2][2] * weighted_olivine_a_matrices[i_grain][2][2]; // SUM(n^2)
-            sum_matrix_c[0][1] += weighted_olivine_a_matrices[i_grain][2][0] * weighted_olivine_a_matrices[i_grain][2][1]; // SUM(l*m)
-            sum_matrix_c[0][2] += weighted_olivine_a_matrices[i_grain][2][0] * weighted_olivine_a_matrices[i_grain][2][2]; // SUM(l*n)
-            sum_matrix_c[1][2] += weighted_olivine_a_matrices[i_grain][2][1] * weighted_olivine_a_matrices[i_grain][2][2]; // SUM(m*n)
-
-          }
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvector_array_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
-
-        /*
-        std::vector<double> before_averaged_a_olivine(3,0);
-        std::vector<double> before_averaged_b_olivine(3,0);
-        std::vector<double> before_averaged_c_olivine(3,0);
-        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              before_averaged_a_olivine[j] += inv_n_samples * a_vectors_olivine[i_grain][j];
-              before_averaged_b_olivine[j] += inv_n_samples * b_vectors_olivine[i_grain][j];
-              before_averaged_c_olivine[j] += inv_n_samples * c_vectors_olivine[i_grain][j];
-            }*/
-
-
-        // The orientations of vectors v and -v are the same for our purpose.
-        // To prevent flipping we make sure that all vectors are pointing in
-        // the same direction.
-        /*for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
-          {
-            if (a_vectors_olivine[i_grain][0] < 0)
-              {
-                //std::cout << "happening" << std::endl;
-                a_vectors_olivine[i_grain][0] *= -1;
-                a_vectors_olivine[i_grain][1] *= -1;
-                a_vectors_olivine[i_grain][2] *= -1;
-              }
-            / *else
-            {
-              std::cout << "not happening" << std::endl;
-            }
-            if(a_vectors_olivine[i_grain][0] < 0)
-            {
-              std::cout << "not solved" << std::endl;
-            }
-            else
-            {
-              std::cout << "solved." << std::endl;
-            }* /
+        store_lpo_particle_data(data_position,
+                                data,
+                                n_grains,
+                                volume_fractions_olivine,
+                                a_cosine_matrices_olivine,
+                                volume_fractions_enstatite,
+                                a_cosine_matrices_enstatite);
 
 
 
-            if (b_vectors_olivine[i_grain][0] < 0)
-              {
-                b_vectors_olivine[i_grain][0] *= -1;
-                b_vectors_olivine[i_grain][1] *= -1;
-                b_vectors_olivine[i_grain][2] *= -1;
-              }
-
-            if (c_vectors_olivine[i_grain][0] < 0)
-              {
-                c_vectors_olivine[i_grain][0] *= -1;
-                c_vectors_olivine[i_grain][1] *= -1;
-                c_vectors_olivine[i_grain][2] *= -1;
-              }
-          }
-        */
-        std::vector<double> averaged_a_olivine(3,0);
-        std::vector<double> averaged_b_olivine(3,0);
-        std::vector<double> averaged_c_olivine(3,0);
-
-        /*
-        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              averaged_a_olivine[j] += inv_n_samples * a_vectors_olivine[i_grain][j];
-              averaged_b_olivine[j] += inv_n_samples * b_vectors_olivine[i_grain][j];
-              averaged_c_olivine[j] += inv_n_samples * c_vectors_olivine[i_grain][j];
-            }*/
-
-        averaged_a_olivine[0] = eigenvector_array_a[0].second[0];
-        averaged_a_olivine[1] = eigenvector_array_a[0].second[1];
-        averaged_a_olivine[2] = eigenvector_array_a[0].second[2];
-
-        averaged_b_olivine[0] = eigenvector_array_b[0].second[0];
-        averaged_b_olivine[1] = eigenvector_array_b[0].second[1];
-        averaged_b_olivine[2] = eigenvector_array_b[0].second[2];
-
-        averaged_c_olivine[0] = eigenvector_array_c[0].second[0];
-        averaged_c_olivine[1] = eigenvector_array_c[0].second[1];
-        averaged_c_olivine[2] = eigenvector_array_c[0].second[2];
-
-        //std::cout << "before_averaged_a_olivine = " << before_averaged_a_olivine[0] << ":" << before_averaged_a_olivine[1] << ":" << before_averaged_a_olivine[2] << std::endl
-        //         << ", averaged_a_olivine      = " << averaged_a_olivine[0] << ":" << averaged_a_olivine[1] << ":" <<averaged_a_olivine[2] << std::endl;
-
-
-        for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 1 + i] = averaged_a_olivine[i];
-
-        for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 4 + i] = averaged_b_olivine[i];
-
-        for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 7 + i] = averaged_c_olivine[i];
-
-        std::vector<double> a_enstatite(3,0);
-        std::vector<double> b_enstatite(3,0);
-        std::vector<double> c_enstatite(3,0);
-        for (unsigned int i_grain = 0; i_grain < weighted_olivine_a_matrices.size(); i_grain++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              a_enstatite[j] += inv_n_samples * weighted_enstatite_a_matrices[i_grain][0][j];
-              b_enstatite[j] += inv_n_samples * weighted_enstatite_a_matrices[i_grain][1][j];
-              c_enstatite[j] += inv_n_samples * weighted_enstatite_a_matrices[i_grain][2][j];
-            }
-
-
-        for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 10 + i] = a_enstatite[i];
-
-        for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + i] = b_enstatite[i];
-
-        for (unsigned int i = 0; i < 3; i++)
-          data[data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 16 + i] = c_enstatite[i];
-
-        // Now compute the euler angles and write them to a file
-        unsigned int timestep_number = this->get_timestep_number();
-        //double time = this->get_time();
-
-
-        std::string lpo_path = this->get_output_directory() + + "lpo_data/";
-
-        if (this->get_timestep_number() == 0)
-          aspect::Utilities::create_directory (lpo_path,
-                                               this->get_mpi_communicator(),
-                                               true);
-
-        std::ofstream myfile;
-
-        std::vector<std::vector<double> > euler_angles(n_grains);
-        for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
-          {
-            euler_angles[i_grain] = extract_euler_angles_from_dcm(a_cosine_matrices_olivine[i_grain]);
-          }
-
-
-        std::string filename = lpo_path + "lpo_particle_0_EA_T_" + std::to_string(timestep_number) + "." + std::to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD)) + ".txt";
-        myfile.open (filename);
-        AssertThrow(myfile.is_open(), ExcMessage("Could not open file"));
-        for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
-          {
-            myfile << euler_angles[i_grain][0] << " " << euler_angles[i_grain][1] << " " << euler_angles[i_grain][2] << std::endl;
-          }
-        myfile.close();
-
-
-        filename = lpo_path + "lpo_particle_0_weighed_EA_T_" + std::to_string(timestep_number) + "." + std::to_string(dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD)) + ".txt";
-        std::vector<std::vector<double>> weighed_angles = volume_weighting(volume_fractions_olivine, euler_angles);
-        Assert(weighed_angles.size() == euler_angles.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighed_angles.size()) +
-                                                                        ") has different size from input angles (size = " + std::to_string(euler_angles.size()) + ")."));
-        myfile.open (filename);
-        AssertThrow(myfile.is_open(), ExcMessage("Could not open file"));
-        for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
-          {
-            Assert(weighed_angles[i_grain].size() == 3, ExcMessage("Weighted angles vector (size = " + std::to_string(weighed_angles[i_grain].size()) +
-                                                                   ") should have size 3."));
-            myfile << weighed_angles[i_grain][0] << " " << weighed_angles[i_grain][1] << " " << weighed_angles[i_grain][2] << std::endl;
-          }
-        myfile.close();
       }
+
+      template<int dim>
+      void
+      LPO<dim>::orthogonalize_matrix(dealii::Tensor<2, 3> &tensor,
+                                     double tolerance) const
+      {
+        if (std::abs(determinant(tensor) - 1.0) > tolerance)
+          {
+            LAPACKFullMatrix<double> identity_matrix(3);
+            for (size_t i = 0; i < 3; i++)
+              {
+                identity_matrix.set(i,i,1);
+              }
+              
+            FullMatrix<double> matrix_olivine(3);
+            LAPACKFullMatrix<double> lapack_matrix_olivine(3);
+            LAPACKFullMatrix<double> result(3);
+            LAPACKFullMatrix<double> result2(3);
+
+            // todo: find or add dealii functionallity to copy in one step.
+            matrix_olivine.copy_from(tensor);
+            lapack_matrix_olivine.copy_from(matrix_olivine);
+
+            // now compute the svd of the matrices
+            lapack_matrix_olivine.compute_svd();
+
+            // Use the SVD results to orthogonalize: ((U*I)*V^T)^T
+            lapack_matrix_olivine.get_svd_u().mmult(result,identity_matrix);
+            result.mmult(result2,(lapack_matrix_olivine.get_svd_vt()));
+
+            // todo: find or add dealii functionallity to copy in one step.
+            matrix_olivine = result2;
+            matrix_olivine.copy_to(tensor);
+          }
+      }
+
+      template<int dim>
+      std::array<double,4>
+      LPO<dim>::reference_resolved_shear_stress_from_deformation_type(DeformationType deformation_type, double max_value) const
+      {
+        std::array<double,4> ref_resolved_shear_stress;
+        switch (deformation_type)
+          {
+            // from Kaminski and Ribe, GJI 2004.
+            case DeformationType::A_type :
+              ref_resolved_shear_stress[0] = 1;
+              ref_resolved_shear_stress[1] = 2;
+              ref_resolved_shear_stress[2] = 3;
+              ref_resolved_shear_stress[3] = max_value;
+              break;
+
+            // from Kaminski and Ribe, GJI 2004.
+            case DeformationType::B_type :
+              ref_resolved_shear_stress[0] = 3;
+              ref_resolved_shear_stress[1] = 2;
+              ref_resolved_shear_stress[2] = 1;
+              ref_resolved_shear_stress[3] = max_value;
+              break;
+
+            // from Kaminski and Ribe, GJI 2004.
+            case DeformationType::C_type :
+              ref_resolved_shear_stress[0] = 3;
+              ref_resolved_shear_stress[1] = max_value;
+              ref_resolved_shear_stress[2] = 2;
+              ref_resolved_shear_stress[3] = 1;
+              break;
+
+            // from Kaminski and Ribe, GRL 2002.
+            case DeformationType::D_type :
+              ref_resolved_shear_stress[0] = 1;
+              ref_resolved_shear_stress[1] = 1;
+              ref_resolved_shear_stress[2] = max_value;
+              ref_resolved_shear_stress[3] = 3;
+              break;
+
+            // using this form the matlab code, not sure where it comes from
+            case DeformationType::E_type :
+              ref_resolved_shear_stress[0] = 2;
+              ref_resolved_shear_stress[1] = 1;
+              ref_resolved_shear_stress[2] = max_value;
+              ref_resolved_shear_stress[3] = 3;
+              break;
+
+            // from Kaminski and Ribe, GJI 2004.
+            // Todo: this one is not used in practice, since there is an optimalisation in
+            // the code. So maybe remove it in the future.
+            case DeformationType::enstatite :
+              ref_resolved_shear_stress[0] = max_value;
+              ref_resolved_shear_stress[1] = max_value;
+              ref_resolved_shear_stress[2] = max_value;
+              ref_resolved_shear_stress[3] = 1;
+              break;
+
+            default:
+              break;
+          }
+        return ref_resolved_shear_stress;
+      }
+
 
       template<int dim>
       std::vector<std::vector<double> >
@@ -1088,41 +753,6 @@ namespace aspect
               }
           }
 
-        // todo, make vectors out of these
-        //for (unsigned int index = 0; index < 3; index++)
-        {
-          property_information.push_back(std::make_pair("lpo average olivine a axis",3));
-        }
-
-        //for (unsigned int index = 0; index < 3; index++)
-        {
-          property_information.push_back(std::make_pair("lpo average olivine b axis",3));
-        }
-
-        //for (unsigned int index = 0; index < 3; index++)
-        {
-          property_information.push_back(std::make_pair("lpo average olivine c axis",3));
-        }
-
-
-        //for (unsigned int index = 0; index < 3; index++)
-        {
-          property_information.push_back(std::make_pair("lpo average enstatite a axis",3));
-        }
-
-        //for (unsigned int index = 0; index < 3; index++)
-        {
-          property_information.push_back(std::make_pair("lpo average enstatite b axis",3));
-        }
-
-        //for (unsigned int index = 0; index < 3; index++)
-        {
-          property_information.push_back(std::make_pair("lpo average enstatite c axis",3));
-        }
-
-        //const std::vector<std::pair<std::string,unsigned int> > property_information (1,std::make_pair("lpo a_cosine_matrix olivine " +,1));
-
-        //const std::vector<std::pair<std::string,unsigned int> > property_information (1,std::make_pair("lpo",n_grains*2*10+1));
         return property_information;
       }
 
@@ -1575,6 +1205,13 @@ namespace aspect
           }
 
         return std::pair<std::vector<double>, std::vector<Tensor<2,3> > >(deriv_volume_fractions, deriv_a_cosine_matrices);
+      }
+
+      template<int dim>
+      unsigned int
+      LPO<dim>::get_number_of_grains()
+      {
+        return n_grains;
       }
 
 

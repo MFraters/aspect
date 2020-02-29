@@ -153,6 +153,9 @@ namespace aspect
       unsigned int
       ParticlePropertyInformation::get_position_by_plugin_index(const unsigned int plugin_index) const
       {
+        Assert(plugin_index < position_per_plugin.size(),
+               ExcMessage("Plugin position (" + std::to_string(plugin_index)
+                          + ") is not in size range of vector (" + std::to_string(position_per_plugin.size()) + ")."));
         return position_per_plugin[plugin_index];
       }
 
