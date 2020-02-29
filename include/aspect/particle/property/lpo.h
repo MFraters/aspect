@@ -40,11 +40,30 @@ namespace aspect
         A_type, B_type, C_type, D_type, E_type, enstatite
       };
       /**
-       * A class that integrates the finite strain that a particle has
-       * experienced.
-       * The implementation of this property is equivalent to the implementation
-       * for compositional fields that is described in the cookbook
-       * finite_strain <code>cookbooks/finite_strain/finite_strain.cc</code>.
+       * Todo: write what this plugin does.
+       *
+       * The layout of the data vector per perticle is the following (note that for this plugin the following dim's are always 3):
+       * 1. water content -> 1 double, always at location data_position -> i = 0;
+       * 2. N grains times:
+       *    2.1. volume fraction olivine -> 1 double, at location:
+       *                                    data_position + i_grain * 20 + 1, or
+       *                                    data_position + i_grain * (2 * Tensor<2,3>::n_independent_components+ 2) + 1
+       *    2.2. a_cosine_matrix olivine -> 9 (Tensor<2,dim>::n_independent_components) doubles, starts at:
+       *                                    data_position + i_grain * 20 + 2, or
+       *                                    data_position + i_grain * (2 * Tensor<2,3>::n_independent_components+ 2) + 2
+       *    2.3. volume fraction enstatite -> 1 double, at location:
+       *                                      data_position + i_grain * 20 + 11, or
+       *                                      data_position + i_grain * (Tensor<2,3>::n_independent_components + 2)  + 11
+       *    2.4. a_cosine_matrix enstatite -> 9 (Tensor<2,dim>::n_independent_components) doubles, starts at:
+       *                                      data_position + i_grain * 20 + 12, or
+       *                                      data_position + i_grain * (Tensor<2,3>::n_independent_components + 2) + 12
+       * We store it this way because this is also the order in which it is read, so this should
+       * theoretically minimize chache misses. Note: It has not been tested wheter this is faster then storing it in another way.
+       *
+       * An other note is that we store exactly the same amount of olivine and enstatite grain, although
+       * the volume may not be the same. This has to do with that we need a minimum amount of grains
+       * per tracer to perform reliable statistics on it. This miminum is the same for both olivine and
+       * enstatite.
        *
        * @ingroup ParticleProperties
        */
@@ -135,6 +154,45 @@ namespace aspect
           std::vector<std::pair<std::string, unsigned int> >
           get_property_information() const;
 
+          static
+          void
+          load_lpo_particle_data(unsigned int lpo_index,
+                                 const ArrayView<double> &data,
+                                 unsigned int n_grains,
+                                 std::vector<double> &volume_fractions_olivine,
+                                 std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                 std::vector<double> &volume_fractions_enstatite,
+                                 std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
+
+          static
+          void
+          store_lpo_particle_data(unsigned int lpo_data_position,
+                                  const ArrayView<double> &data,
+                                  unsigned int n_grains,
+                                  std::vector<double> &volume_fractions_olivine,
+                                  std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                  std::vector<double> &volume_fractions_enstatite,
+                                  std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
+
+          /**
+           * Find nearest orthogonal matrix using a SVD if the
+           * deteriminant is more than a tolerance away from one.
+           */
+          void
+          orthogonalize_matrix(dealii::Tensor<2, 3> &tensor,
+                               double tolerance) const;
+
+          /**
+           * Return resolved shear stress based on deformation type.
+           * @param max_value is set by default to 1e60 instead of infinity or
+           * std::numeric_limits<double>::max() because it needs to be able to
+           * be squared without becomming infinite. The default is based on
+           * Fortran D-Rex uses 1e60
+           */
+          std::array<double,4>
+          reference_resolved_shear_stress_from_deformation_type(DeformationType deformation_type,
+                                                                double max_value = 1e60) const;
+
           std::vector<Tensor<2,3> >
           random_draw_volume_weighting(std::vector<double> fv,
                                        std::vector<Tensor<2,3>> matrices,
@@ -177,6 +235,12 @@ namespace aspect
           Tensor<2,3>
           dir_cos_matrix2(double phi1, double theta, double phi2) const;
 
+          /**
+           * Return the number of grains per particle
+           */
+          static
+          unsigned int
+          get_number_of_grains();
 
           /**
            * Todo, rewrite.
@@ -220,6 +284,7 @@ namespace aspect
           //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double> > get_random_number;
           unsigned int random_number_seed;
 
+          static
           unsigned int n_grains;
 
           // when doing the random draw volume weighting, this sets how many samples are taken.

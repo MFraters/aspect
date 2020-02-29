@@ -20,6 +20,7 @@
 
 #include <aspect/global.h>
 #include <aspect/postprocess/particle_lpo.h>
+#include <aspect/particle/property/lpo.h>
 #include <aspect/utilities.h>
 
 #include <boost/archive/text_oarchive.hpp>
@@ -64,6 +65,9 @@ namespace aspect
       // todo: check wheter this works correctly. Since the get_random_number function takes a reference
       // to the random_number_generator function, changing the function should mean that I have to update the
       // get_random_number function as well. But I will need to test this.
+
+      //std::cout << "n_grains = " << n_grains << ", static = " << aspect::Particle::Property::LPO<dim>::get_number_of_grains() << std::endl;
+      n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();
     }
 
     template <int dim>
@@ -147,6 +151,9 @@ namespace aspect
     std::pair<std::string,std::string>
     LPO<dim>::execute (TableHandler &statistics)
     {
+
+      //std::cout << "n_grains = " << n_grains << ", static = " << aspect::Particle::Property::LPO<dim>::get_number_of_grains() << std::endl;
+      n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();
       // if this is the first time we get here, set the last output time
       // to the current time - output_interval. this makes sure we
       // always produce data during the first time step
@@ -181,10 +188,7 @@ namespace aspect
           AssertThrow(it->has_properties(),
                       ExcMessage("No particle properties found. Make sure that the LPO particle property plugin is selected."));
 
-          std::vector<double> volume_fractions_olivine(n_grains);
-          std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
-          std::vector<double> volume_fractions_enstatite(n_grains);
-          std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
+
 
           unsigned int id = it->get_id();
           const ArrayView<double> &properties = it->get_properties();
@@ -194,21 +198,71 @@ namespace aspect
           AssertThrow(property_information.fieldname_exists("lpo water content") ,
                       ExcMessage("No LPO particle properties found. Make sure that the LPO particle property plugin is selected."));
 
-          const unsigned int data_position = property_information.n_fields() == 0
-                                             ?
-                                             0
-                                             :
-                                             property_information.get_position_by_field_name("lpo water content");
 
+
+          const unsigned int lpo_data_position = property_information.n_fields() == 0
+                                                 ?
+                                                 0
+                                                 :
+                                                 property_information.get_position_by_field_name("lpo water content");
+          const unsigned int ref_lpo_data_position = property_information.n_fields() == 0
+                                                     ?
+                                                     0
+                                                     :
+                                                     property_information.get_position_by_field_name("w_wave_anisotropy water content");
+          //std::cout << "output data_position = " << lpo_data_position << std::endl;
           Point<dim> position = it->get_location();
 
+
+          std::vector<double> volume_fractions_olivine(n_grains);
+          std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
+          std::vector<double> volume_fractions_enstatite(n_grains);
+          std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
+          Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
+                                                               properties,
+                                                               n_grains,
+                                                               volume_fractions_olivine,
+                                                               a_cosine_matrices_olivine,
+                                                               volume_fractions_enstatite,
+                                                               a_cosine_matrices_enstatite);
+
+
+          std::vector<double> ref_volume_fractions_olivine(n_grains);
+          std::vector<Tensor<2,3> > ref_a_cosine_matrices_olivine(n_grains);
+          std::vector<double> ref_volume_fractions_enstatite(n_grains);
+          std::vector<Tensor<2,3> > ref_a_cosine_matrices_enstatite(n_grains);
+          //std::cout << "data position = " << lpo_data_position << ":" << ref_lpo_data_position << std::endl;
+
+          Particle::Property::LPO<dim>::load_lpo_particle_data(ref_lpo_data_position,
+                                                               properties,
+                                                               n_grains,
+                                                               ref_volume_fractions_olivine,
+                                                               ref_a_cosine_matrices_olivine,
+                                                               ref_volume_fractions_enstatite,
+                                                               ref_a_cosine_matrices_enstatite);
+
+          for (size_t grain_i = 0; grain_i < ref_a_cosine_matrices_olivine.size(); grain_i++)
+            {
+              for (size_t i = 0; i < 3; i++)
+                {
+                  for (size_t j = 0; j < 3; j++)
+                    {
+                      Assert(std::fabs(ref_a_cosine_matrices_olivine[grain_i][i][j] - a_cosine_matrices_olivine[grain_i][i][j]) < 1e-8,
+                             ExcMessage("Error " + std::to_string(ref_a_cosine_matrices_olivine[grain_i][i][j]) + ":" + std::to_string(a_cosine_matrices_olivine[grain_i][i][j])));
+                    }
+
+                }
+
+            }
+
+
           // write master file
-          string_stream_master << id << " " << position << " " << properties[data_position] << std::endl;
+          string_stream_master << id << " " << position << " " << properties[lpo_data_position] << std::endl;
 
           // write content file
 
           // loop over grain retrieve from data from each grain
-          unsigned int data_grain_i = 0;
+          /*unsigned int data_grain_i = 0;
           for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
             {
               // retrieve volume fraction for olvine grains
@@ -237,7 +291,7 @@ namespace aspect
                                                                            (Tensor<2,3>::n_independent_components + 1) + 2 + i];
                 }
               data_grain_i = data_grain_i + 2;
-            }
+            }*/
 
           std::vector<std::vector<double> > euler_angles_olivine;
           std::vector<std::vector<double> > euler_angles_enstatite;
@@ -520,6 +574,17 @@ namespace aspect
     {
       std::vector<double> euler_angles(3);
       //const double s2 = std::sqrt(rotation_matrix[2][1] * rotation_matrix[2][1] + rotation_matrix[2][0] * rotation_matrix[2][0]);
+      std::ostringstream os;
+      for (size_t i = 0; i < 3; i++)
+        for (size_t j = 0; j < 3; j++)
+          Assert(abs(rotation_matrix[i][j]) < 1.0,
+                 ExcMessage("rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
+                            "] is larger than one: " + std::to_string(rotation_matrix[i][j]) + ". rotation_matrix = \n"
+                            + std::to_string(rotation_matrix[0][0]) + " " + std::to_string(rotation_matrix[0][1]) + " " + std::to_string(rotation_matrix[0][2]) + "\n"
+                            + std::to_string(rotation_matrix[1][0]) + " " + std::to_string(rotation_matrix[1][1]) + " " + std::to_string(rotation_matrix[1][2]) + "\n"
+                            + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
+
+
       const double phi1  = std::atan2(rotation_matrix[2][0],-rotation_matrix[2][1]) * rad_to_degree;
       const double theta = std::acos(rotation_matrix[2][2]) * rad_to_degree;
       const double phi2  = std::atan2(rotation_matrix[0][2],rotation_matrix[1][2]) * rad_to_degree;
@@ -698,7 +763,7 @@ namespace aspect
         {
           prm.enter_subsection("LPO");
           {
-            n_grains = prm.get_integer("Number of grains per praticle"); //10000;
+            n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();//prm.get_integer("Number of grains per praticle"); //10000;
           }
           prm.leave_subsection ();
         }
