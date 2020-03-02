@@ -79,15 +79,6 @@ namespace aspect
           initialize ();
 
           /**
-           * Initialization function. This function is called once directly
-           * after the initialize function when the property_information is
-           * set.
-           */
-          virtual
-          void
-          post_initialize ();
-
-          /**
            * Initialization function. This function is called once at the
            * creation of every particle for every property to initialize its
            * value.

@@ -209,11 +209,12 @@ namespace aspect
                                                      ?
                                                      0
                                                      :
-                                                     property_information.get_position_by_field_name("w_wave_anisotropy water content");
+                                                     property_information.get_position_by_field_name("lpo water content");
           //std::cout << "output data_position = " << lpo_data_position << std::endl;
           Point<dim> position = it->get_location();
 
-
+          double water_content = 0;
+          double volume_fraction_olivine = 0;
           std::vector<double> volume_fractions_olivine(n_grains);
           std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
           std::vector<double> volume_fractions_enstatite(n_grains);
@@ -221,39 +222,43 @@ namespace aspect
           Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
                                                                properties,
                                                                n_grains,
+                                                               water_content,
+                                                               volume_fraction_olivine,
                                                                volume_fractions_olivine,
                                                                a_cosine_matrices_olivine,
                                                                volume_fractions_enstatite,
                                                                a_cosine_matrices_enstatite);
 
+          /*
+                    std::vector<double> ref_volume_fractions_olivine(n_grains);
+                    std::vector<Tensor<2,3> > ref_a_cosine_matrices_olivine(n_grains);
+                    std::vector<double> ref_volume_fractions_enstatite(n_grains);
+                    std::vector<Tensor<2,3> > ref_a_cosine_matrices_enstatite(n_grains);
+                    //std::cout << "data position = " << lpo_data_position << ":" << ref_lpo_data_position << std::endl;
 
-          std::vector<double> ref_volume_fractions_olivine(n_grains);
-          std::vector<Tensor<2,3> > ref_a_cosine_matrices_olivine(n_grains);
-          std::vector<double> ref_volume_fractions_enstatite(n_grains);
-          std::vector<Tensor<2,3> > ref_a_cosine_matrices_enstatite(n_grains);
-          //std::cout << "data position = " << lpo_data_position << ":" << ref_lpo_data_position << std::endl;
+                    Particle::Property::LPO<dim>::load_lpo_particle_data(ref_lpo_data_position,
+                                                                         properties,
+                                                                         n_grains,
+                                                                       water_content,
+                                                                       volume_fraction_olivine,
+                                                                         ref_volume_fractions_olivine,
+                                                                         ref_a_cosine_matrices_olivine,
+                                                                         ref_volume_fractions_enstatite,
+                                                                         ref_a_cosine_matrices_enstatite);
 
-          Particle::Property::LPO<dim>::load_lpo_particle_data(ref_lpo_data_position,
-                                                               properties,
-                                                               n_grains,
-                                                               ref_volume_fractions_olivine,
-                                                               ref_a_cosine_matrices_olivine,
-                                                               ref_volume_fractions_enstatite,
-                                                               ref_a_cosine_matrices_enstatite);
+                    for (size_t grain_i = 0; grain_i < ref_a_cosine_matrices_olivine.size(); grain_i++)
+                      {
+                        for (size_t i = 0; i < 3; i++)
+                          {
+                            for (size_t j = 0; j < 3; j++)
+                              {
+                                Assert(std::fabs(ref_a_cosine_matrices_olivine[grain_i][i][j] - a_cosine_matrices_olivine[grain_i][i][j]) < 1e-8,
+                                       ExcMessage("Error " + std::to_string(ref_a_cosine_matrices_olivine[grain_i][i][j]) + ":" + std::to_string(a_cosine_matrices_olivine[grain_i][i][j])));
+                              }
 
-          for (size_t grain_i = 0; grain_i < ref_a_cosine_matrices_olivine.size(); grain_i++)
-            {
-              for (size_t i = 0; i < 3; i++)
-                {
-                  for (size_t j = 0; j < 3; j++)
-                    {
-                      Assert(std::fabs(ref_a_cosine_matrices_olivine[grain_i][i][j] - a_cosine_matrices_olivine[grain_i][i][j]) < 1e-8,
-                             ExcMessage("Error " + std::to_string(ref_a_cosine_matrices_olivine[grain_i][i][j]) + ":" + std::to_string(a_cosine_matrices_olivine[grain_i][i][j])));
-                    }
+                          }
 
-                }
-
-            }
+                      }*/
 
 
           // write master file

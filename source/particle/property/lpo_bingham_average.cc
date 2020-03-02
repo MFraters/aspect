@@ -63,16 +63,8 @@ namespace aspect
         AssertThrow(manager.check_plugin_order("lpo","lpo bingham average"),
                     ExcMessage("To use the lpo bingham average plugin, the lpo plugin need to be defined before this plugin."));
 
-      }
-
-
-
-      template <int dim>
-      void
-      LpoBinghamAverage<dim>::post_initialize ()
-      {
-        const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
         lpo_data_position = manager.get_data_info().get_position_by_plugin_index(manager.get_plugin_index_by_name("lpo"));
+
       }
 
 
@@ -84,6 +76,8 @@ namespace aspect
       {
 
 
+        double water_content = 0;
+        double volume_fraction_olivine = 0;
         std::vector<double> volume_fractions_olivine(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
         std::vector<double> volume_fractions_enstatite(n_grains);
@@ -93,6 +87,8 @@ namespace aspect
         Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
                                                              data,
                                                              n_grains,
+                                                             water_content,
+                                                             volume_fraction_olivine,
                                                              volume_fractions_olivine,
                                                              a_cosine_matrices_olivine,
                                                              volume_fractions_enstatite,
@@ -138,6 +134,8 @@ namespace aspect
                                                            const ArrayView<double> &data) const
       {
 
+        double water_content = 0;
+        double volume_fraction_olivine = 0;
         std::vector<double> volume_fractions_olivine(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
         std::vector<double> volume_fractions_enstatite(n_grains);
@@ -146,6 +144,8 @@ namespace aspect
         Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
                                                              data,
                                                              n_grains,
+                                                             water_content,
+                                                             volume_fraction_olivine,
                                                              volume_fractions_olivine,
                                                              a_cosine_matrices_olivine,
                                                              volume_fractions_enstatite,
