@@ -18,11 +18,10 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _aspect_particle_property_s_wave_anisotropy_h
-#define _aspect_particle_property_s_wave_anisotropy_h
+#ifndef _aspect_particle_property_lpo_s_wave_anisotropy_h
+#define _aspect_particle_property_lpo_s_wave_anisotropy_h
 
 #include <aspect/particle/property/interface.h>
-#include <aspect/particle/property/lpo.h>
 #include <aspect/simulator_access.h>
 #include <array>
 
@@ -36,18 +35,29 @@ namespace aspect
   {
     namespace Property
     {
-      /*enum class DeformationType
-      {
-        A_type, B_type, C_type, D_type, E_type, enstatite
-      };*/
-      //using aspect::Particle::Property;
 
       /**
+       * Todo: write what this plugin does.
+       *
        * A class that integrates the finite strain that a particle has
        * experienced.
        * The implementation of this property is equivalent to the implementation
        * for compositional fields that is described in the cookbook
        * finite_strain <code>cookbooks/finite_strain/finite_strain.cc</code>.
+       *
+       * The layout of the data vector per partcle is the following (note that for this plugin the following dim's are always 3):
+       * 1 averaged a axis of olivine -> 3 (dim) doubles, starts at:
+       *                                   data_position + 1,
+       * 2 averaged b axis of olivine -> 3 (dim) doubles, starts at:
+       *                                   data_position + 4
+       * 3 averaged c axis of olivine -> 3 (dim) doubles, starts at:
+       *                                   data_position + 7
+       * 4 averaged a axis of enstatite -> 3 (dim) doubles, starts at:
+       *                                    data_position + 10
+       * 5 averaged b axis of enstatite -> 3 (dim) doubles, starts at:
+       *                                    data_position + 13
+       * 6 averaged c axis of enstatite -> 3 (dim) doubles, starts at:
+       *                                    data_position + 16
        *
        * @ingroup ParticleProperties
        */
@@ -67,6 +77,15 @@ namespace aspect
           virtual
           void
           initialize ();
+
+          /**
+           * Initialization function. This function is called once directly
+           * after the initialize function when the property_information is
+           * set.
+           */
+          virtual
+          void
+          post_initialize ();
 
           /**
            * Initialization function. This function is called once at the
@@ -139,63 +158,34 @@ namespace aspect
           std::vector<std::pair<std::string, unsigned int> >
           get_property_information() const;
 
+          /**
+           * todo
+           */
+          std::array<std::array<double,3>,3> compute_s_wave_anisotropy(std::vector<Tensor<2,3> > matrices) const;
+
+          /**
+           * todo
+           */
           std::vector<Tensor<2,3> >
           random_draw_volume_weighting(std::vector<double> fv,
                                        std::vector<Tensor<2,3>> matrices,
                                        unsigned int n_output_grains) const;
 
-          /**
-           * derivatives: Todo
-           */
-          double
-          compute_runge_kutta(std::vector<double> &volume_fractions,
-                              std::vector<Tensor<2,3> > &a_cosine_matrices,
-                              const SymmetricTensor<2,dim> &strain_rate,
-                              const Tensor<2,dim> &velocity_gradient_tensor,
-                              const aspect::Particle::Property::DeformationType deformation_type,
-                              const std::array<double,4> &ref_resolved_shear_stress,
-                              const double strain_rate_second_invariant,
-                              const double dt) const;
 
           /**
-           * derivatives: Todo
-           */
-          std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
-          compute_derivatives(const std::vector<double> &volume_fractions,
-                              const std::vector<Tensor<2,3> > &a_cosine_matrices,
-                              const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                              const Tensor<2,dim> &velocity_gradient_tensor_nondimensional,
-                              const aspect::Particle::Property::DeformationType deformation_type,
-                              const std::array<double,4> &ref_resolved_shear_stress) const;
-
-          std::vector<std::vector<double> >
-          volume_weighting(std::vector<double> fv, std::vector<std::vector<double> > angles) const;
-
-          double
-          wrap_angle(const double angle) const;
-
-
-          std::vector<double>
-          extract_euler_angles_from_dcm(const Tensor<2,3> &rotation_matrix) const;
-
-          Tensor<2,3>
-          dir_cos_matrix2(double phi1, double theta, double phi2) const;
-
-
-          /**
-           * Todo, rewrite.
-           * Declare the parameters this class takes through input files.
-           * Derived classes should overload this function if they actually do
-           * take parameters; this class declares a fall-back function that
-           * does nothing, so that property classes that do not take any
-           * parameters do not have to do anything at all.
-           *
-           * This function is static (and needs to be static in derived
-           * classes) so that it can be called without creating actual objects
-           * (because declaring parameters happens before we read the input
-           * file and thus at a time when we don't even know yet which
-           * property objects we need).
-           */
+            * Todo, rewrite.
+            * Declare the parameters this class takes through input files.
+            * Derived classes should overload this function if they actually do
+            * take parameters; this class declares a fall-back function that
+            * does nothing, so that property classes that do not take any
+            * parameters do not have to do anything at all.
+            *
+            * This function is static (and needs to be static in derived
+            * classes) so that it can be called without creating actual objects
+            * (because declaring parameters happens before we read the input
+            * file and thus at a time when we don't even know yet which
+            * property objects we need).
+            */
           static
           void
           declare_parameters (ParameterHandler &prm);
@@ -212,6 +202,7 @@ namespace aspect
           parse_parameters (ParameterHandler &prm);
 
         private:
+          unsigned int lpo_data_position;
 
           double rad_to_degree = 180.0/M_PI;
           double degree_to_rad = M_PI/180.0;
