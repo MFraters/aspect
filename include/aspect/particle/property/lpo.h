@@ -44,19 +44,20 @@ namespace aspect
        *
        * The layout of the data vector per perticle is the following (note that for this plugin the following dim's are always 3):
        * 1. water content -> 1 double, always at location data_position -> i = 0;
-       * 2. N grains times:
-       *    2.1. volume fraction olivine -> 1 double, at location:
-       *                                    data_position + i_grain * 20 + 1, or
-       *                                    data_position + i_grain * (2 * Tensor<2,3>::n_independent_components+ 2) + 1
-       *    2.2. a_cosine_matrix olivine -> 9 (Tensor<2,dim>::n_independent_components) doubles, starts at:
+       * 2. water content -> 2 double, always at location data_position -> i = 1;
+       * 3. N grains times:
+       *    3.1. volume fraction olivine -> 1 double, at location:
        *                                    data_position + i_grain * 20 + 2, or
        *                                    data_position + i_grain * (2 * Tensor<2,3>::n_independent_components+ 2) + 2
-       *    2.3. volume fraction enstatite -> 1 double, at location:
-       *                                      data_position + i_grain * 20 + 11, or
-       *                                      data_position + i_grain * (Tensor<2,3>::n_independent_components + 2)  + 11
-       *    2.4. a_cosine_matrix enstatite -> 9 (Tensor<2,dim>::n_independent_components) doubles, starts at:
+       *    3.2. a_cosine_matrix olivine -> 9 (Tensor<2,dim>::n_independent_components) doubles, starts at:
+       *                                    data_position + i_grain * 20 + 3, or
+       *                                    data_position + i_grain * (2 * Tensor<2,3>::n_independent_components+ 2) + 3
+       *    3.3. volume fraction enstatite -> 1 double, at location:
        *                                      data_position + i_grain * 20 + 12, or
-       *                                      data_position + i_grain * (Tensor<2,3>::n_independent_components + 2) + 12
+       *                                      data_position + i_grain * (Tensor<2,3>::n_independent_components + 2)  + 12
+       *    3.4. a_cosine_matrix enstatite -> 9 (Tensor<2,dim>::n_independent_components) doubles, starts at:
+       *                                      data_position + i_grain * 20 + 13, or
+       *                                      data_position + i_grain * (Tensor<2,3>::n_independent_components + 2) + 13
        * We store it this way because this is also the order in which it is read, so this should
        * theoretically minimize chache misses. Note: It has not been tested wheter this is faster then storing it in another way.
        *
@@ -159,6 +160,8 @@ namespace aspect
           load_lpo_particle_data(unsigned int lpo_index,
                                  const ArrayView<double> &data,
                                  unsigned int n_grains,
+                                 double &water_content,
+                                 double &volume_fraction_olivine,
                                  std::vector<double> &volume_fractions_olivine,
                                  std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
                                  std::vector<double> &volume_fractions_enstatite,
@@ -169,6 +172,8 @@ namespace aspect
           store_lpo_particle_data(unsigned int lpo_data_position,
                                   const ArrayView<double> &data,
                                   unsigned int n_grains,
+                                  double water_content,
+                                  double volume_fraction_olivine,
                                   std::vector<double> &volume_fractions_olivine,
                                   std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
                                   std::vector<double> &volume_fractions_enstatite,

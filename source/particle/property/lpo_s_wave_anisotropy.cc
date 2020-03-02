@@ -63,16 +63,8 @@ namespace aspect
         AssertThrow(manager.check_plugin_order("lpo","lpo s wave anisotropy"),
                     ExcMessage("To use the lpo s wave anisotropy plugin, the lpo plugin need to be defined before this plugin."));
 
-      }
-
-
-
-      template <int dim>
-      void
-      LpoSWaveAnisotropy<dim>::post_initialize ()
-      {
-        const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
         lpo_data_position = manager.get_data_info().get_position_by_plugin_index(manager.get_plugin_index_by_name("lpo"));
+
       }
 
 
@@ -80,10 +72,12 @@ namespace aspect
       template <int dim>
       void
       LpoSWaveAnisotropy<dim>::initialize_one_particle_property(const Point<dim> &,
-                                                               std::vector<double> &data) const
+                                                                std::vector<double> &data) const
       {
 
 
+        double water_content = 0;
+        double volume_fraction_olivine = 0;
         std::vector<double> volume_fractions_olivine(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
         std::vector<double> volume_fractions_enstatite(n_grains);
@@ -93,6 +87,8 @@ namespace aspect
         Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
                                                              data,
                                                              n_grains,
+                                                             water_content,
+                                                             volume_fraction_olivine,
                                                              volume_fractions_olivine,
                                                              a_cosine_matrices_olivine,
                                                              volume_fractions_enstatite,
@@ -132,12 +128,14 @@ namespace aspect
       template <int dim>
       void
       LpoSWaveAnisotropy<dim>::update_one_particle_property(const unsigned int data_position,
-                                                           const Point<dim> &position,
-                                                           const Vector<double> &solution,
-                                                           const std::vector<Tensor<1,dim> > &gradients,
-                                                           const ArrayView<double> &data) const
+                                                            const Point<dim> &position,
+                                                            const Vector<double> &solution,
+                                                            const std::vector<Tensor<1,dim> > &gradients,
+                                                            const ArrayView<double> &data) const
       {
 
+        double water_content = 0;
+        double volume_fraction_olivine = 0;
         std::vector<double> volume_fractions_olivine(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
         std::vector<double> volume_fractions_enstatite(n_grains);
@@ -146,6 +144,8 @@ namespace aspect
         Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
                                                              data,
                                                              n_grains,
+                                                             water_content,
+                                                             volume_fraction_olivine,
                                                              volume_fractions_olivine,
                                                              a_cosine_matrices_olivine,
                                                              volume_fractions_enstatite,
@@ -257,8 +257,8 @@ namespace aspect
       template<int dim>
       std::vector<Tensor<2,3> >
       LpoSWaveAnisotropy<dim>::random_draw_volume_weighting(std::vector<double> fv,
-                                                           std::vector<Tensor<2,3>> matrices,
-                                                           unsigned int n_output_grains) const
+                                                            std::vector<Tensor<2,3>> matrices,
+                                                            unsigned int n_output_grains) const
       {
         // Get volume weighted euler angles, using random draws to convert odf
         // to a discrete number of orientations, weighted by volume
