@@ -219,7 +219,7 @@ namespace aspect
           std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
           std::vector<double> volume_fractions_enstatite(n_grains);
           std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
-          Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
+          Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                                properties,
                                                                n_grains,
                                                                water_content,
