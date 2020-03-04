@@ -155,9 +155,12 @@ namespace aspect
           std::vector<std::pair<std::string, unsigned int> >
           get_property_information() const;
 
+          /**
+           * Loads particle data into variables
+           */
           static
           void
-          load_lpo_particle_data(unsigned int lpo_index,
+          load_particle_data(unsigned int lpo_index,
                                  const ArrayView<double> &data,
                                  unsigned int n_grains,
                                  double &water_content,
@@ -167,9 +170,12 @@ namespace aspect
                                  std::vector<double> &volume_fractions_enstatite,
                                  std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
 
+          /**
+           * Stores information in variables into the data array
+           */
           static
           void
-          store_lpo_particle_data(unsigned int lpo_data_position,
+          store_particle_data(unsigned int lpo_data_position,
                                   const ArrayView<double> &data,
                                   unsigned int n_grains,
                                   double water_content,
