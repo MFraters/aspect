@@ -58,14 +58,14 @@ namespace aspect
       template <int dim>
       void
       LPO<dim>::load_particle_data(unsigned int lpo_data_position,
-                                       const ArrayView<double> &data,
-                                       unsigned int n_grains,
-                                       double &water_content,
-                                       double &volume_fraction_olivine,
-                                       std::vector<double> &volume_fractions_olivine,
-                                       std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                       std::vector<double> &volume_fractions_enstatite,
-                                       std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite)
+                                   const ArrayView<double> &data,
+                                   unsigned int n_grains,
+                                   double &water_content,
+                                   double &volume_fraction_olivine,
+                                   std::vector<double> &volume_fractions_olivine,
+                                   std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                   std::vector<double> &volume_fractions_enstatite,
+                                   std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite)
       {
         water_content = data[lpo_data_position];
         volume_fraction_olivine = data[lpo_data_position +1];
@@ -112,14 +112,14 @@ namespace aspect
       template <int dim>
       void
       LPO<dim>::store_particle_data(unsigned int lpo_data_position,
-                                        const ArrayView<double> &data,
-                                        unsigned int n_grains,
-                                        double water_content,
-                                        double volume_fraction_olivine,
-                                        std::vector<double> &volume_fractions_olivine,
-                                        std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                        std::vector<double> &volume_fractions_enstatite,
-                                        std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite)
+                                    const ArrayView<double> &data,
+                                    unsigned int n_grains,
+                                    double water_content,
+                                    double volume_fraction_olivine,
+                                    std::vector<double> &volume_fractions_olivine,
+                                    std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                    std::vector<double> &volume_fractions_enstatite,
+                                    std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite)
       {
         Assert(volume_fractions_olivine.size() == n_grains, ExcMessage("Internal error: volume_fractions_olivine is not the same as n_grains."));
         Assert(a_cosine_matrices_olivine.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_olivine is not the same as n_grains."));
@@ -431,14 +431,14 @@ namespace aspect
         double volume_fraction_olivine = 0;
         //std::cout << "data_position = " << data_position << ", n_grains" << n_grains << std::endl;
         load_particle_data(data_position,
-                               data,
-                               n_grains,
-                               water_content,
-                               volume_fraction_olivine,
-                               volume_fractions_olivine,
-                               a_cosine_matrices_olivine,
-                               volume_fractions_enstatite,
-                               a_cosine_matrices_enstatite);
+                           data,
+                           n_grains,
+                           water_content,
+                           volume_fraction_olivine,
+                           volume_fractions_olivine,
+                           a_cosine_matrices_olivine,
+                           volume_fractions_enstatite,
+                           a_cosine_matrices_enstatite);
 
         // Make the strain-rate and velocity gradient tensor non-dimensional
         // by dividing it through the second invariant
@@ -502,14 +502,14 @@ namespace aspect
           }
 
         store_particle_data(data_position,
-                                data,
-                                n_grains,
-                                water_content,
-                                x_olivine,
-                                volume_fractions_olivine,
-                                a_cosine_matrices_olivine,
-                                volume_fractions_enstatite,
-                                a_cosine_matrices_enstatite);
+                            data,
+                            n_grains,
+                            water_content,
+                            x_olivine,
+                            volume_fractions_olivine,
+                            a_cosine_matrices_olivine,
+                            volume_fractions_enstatite,
+                            a_cosine_matrices_enstatite);
 
 
 
