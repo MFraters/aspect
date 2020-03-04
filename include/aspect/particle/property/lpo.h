@@ -161,14 +161,14 @@ namespace aspect
           static
           void
           load_particle_data(unsigned int lpo_index,
-                                 const ArrayView<double> &data,
-                                 unsigned int n_grains,
-                                 double &water_content,
-                                 double &volume_fraction_olivine,
-                                 std::vector<double> &volume_fractions_olivine,
-                                 std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                 std::vector<double> &volume_fractions_enstatite,
-                                 std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
+                             const ArrayView<double> &data,
+                             unsigned int n_grains,
+                             double &water_content,
+                             double &volume_fraction_olivine,
+                             std::vector<double> &volume_fractions_olivine,
+                             std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                             std::vector<double> &volume_fractions_enstatite,
+                             std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
 
           /**
            * Stores information in variables into the data array
@@ -176,14 +176,14 @@ namespace aspect
           static
           void
           store_particle_data(unsigned int lpo_data_position,
-                                  const ArrayView<double> &data,
-                                  unsigned int n_grains,
-                                  double water_content,
-                                  double volume_fraction_olivine,
-                                  std::vector<double> &volume_fractions_olivine,
-                                  std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                  std::vector<double> &volume_fractions_enstatite,
-                                  std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
+                              const ArrayView<double> &data,
+                              unsigned int n_grains,
+                              double water_content,
+                              double volume_fraction_olivine,
+                              std::vector<double> &volume_fractions_olivine,
+                              std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                              std::vector<double> &volume_fractions_enstatite,
+                              std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
 
           /**
            * Find nearest orthogonal matrix using a SVD if the
