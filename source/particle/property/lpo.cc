@@ -57,7 +57,7 @@ namespace aspect
 
       template <int dim>
       void
-      LPO<dim>::load_lpo_particle_data(unsigned int lpo_data_position,
+      LPO<dim>::load_particle_data(unsigned int lpo_data_position,
                                        const ArrayView<double> &data,
                                        unsigned int n_grains,
                                        double &water_content,
@@ -111,7 +111,7 @@ namespace aspect
 
       template <int dim>
       void
-      LPO<dim>::store_lpo_particle_data(unsigned int lpo_data_position,
+      LPO<dim>::store_particle_data(unsigned int lpo_data_position,
                                         const ArrayView<double> &data,
                                         unsigned int n_grains,
                                         double water_content,
@@ -430,7 +430,7 @@ namespace aspect
 
         double volume_fraction_olivine = 0;
         //std::cout << "data_position = " << data_position << ", n_grains" << n_grains << std::endl;
-        load_lpo_particle_data(data_position,
+        load_particle_data(data_position,
                                data,
                                n_grains,
                                water_content,
@@ -501,7 +501,7 @@ namespace aspect
             orthogonalize_matrix(a_cosine_matrices_enstatite[grain_i], tolerance);
           }
 
-        store_lpo_particle_data(data_position,
+        store_particle_data(data_position,
                                 data,
                                 n_grains,
                                 water_content,

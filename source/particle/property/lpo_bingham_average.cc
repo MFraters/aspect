@@ -84,7 +84,7 @@ namespace aspect
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
 
         //std::cout << "lpo_data_position = " << lpo_data_position << ", n_grains = " << n_grains << std::endl;
-        Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
+        Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                              data,
                                                              n_grains,
                                                              water_content,
@@ -141,7 +141,7 @@ namespace aspect
         std::vector<double> volume_fractions_enstatite(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
 
-        Particle::Property::LPO<dim>::load_lpo_particle_data(lpo_data_position,
+        Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                              data,
                                                              n_grains,
                                                              water_content,
