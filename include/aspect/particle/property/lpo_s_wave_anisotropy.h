@@ -152,7 +152,7 @@ namespace aspect
           /**
            * todo
            */
-          std::array<std::array<double,3>,3> compute_s_wave_anisotropy(std::vector<Tensor<2,3> > matrices) const;
+          std::array<std::array<double,3>,3> compute_s_wave_anisotropy(Tensor<2,6> & matrices) const;
 
           /**
            * todo
@@ -194,6 +194,7 @@ namespace aspect
 
         private:
           unsigned int lpo_data_position;
+          unsigned int lpo_elastic_tensor_data_position;
 
           double rad_to_degree = 180.0/M_PI;
           double degree_to_rad = M_PI/180.0;

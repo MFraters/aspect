@@ -151,9 +151,27 @@ namespace aspect
           get_property_information() const;
 
           /**
+           * Loads particle data into variables
+           */
+          static
+          void
+          load_particle_data(unsigned int lpo_index,
+                             const ArrayView<double> &data,
+                             Tensor<2,6> &elastic_tensor);
+
+          /**
+           * Stores information in variables into the data array
+           */
+          static
+          void
+          store_particle_data(unsigned int lpo_data_position,
+                              const ArrayView<double> &data,
+                              Tensor<2,6> &elastic_tensor);
+
+          /**
            * todo
            */
-          std::array<std::array<double,3>,3> compute_s_wave_anisotropy(std::vector<Tensor<2,3> > matrices) const;
+          std::array<std::array<double,3>,3> compute_s_wave_anisotropy(Tensor<2,6> & elastic_tensor) const;
 
           /**
            * todo
