@@ -20,6 +20,7 @@
 
 //#include <cstdlib>
 #include <aspect/particle/property/lpo_s_wave_anisotropy.h>
+#include <aspect/particle/property/lpo_elastic_tensor.h>
 #include <aspect/particle/property/lpo.h>
 
 #include <aspect/utilities.h>
@@ -57,13 +58,19 @@ namespace aspect
         const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
         AssertThrow(manager.plugin_name_exists("lpo"),
                     ExcMessage("No lpo property plugin found."));
+        AssertThrow(manager.plugin_name_exists("lpo elastic tensor"),
+                    ExcMessage("No lpo elastic tensor property plugin found."));
         Assert(manager.plugin_name_exists("lpo s wave anisotropy"),
                ExcMessage("No s wave anisotropy property plugin found."));
 
         AssertThrow(manager.check_plugin_order("lpo","lpo s wave anisotropy"),
                     ExcMessage("To use the lpo s wave anisotropy plugin, the lpo plugin need to be defined before this plugin."));
 
+        AssertThrow(manager.check_plugin_order("lpo elastic tensor","lpo s wave anisotropy"),
+                    ExcMessage("To use the lpo s wave anisotropy plugin, the lpo elastic tensor plugin need to be defined before this plugin."));
+
         lpo_data_position = manager.get_data_info().get_position_by_plugin_index(manager.get_plugin_index_by_name("lpo"));
+        lpo_elastic_tensor_data_position = manager.get_data_info().get_position_by_plugin_index(manager.get_plugin_index_by_name("lpo elastic tensor"));
 
       }
 
@@ -82,6 +89,7 @@ namespace aspect
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
         std::vector<double> volume_fractions_enstatite(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
+        Tensor<2,6> elastic_tensor;
 
         //std::cout << "lpo_data_position = " << lpo_data_position << ", n_grains = " << n_grains << std::endl;
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
@@ -94,7 +102,9 @@ namespace aspect
                                                          volume_fractions_enstatite,
                                                          a_cosine_matrices_enstatite);
 
-
+        Particle::Property::LpoElasticTensor<dim>::load_particle_data(lpo_elastic_tensor_data_position,
+                                                                 data,
+                                                                 elastic_tensor);
 
         //std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine, n_samples);
         //std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite, n_samples);
@@ -110,19 +120,14 @@ namespace aspect
             std::cout << std::endl;
         }
         }*/
-
-        std::array<std::array<double,3>,3> s_wave_anisotropy_olivine = compute_s_wave_anisotropy(a_cosine_matrices_olivine);
-        std::array<std::array<double,3>,3> s_wave_anisotropy_enstatite = compute_s_wave_anisotropy(a_cosine_matrices_enstatite);
+/*
+        std::array<std::array<double,3>,3> s_wave_anisotropy = compute_s_wave_anisotropy(elastic_tensor);
 
         // olivine
         for (unsigned int i = 0; i < 3; i++)
           for (unsigned int j = 0; j < 3; j++)
-            data.push_back(s_wave_anisotropy_olivine[i][j]);
-
-        // enstatite
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            data.push_back(s_wave_anisotropy_enstatite[i][j]);
+            data.push_back(s_wave_anisotropy[i][j]);
+*/
       }
 
       template <int dim>
@@ -168,9 +173,9 @@ namespace aspect
             std::cout << std::endl;
         }
         }*/
-        std::array<std::array<double,3>,3> s_wave_anisotropy_olivine = compute_s_wave_anisotropy(weighted_olivine_a_matrices);
-        std::array<std::array<double,3>,3> s_wave_anisotropy_enstatite = compute_s_wave_anisotropy(weighted_enstatite_a_matrices);
-
+        //std::array<std::array<double,3>,3> s_wave_anisotropy_olivine = compute_s_wave_anisotropy(weighted_olivine_a_matrices);
+        //std::array<std::array<double,3>,3> s_wave_anisotropy_enstatite = compute_s_wave_anisotropy(weighted_enstatite_a_matrices);
+/*
         unsigned int counter = 0;
         for (unsigned int i = 0; i < 3; i++)
           for (unsigned int j = 0; j < 3; j++)
@@ -186,7 +191,7 @@ namespace aspect
               //std::cout << ">>> bingham: "  << i << ":" << j << " old = " << data[data_position + counter] << ", new = " << s_wave_anisotropy_olivine[i][j] << std::endl;
               data[data_position + counter] = s_wave_anisotropy_enstatite[i][j];
               counter++;
-            }
+            }*/
 
 
       }
@@ -194,64 +199,17 @@ namespace aspect
 
       template<int dim>
       std::array<std::array<double,3>,3>
-      LpoSWaveAnisotropy<dim>::compute_s_wave_anisotropy(std::vector<Tensor<2,3> > matrices) const
-      {
-        SymmetricTensor< 2, 3, double > sum_matrix_a;
-        SymmetricTensor< 2, 3, double > sum_matrix_b;
-        SymmetricTensor< 2, 3, double > sum_matrix_c;
+      LpoSWaveAnisotropy<dim>::compute_s_wave_anisotropy(Tensor<2,6> & elastic_tensor) const
+      {        // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
 
-        // extracting the a, b and c orientations from the olivine a matrix
-        for (unsigned int i_grain = 0; i_grain < matrices.size(); i_grain++)
-          {
-            sum_matrix_a[0][0] += matrices[i_grain][0][0] * matrices[i_grain][0][0]; // SUM(l^2)
-            sum_matrix_a[1][1] += matrices[i_grain][0][1] * matrices[i_grain][0][1]; // SUM(m^2)
-            sum_matrix_a[2][2] += matrices[i_grain][0][2] * matrices[i_grain][0][2]; // SUM(n^2)
-            sum_matrix_a[0][1] += matrices[i_grain][0][0] * matrices[i_grain][0][1]; // SUM(l*m)
-            sum_matrix_a[0][2] += matrices[i_grain][0][0] * matrices[i_grain][0][2]; // SUM(l*n)
-            sum_matrix_a[1][2] += matrices[i_grain][0][1] * matrices[i_grain][0][2]; // SUM(m*n)
+        
+        std::array a = {0,0,0};
+        std::array b = {0,0,0};
+        std::array c = {0,0,0};
 
+        //return {a,b,c};
 
-            sum_matrix_b[0][0] += matrices[i_grain][1][0] * matrices[i_grain][1][0]; // SUM(l^2)
-            sum_matrix_b[1][1] += matrices[i_grain][1][1] * matrices[i_grain][1][1]; // SUM(m^2)
-            sum_matrix_b[2][2] += matrices[i_grain][1][2] * matrices[i_grain][1][2]; // SUM(n^2)
-            sum_matrix_b[0][1] += matrices[i_grain][1][0] * matrices[i_grain][1][1]; // SUM(l*m)
-            sum_matrix_b[0][2] += matrices[i_grain][1][0] * matrices[i_grain][1][2]; // SUM(l*n)
-            sum_matrix_b[1][2] += matrices[i_grain][1][1] * matrices[i_grain][1][2]; // SUM(m*n)
-
-
-            sum_matrix_c[0][0] += matrices[i_grain][2][0] * matrices[i_grain][2][0]; // SUM(l^2)
-            sum_matrix_c[1][1] += matrices[i_grain][2][1] * matrices[i_grain][2][1]; // SUM(m^2)
-            sum_matrix_c[2][2] += matrices[i_grain][2][2] * matrices[i_grain][2][2]; // SUM(n^2)
-            sum_matrix_c[0][1] += matrices[i_grain][2][0] * matrices[i_grain][2][1]; // SUM(l*m)
-            sum_matrix_c[0][2] += matrices[i_grain][2][0] * matrices[i_grain][2][2]; // SUM(l*n)
-            sum_matrix_c[1][2] += matrices[i_grain][2][1] * matrices[i_grain][2][2]; // SUM(m*n)
-
-          }
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
-
-        /*
-        std::cout << "old eigen_vector_array_a = ";
-        for (size_t i = 0; i < eigenvectors_a.size(); i++)
-        {
-          std::cout << eigenvectors_a[0].second[i] << " ";
-        }
-        std::cout << std::endl;
-        */
-
-        // create shorcuts
-        const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second;
-        const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second;
-        const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second;
-
-
-        // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
-        std::array a = {averaged_a[0],averaged_a[1],averaged_a[2]};
-        std::array b = {averaged_b[0],averaged_b[1],averaged_b[2]};
-        std::array c = {averaged_c[0],averaged_c[1],averaged_c[2]};
-
-        return {a,b,c};
+        return std::array<std::array<double,3>,3>();
       }
 
       template<int dim>

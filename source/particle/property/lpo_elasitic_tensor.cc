@@ -138,13 +138,20 @@ namespace aspect
                                                      std::vector<double> &volume_fractions_enstatite,
                                                      std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite) const
       {
-
-
+        /** This implements the Voigt averaging as described in the equation at the 
+        * bottom of page 385 in Mainprice (1990): 
+        * $C^V_{ijkl} = \sum^S_l F_s \sum^{N_s}_l C_{ijkl}/N_s$, where $F_s$ is the
+        * grain size, $N_s$ is the number of grains and $C_{ijkl}$ is the elastic
+        * tensor. This elastic tensor is computed by the equation above in 
+        * Mainprice (1990): $C_{ijkl} = R_{ip} R_{jg} R_{kr} R_{is} C_{pgrs}$, where
+        * R_{ij} is the lpo orientation matrix.
+        */
         Tensor<4,3,double> Cav;
         Tensor<4,3,double> C0;
         // add olivine to the matrix
         // compute C0 for olivine
         //std::cout << "C0:" << std::endl;
+        // Turn the olivine stiffness matrix into a rank 4 tensor
         for (size_t i = 0; i < 3; i++)
           {
             for (size_t j = 0; j < 3; j++)
@@ -160,6 +167,7 @@ namespace aspect
               }
           }
 
+        // Do the Voigt average for olvine
         for (size_t grain_i = 0; grain_i < volume_fractions_olivine.size(); grain_i++)
           {
             Tensor<4,3,double> Cav2;
@@ -197,6 +205,7 @@ namespace aspect
 
         // add enstatite for the matrix
         // compute C0 for enstatite
+        // Turn the enstatite stiffness matrix into a rank 4 tensor
         for (size_t i = 0; i < 3; i++)
           {
             for (size_t j = 0; j < 3; j++)
@@ -211,7 +220,7 @@ namespace aspect
                   }
               }
           }
-
+        // Add the Voigt average for enstatite
         for (size_t grain_i = 0; grain_i < volume_fractions_olivine.size(); grain_i++)
           {
             Tensor<4,3,double> Cav2;
@@ -245,7 +254,7 @@ namespace aspect
               }
           }
 
-        // Average stiffness matrix
+        // turn rank 4 Voigt averaged stiffness tensor into a stiffness matrix
         Tensor<2,6> Sav;
         for (size_t i = 0; i < 6; i++)
           {
@@ -291,18 +300,9 @@ namespace aspect
                                                        a_cosine_matrices_enstatite);
 
 
-        std::array<std::array<double,3>,3> s_wave_anisotropy_olivine = compute_s_wave_anisotropy(a_cosine_matrices_olivine);
-        std::array<std::array<double,3>,3> s_wave_anisotropy_enstatite = compute_s_wave_anisotropy(a_cosine_matrices_enstatite);
+        for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
+          data.push_back(S_average[Tensor<2,dim>::unrolled_to_component_indices(i)]);
 
-        // olivine
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            data.push_back(s_wave_anisotropy_olivine[i][j]);
-
-        // enstatite
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            data.push_back(s_wave_anisotropy_enstatite[i][j]);
       }
 
       template <int dim>
@@ -331,50 +331,44 @@ namespace aspect
                                                          volume_fractions_enstatite,
                                                          a_cosine_matrices_enstatite);
 
+        Tensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,volume_fractions_olivine,
+                                                       a_cosine_matrices_olivine,
+                                                       volume_fractions_enstatite,
+                                                       a_cosine_matrices_enstatite);
 
-        //std::cout << "new: n_grains = " << n_grains << ", n_samples = " << n_samples << std::endl;
-        std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine, n_samples);
-        std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite, n_samples);
-
-        /*std::cout << "    new weighted_olivine_a_matrices:" << std::endl;
-        for (size_t grain_i = 0; grain_i < weighted_enstatite_a_matrices.size(); grain_i++)
-        {std::cout << "grain = " << grain_i << std::endl;
-        for (size_t i = 0; i < 3; i++)
-        {
-            for (size_t j = 0; j < 3; j++)
-            {
-                std::cout << weighted_olivine_a_matrices[grain_i][i][j] << " ";
-            }
-            std::cout << std::endl;
-        }
-        }*/
-        std::array<std::array<double,3>,3> s_wave_anisotropy_olivine = compute_s_wave_anisotropy(weighted_olivine_a_matrices);
-        std::array<std::array<double,3>,3> s_wave_anisotropy_enstatite = compute_s_wave_anisotropy(weighted_enstatite_a_matrices);
-
-        unsigned int counter = 0;
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              //std::cout << ">>> bingham: " << i << ":" << j << " old = " << data[data_position + counter] << ", new = "<< s_wave_anisotropy_olivine[i][j] << std::endl;
-              data[data_position + counter] = s_wave_anisotropy_olivine[i][j];
-              counter++;
-            }
-
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              //std::cout << ">>> bingham: "  << i << ":" << j << " old = " << data[data_position + counter] << ", new = " << s_wave_anisotropy_olivine[i][j] << std::endl;
-              data[data_position + counter] = s_wave_anisotropy_enstatite[i][j];
-              counter++;
-            }
+        Particle::Property::LpoElasticTensor<dim>::store_particle_data(data_position,
+                                                                       data,
+                                                                       S_average);
 
 
       }
 
 
+      template <int dim>
+      void
+      LpoElasticTensor<dim>::load_particle_data(unsigned int lpo_data_position,
+                                                const ArrayView<double> &data,
+                                                Tensor<2,6> &a_cosine_matrices_enstatite)
+      {
+        for (unsigned int i = 0; i < Tensor<2,6>::n_independent_components ; ++i)
+          a_cosine_matrices_enstatite[Tensor<2,6>::unrolled_to_component_indices(i)] = data[lpo_data_position + i];
+      }
+
+
+      template <int dim>
+      void
+      LpoElasticTensor<dim>::store_particle_data(unsigned int lpo_data_position,
+                                                 const ArrayView<double> &data,
+                                                 Tensor<2,6> &a_cosine_matrices_enstatite)
+      {
+        for (unsigned int i = 0; i < Tensor<2,6>::n_independent_components ; ++i)
+          data[lpo_data_position + i] = a_cosine_matrices_enstatite[Tensor<2,6>::unrolled_to_component_indices(i)];
+      }
+
+/*
       template<int dim>
       std::array<std::array<double,3>,3>
-      LpoElasticTensor<dim>::compute_s_wave_anisotropy(std::vector<Tensor<2,3> > matrices) const
+      LpoElasticTensor<dim>::compute_s_wave_anisotropy(std::vector<Tensor<2,6> >& matrices) const
       {
         SymmetricTensor< 2, 3, double > sum_matrix_a;
         SymmetricTensor< 2, 3, double > sum_matrix_b;
@@ -411,14 +405,14 @@ namespace aspect
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
 
-        /*
+        / *
         std::cout << "old eigen_vector_array_a = ";
         for (size_t i = 0; i < eigenvectors_a.size(); i++)
         {
           std::cout << eigenvectors_a[0].second[i] << " ";
         }
         std::cout << std::endl;
-        */
+        * /
 
         // create shorcuts
         const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second;
@@ -433,7 +427,7 @@ namespace aspect
 
         return {a,b,c};
       }
-
+*/
       template<int dim>
       std::vector<Tensor<2,3> >
       LpoElasticTensor<dim>::random_draw_volume_weighting(std::vector<double> fv,
