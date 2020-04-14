@@ -22,6 +22,7 @@
 #include <aspect/particle/property/lpo.h>
 #include <deal.II/base/parameter_handler.h>
 #include <aspect/particle/property/lpo_elastic_tensor.h>
+#include <deal.II/base/array_view.h>
 //#include <aspect/utilities.h>
 
 // A test that verifies the LPO plugin
@@ -678,4 +679,69 @@ TEST_CASE("LPO elastic tensor")
     }
 
 
+  // test store and load functions
+  // the first and last element should not be changed
+  // by these functions.
+  std::vector<double> array_ref = {0.0,
+                                   1.,2.,3.,4.,5,6,
+                                   7.,8.,9.,10,11,12,
+                                   13,14,15,16,17,18,
+                                   19,20,21,22,23,24,
+                                   25,26,27,28,29,30,
+                                   31,32,33,34,35,36,
+                                   37
+                                  };
+
+  std::vector<double> array = {0.0,
+                               1.,2.,3.,4.,5.,6.,
+                               7.,8.,9.,10,11,12,
+                               13,14,15,16,17,18,
+                               19,20,21,22,23,24,
+                               25,26,27,28,29,30,
+                               31,32,33,34,35,36,
+                               37
+                              };
+
+  std::vector<double> array_plus_100 = {0.0,
+                                        101.,102.,103.,104.,105.,106.,
+                                        107.,108.,109.,110.,111.,112.,
+                                        113.,114.,115.,116.,117.,118.,
+                                        119.,120.,121.,122.,123.,124.,
+                                        125.,126.,127.,128.,129.,130.,
+                                        131.,132.,133.,134.,135.,136.,
+                                        37.
+                                       };
+
+  unsigned int lpo_data_position = 1;
+  dealii::ArrayView<double> data(&array[0],38);
+  dealii::Tensor<2,6> tensor = dealii::Tensor<2,6>();
+  lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
+
+  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
+    REQUIRE(data[lpo_data_position + i] == tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)]);
+
+  lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
+
+  for (unsigned int i = 0; i < array.size() ; ++i)
+    REQUIRE(data[i] == array_ref[i]);
+
+  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
+    tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)] += 100;
+
+
+  lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
+
+  for (unsigned int i = 0; i < array.size() ; ++i)
+    REQUIRE(data[i] == array_plus_100[i]);
+
+  lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
+
+  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
+    REQUIRE(data[lpo_data_position + i] == tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)]);
+
+  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
+    REQUIRE(array_plus_100[lpo_data_position + i] == tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)]);
+
+  for (unsigned int i = 0; i < array.size() ; ++i)
+    REQUIRE(data[i] == array_plus_100[i]);
 }
