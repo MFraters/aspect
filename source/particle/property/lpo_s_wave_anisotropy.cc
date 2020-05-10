@@ -103,8 +103,8 @@ namespace aspect
                                                          a_cosine_matrices_enstatite);
 
         Particle::Property::LpoElasticTensor<dim>::load_particle_data(lpo_elastic_tensor_data_position,
-                                                                 data,
-                                                                 elastic_tensor);
+                                                                      data,
+                                                                      elastic_tensor);
 
         //std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine, n_samples);
         //std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite, n_samples);
@@ -120,14 +120,14 @@ namespace aspect
             std::cout << std::endl;
         }
         }*/
-/*
-        std::array<std::array<double,3>,3> s_wave_anisotropy = compute_s_wave_anisotropy(elastic_tensor);
+        /*
+                std::array<std::array<double,3>,3> s_wave_anisotropy = compute_s_wave_anisotropy(elastic_tensor);
 
-        // olivine
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            data.push_back(s_wave_anisotropy[i][j]);
-*/
+                // olivine
+                for (unsigned int i = 0; i < 3; i++)
+                  for (unsigned int j = 0; j < 3; j++)
+                    data.push_back(s_wave_anisotropy[i][j]);
+        */
       }
 
       template <int dim>
@@ -175,23 +175,23 @@ namespace aspect
         }*/
         //std::array<std::array<double,3>,3> s_wave_anisotropy_olivine = compute_s_wave_anisotropy(weighted_olivine_a_matrices);
         //std::array<std::array<double,3>,3> s_wave_anisotropy_enstatite = compute_s_wave_anisotropy(weighted_enstatite_a_matrices);
-/*
-        unsigned int counter = 0;
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              //std::cout << ">>> bingham: " << i << ":" << j << " old = " << data[data_position + counter] << ", new = "<< s_wave_anisotropy_olivine[i][j] << std::endl;
-              data[data_position + counter] = s_wave_anisotropy_olivine[i][j];
-              counter++;
-            }
+        /*
+                unsigned int counter = 0;
+                for (unsigned int i = 0; i < 3; i++)
+                  for (unsigned int j = 0; j < 3; j++)
+                    {
+                      //std::cout << ">>> bingham: " << i << ":" << j << " old = " << data[data_position + counter] << ", new = "<< s_wave_anisotropy_olivine[i][j] << std::endl;
+                      data[data_position + counter] = s_wave_anisotropy_olivine[i][j];
+                      counter++;
+                    }
 
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              //std::cout << ">>> bingham: "  << i << ":" << j << " old = " << data[data_position + counter] << ", new = " << s_wave_anisotropy_olivine[i][j] << std::endl;
-              data[data_position + counter] = s_wave_anisotropy_enstatite[i][j];
-              counter++;
-            }*/
+                for (unsigned int i = 0; i < 3; i++)
+                  for (unsigned int j = 0; j < 3; j++)
+                    {
+                      //std::cout << ">>> bingham: "  << i << ":" << j << " old = " << data[data_position + counter] << ", new = " << s_wave_anisotropy_olivine[i][j] << std::endl;
+                      data[data_position + counter] = s_wave_anisotropy_enstatite[i][j];
+                      counter++;
+                    }*/
 
 
       }
@@ -199,10 +199,11 @@ namespace aspect
 
       template<int dim>
       std::array<std::array<double,3>,3>
-      LpoSWaveAnisotropy<dim>::compute_s_wave_anisotropy(Tensor<2,6> & elastic_tensor) const
-      {        // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
+      LpoSWaveAnisotropy<dim>::compute_s_wave_anisotropy(Tensor<2,6> &elastic_tensor) const
+      {
+        // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
 
-        
+
         std::array a = {0,0,0};
         std::array b = {0,0,0};
         std::array c = {0,0,0};
