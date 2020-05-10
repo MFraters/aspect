@@ -171,7 +171,7 @@ namespace aspect
           /**
            * todo
            */
-          std::array<std::array<double,3>,3> compute_s_wave_anisotropy(Tensor<2,6> & elastic_tensor) const;
+          std::array<std::array<double,3>,3> compute_s_wave_anisotropy(Tensor<2,6> &elastic_tensor) const;
 
           /**
            * todo

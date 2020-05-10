@@ -183,7 +183,6 @@ namespace aspect
         for (unsigned int i = 0; i < 3; i++)
           for (unsigned int j = 0; j < 3; j++)
             {
-              //std::cout << ">>> bingham: "  << i << ":" << j << " old = " << data[data_position + counter] << ", new = " << bingham_average_olivine[i][j] << std::endl;
               data[data_position + counter] = bingham_average_enstatite[i][j];
               counter++;
             }
@@ -231,19 +230,10 @@ namespace aspect
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
 
-        /*
-        std::cout << "old eigen_vector_array_a = ";
-        for (size_t i = 0; i < eigenvectors_a.size(); i++)
-        {
-          std::cout << eigenvectors_a[0].second[i] << " ";
-        }
-        std::cout << std::endl;
-        */
 
-        // create shorcuts
-        const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second;
-        const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second;
-        const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second;
+        const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second * eigenvectors_a[0].first;
+        const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second * eigenvectors_b[0].first;
+        const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second * eigenvectors_a[0].first;
 
 
         // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
