@@ -138,11 +138,11 @@ namespace aspect
                                                      std::vector<double> &volume_fractions_enstatite,
                                                      std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite) const
       {
-        /** This implements the Voigt averaging as described in the equation at the 
-        * bottom of page 385 in Mainprice (1990): 
+        /** This implements the Voigt averaging as described in the equation at the
+        * bottom of page 385 in Mainprice (1990):
         * $C^V_{ijkl} = \sum^S_l F_s \sum^{N_s}_l C_{ijkl}/N_s$, where $F_s$ is the
         * grain size, $N_s$ is the number of grains and $C_{ijkl}$ is the elastic
-        * tensor. This elastic tensor is computed by the equation above in 
+        * tensor. This elastic tensor is computed by the equation above in
         * Mainprice (1990): $C_{ijkl} = R_{ip} R_{jg} R_{kr} R_{is} C_{pgrs}$, where
         * R_{ij} is the lpo orientation matrix.
         */
@@ -365,69 +365,69 @@ namespace aspect
           data[lpo_data_position + i] = a_cosine_matrices_enstatite[Tensor<2,6>::unrolled_to_component_indices(i)];
       }
 
-/*
-      template<int dim>
-      std::array<std::array<double,3>,3>
-      LpoElasticTensor<dim>::compute_s_wave_anisotropy(std::vector<Tensor<2,6> >& matrices) const
-      {
-        SymmetricTensor< 2, 3, double > sum_matrix_a;
-        SymmetricTensor< 2, 3, double > sum_matrix_b;
-        SymmetricTensor< 2, 3, double > sum_matrix_c;
+      /*
+            template<int dim>
+            std::array<std::array<double,3>,3>
+            LpoElasticTensor<dim>::compute_s_wave_anisotropy(std::vector<Tensor<2,6> >& matrices) const
+            {
+              SymmetricTensor< 2, 3, double > sum_matrix_a;
+              SymmetricTensor< 2, 3, double > sum_matrix_b;
+              SymmetricTensor< 2, 3, double > sum_matrix_c;
 
-        // extracting the a, b and c orientations from the olivine a matrix
-        for (unsigned int i_grain = 0; i_grain < matrices.size(); i_grain++)
-          {
-            sum_matrix_a[0][0] += matrices[i_grain][0][0] * matrices[i_grain][0][0]; // SUM(l^2)
-            sum_matrix_a[1][1] += matrices[i_grain][0][1] * matrices[i_grain][0][1]; // SUM(m^2)
-            sum_matrix_a[2][2] += matrices[i_grain][0][2] * matrices[i_grain][0][2]; // SUM(n^2)
-            sum_matrix_a[0][1] += matrices[i_grain][0][0] * matrices[i_grain][0][1]; // SUM(l*m)
-            sum_matrix_a[0][2] += matrices[i_grain][0][0] * matrices[i_grain][0][2]; // SUM(l*n)
-            sum_matrix_a[1][2] += matrices[i_grain][0][1] * matrices[i_grain][0][2]; // SUM(m*n)
-
-
-            sum_matrix_b[0][0] += matrices[i_grain][1][0] * matrices[i_grain][1][0]; // SUM(l^2)
-            sum_matrix_b[1][1] += matrices[i_grain][1][1] * matrices[i_grain][1][1]; // SUM(m^2)
-            sum_matrix_b[2][2] += matrices[i_grain][1][2] * matrices[i_grain][1][2]; // SUM(n^2)
-            sum_matrix_b[0][1] += matrices[i_grain][1][0] * matrices[i_grain][1][1]; // SUM(l*m)
-            sum_matrix_b[0][2] += matrices[i_grain][1][0] * matrices[i_grain][1][2]; // SUM(l*n)
-            sum_matrix_b[1][2] += matrices[i_grain][1][1] * matrices[i_grain][1][2]; // SUM(m*n)
+              // extracting the a, b and c orientations from the olivine a matrix
+              for (unsigned int i_grain = 0; i_grain < matrices.size(); i_grain++)
+                {
+                  sum_matrix_a[0][0] += matrices[i_grain][0][0] * matrices[i_grain][0][0]; // SUM(l^2)
+                  sum_matrix_a[1][1] += matrices[i_grain][0][1] * matrices[i_grain][0][1]; // SUM(m^2)
+                  sum_matrix_a[2][2] += matrices[i_grain][0][2] * matrices[i_grain][0][2]; // SUM(n^2)
+                  sum_matrix_a[0][1] += matrices[i_grain][0][0] * matrices[i_grain][0][1]; // SUM(l*m)
+                  sum_matrix_a[0][2] += matrices[i_grain][0][0] * matrices[i_grain][0][2]; // SUM(l*n)
+                  sum_matrix_a[1][2] += matrices[i_grain][0][1] * matrices[i_grain][0][2]; // SUM(m*n)
 
 
-            sum_matrix_c[0][0] += matrices[i_grain][2][0] * matrices[i_grain][2][0]; // SUM(l^2)
-            sum_matrix_c[1][1] += matrices[i_grain][2][1] * matrices[i_grain][2][1]; // SUM(m^2)
-            sum_matrix_c[2][2] += matrices[i_grain][2][2] * matrices[i_grain][2][2]; // SUM(n^2)
-            sum_matrix_c[0][1] += matrices[i_grain][2][0] * matrices[i_grain][2][1]; // SUM(l*m)
-            sum_matrix_c[0][2] += matrices[i_grain][2][0] * matrices[i_grain][2][2]; // SUM(l*n)
-            sum_matrix_c[1][2] += matrices[i_grain][2][1] * matrices[i_grain][2][2]; // SUM(m*n)
-
-          }
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
-
-        / *
-        std::cout << "old eigen_vector_array_a = ";
-        for (size_t i = 0; i < eigenvectors_a.size(); i++)
-        {
-          std::cout << eigenvectors_a[0].second[i] << " ";
-        }
-        std::cout << std::endl;
-        * /
-
-        // create shorcuts
-        const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second;
-        const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second;
-        const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second;
+                  sum_matrix_b[0][0] += matrices[i_grain][1][0] * matrices[i_grain][1][0]; // SUM(l^2)
+                  sum_matrix_b[1][1] += matrices[i_grain][1][1] * matrices[i_grain][1][1]; // SUM(m^2)
+                  sum_matrix_b[2][2] += matrices[i_grain][1][2] * matrices[i_grain][1][2]; // SUM(n^2)
+                  sum_matrix_b[0][1] += matrices[i_grain][1][0] * matrices[i_grain][1][1]; // SUM(l*m)
+                  sum_matrix_b[0][2] += matrices[i_grain][1][0] * matrices[i_grain][1][2]; // SUM(l*n)
+                  sum_matrix_b[1][2] += matrices[i_grain][1][1] * matrices[i_grain][1][2]; // SUM(m*n)
 
 
-        // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
-        std::array a = {averaged_a[0],averaged_a[1],averaged_a[2]};
-        std::array b = {averaged_b[0],averaged_b[1],averaged_b[2]};
-        std::array c = {averaged_c[0],averaged_c[1],averaged_c[2]};
+                  sum_matrix_c[0][0] += matrices[i_grain][2][0] * matrices[i_grain][2][0]; // SUM(l^2)
+                  sum_matrix_c[1][1] += matrices[i_grain][2][1] * matrices[i_grain][2][1]; // SUM(m^2)
+                  sum_matrix_c[2][2] += matrices[i_grain][2][2] * matrices[i_grain][2][2]; // SUM(n^2)
+                  sum_matrix_c[0][1] += matrices[i_grain][2][0] * matrices[i_grain][2][1]; // SUM(l*m)
+                  sum_matrix_c[0][2] += matrices[i_grain][2][0] * matrices[i_grain][2][2]; // SUM(l*n)
+                  sum_matrix_c[1][2] += matrices[i_grain][2][1] * matrices[i_grain][2][2]; // SUM(m*n)
 
-        return {a,b,c};
-      }
-*/
+                }
+              const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
+              const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
+              const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
+
+              / *
+              std::cout << "old eigen_vector_array_a = ";
+              for (size_t i = 0; i < eigenvectors_a.size(); i++)
+              {
+                std::cout << eigenvectors_a[0].second[i] << " ";
+              }
+              std::cout << std::endl;
+              * /
+
+              // create shorcuts
+              const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second;
+              const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second;
+              const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second;
+
+
+              // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
+              std::array a = {averaged_a[0],averaged_a[1],averaged_a[2]};
+              std::array b = {averaged_b[0],averaged_b[1],averaged_b[2]};
+              std::array c = {averaged_c[0],averaged_c[1],averaged_c[2]};
+
+              return {a,b,c};
+            }
+      */
       template<int dim>
       std::vector<Tensor<2,3> >
       LpoElasticTensor<dim>::random_draw_volume_weighting(std::vector<double> fv,
