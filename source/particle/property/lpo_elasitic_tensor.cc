@@ -131,7 +131,7 @@ namespace aspect
 
 
       template <int dim>
-      Tensor<2,6>
+      SymmetricTensor<2,6>
       LpoElasticTensor<dim>::compute_elastic_tensor (double volume_fraction_olivine,
                                                      std::vector<double> &volume_fractions_olivine,
                                                      std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
@@ -255,7 +255,8 @@ namespace aspect
           }
 
         // turn rank 4 Voigt averaged stiffness tensor into a stiffness matrix
-        Tensor<2,6> Sav;
+        // TODO: optimize loop for symmetric matrices
+        SymmetricTensor<2,6> Sav;
         for (size_t i = 0; i < 6; i++)
           {
             for (size_t j = 0; j < 6; j++)
@@ -294,7 +295,7 @@ namespace aspect
                                                          volume_fractions_enstatite,
                                                          a_cosine_matrices_enstatite);
 
-        Tensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,volume_fractions_olivine,
+        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,volume_fractions_olivine,
                                                        a_cosine_matrices_olivine,
                                                        volume_fractions_enstatite,
                                                        a_cosine_matrices_enstatite);
@@ -331,7 +332,7 @@ namespace aspect
                                                          volume_fractions_enstatite,
                                                          a_cosine_matrices_enstatite);
 
-        Tensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,volume_fractions_olivine,
+        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,volume_fractions_olivine,
                                                        a_cosine_matrices_olivine,
                                                        volume_fractions_enstatite,
                                                        a_cosine_matrices_enstatite);
@@ -348,10 +349,10 @@ namespace aspect
       void
       LpoElasticTensor<dim>::load_particle_data(unsigned int lpo_data_position,
                                                 const ArrayView<double> &data,
-                                                Tensor<2,6> &a_cosine_matrices_enstatite)
+                                                SymmetricTensor<2,6> &elastic_tensor)
       {
-        for (unsigned int i = 0; i < Tensor<2,6>::n_independent_components ; ++i)
-          a_cosine_matrices_enstatite[Tensor<2,6>::unrolled_to_component_indices(i)] = data[lpo_data_position + i];
+        for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
+          elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)] = data[lpo_data_position + i];
       }
 
 
@@ -359,10 +360,10 @@ namespace aspect
       void
       LpoElasticTensor<dim>::store_particle_data(unsigned int lpo_data_position,
                                                  const ArrayView<double> &data,
-                                                 Tensor<2,6> &a_cosine_matrices_enstatite)
+                                                 SymmetricTensor<2,6> &elastic_tensor)
       {
-        for (unsigned int i = 0; i < Tensor<2,6>::n_independent_components ; ++i)
-          data[lpo_data_position + i] = a_cosine_matrices_enstatite[Tensor<2,6>::unrolled_to_component_indices(i)];
+        for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
+          data[lpo_data_position + i] = elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)];
       }
 
       /*

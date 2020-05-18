@@ -714,19 +714,19 @@ TEST_CASE("LPO elastic tensor")
 
   unsigned int lpo_data_position = 1;
   dealii::ArrayView<double> data(&array[0],38);
-  dealii::Tensor<2,6> tensor = dealii::Tensor<2,6>();
+  dealii::SymmetricTensor<2,6> tensor = dealii::SymmetricTensor<2,6>();
   lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
 
-  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
-    REQUIRE(data[lpo_data_position + i] == tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)]);
+  for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
+    REQUIRE(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
 
   lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
 
   for (unsigned int i = 0; i < array.size() ; ++i)
     REQUIRE(data[i] == array_ref[i]);
 
-  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
-    tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)] += 100;
+  for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
+    tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)] += 100;
 
 
   lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
@@ -736,11 +736,11 @@ TEST_CASE("LPO elastic tensor")
 
   lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
 
-  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
-    REQUIRE(data[lpo_data_position + i] == tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)]);
+  for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
+    REQUIRE(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
 
-  for (unsigned int i = 0; i < dealii::Tensor<2,6>::n_independent_components ; ++i)
-    REQUIRE(array_plus_100[lpo_data_position + i] == tensor[dealii::Tensor<2,6>::unrolled_to_component_indices(i)]);
+  for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
+    REQUIRE(array_plus_100[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
 
   for (unsigned int i = 0; i < array.size() ; ++i)
     REQUIRE(data[i] == array_plus_100[i]);
