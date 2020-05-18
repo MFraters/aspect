@@ -200,6 +200,7 @@ namespace aspect
         SymmetricTensor< 2, 3, double > sum_matrix_c;
 
         // extracting the a, b and c orientations from the olivine a matrix
+        // see https://courses.eas.ualberta.ca/eas421/lecturepages/orientation.html
         for (unsigned int i_grain = 0; i_grain < matrices.size(); i_grain++)
           {
             sum_matrix_a[0][0] += matrices[i_grain][0][0] * matrices[i_grain][0][0]; // SUM(l^2)
