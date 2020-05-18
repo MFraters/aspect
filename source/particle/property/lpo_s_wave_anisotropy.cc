@@ -89,7 +89,7 @@ namespace aspect
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
         std::vector<double> volume_fractions_enstatite(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
-        Tensor<2,6> elastic_tensor;
+        SymmetricTensor<2,6> elastic_tensor;
 
         //std::cout << "lpo_data_position = " << lpo_data_position << ", n_grains = " << n_grains << std::endl;
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
