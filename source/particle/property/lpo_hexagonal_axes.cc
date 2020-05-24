@@ -112,9 +112,13 @@ namespace aspect
         // but we need to find the order in which
 
 
+        Tensor<1,21> elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_tensor);
+
+        double elastic_vector_norm = elastic_vector.norm();
+
         Tensor<2,3> unprojected_SCC = compute_unprojected_SCC(elastic_tensor);
 
-        Tensor<2,3> minimum_SCC_projection = compute_minimum_SCC_projection(unprojected_SCC, elastic_tensor);
+        std::pair<Tensor<2,6>,Tensor<2,3> > minimum_hexagonal_projection = compute_minimum_hexagonal_projection(unprojected_SCC, elastic_tensor, elastic_vector_norm);
 
 
         //compute_hexagonal_axes(Tensor<2,6> &elastic_tensor);
@@ -230,181 +234,10 @@ namespace aspect
 
       }
 
-      template<int dim>
-      Tensor<4,3>
-      LpoHexagonalAxes<dim>::rotate_4th_order_tensor(const Tensor<4,3> &input_tensor, const Tensor<2,3> &rotation_tensor) const
-      {
-        Tensor<4,3> output;
-
-        for (unsigned short int i1 = 0; i1 < 3; i1++)
-          {
-            for (unsigned short int i2 = 0; i2 < 3; i2++)
-              {
-                for (unsigned short int i3 = 0; i3 < 3; i3++)
-                  {
-                    for (unsigned short int i4 = 0; i4 < 3; i4++)
-                      {
-                        for (unsigned short int j1 = 0; j1 < 3; j1++)
-                          {
-                            for (unsigned short int j2 = 0; j2 < 3; j2++)
-                              {
-                                for (unsigned short int j3 = 0; j3 < 3; j3++)
-                                  {
-                                    for (unsigned short int j4 = 0; j4 < 3; j4++)
-                                      {
-                                        output[i1][i2][i3][i4] = output[i1][i2][i3][i4] + rotation_tensor[i1][j1]*rotation_tensor[i2][j2]*rotation_tensor[i3][j3]*rotation_tensor[i4][j4]*input_tensor[j1][j2][j3][j4];
-                                      }
-                                  }
-                              }
-                          }
-                      }
-                  }
-              }
-          }
-
-        return output;
-      }
-
-      template<int dim>
-      SymmetricTensor<2,6>
-      LpoHexagonalAxes<dim>::transform_4th_order_tensor_to_6x6_matrix(const Tensor<4,3> &input_tensor) const
-      {
-        SymmetricTensor<2,6> output;
-
-        for (unsigned short int i = 0; i < 3; i++)
-          {
-            output[i][i] = input_tensor[i][i][i][i];
-          }
-
-        for (unsigned short int i = 1; i < 3; i++)
-          {
-            output[0][i] = 0.5*(input_tensor[0][0][i][i] + input_tensor[i][i][0][0]);
-            //output[0][i] = output[i][0];
-          }
-        output[1][2]=0.5*(input_tensor[1][1][2][2]+input_tensor[2][2][1][1]);
-        //output[2][1]=output[1][2];
-
-        for (unsigned short int i = 0; i < 3; i++)
-          {
-            output[i][3]=0.25*(input_tensor[i][i][1][2]+input_tensor[i][i][2][1]+ input_tensor[1][2][i][i]+input_tensor[2][1][i][i]);
-            //output[3][i]=output[i][3];
-          }
-
-        for (unsigned short int i = 0; i < 3; i++)
-          {
-            output[i][4]=0.25*(input_tensor[i][i][0][2]+input_tensor[i][i][2][0]+ input_tensor[0][2][i][i]+input_tensor[2][0][i][i]);
-            //output[4][i]=output[i][4];
-          }
-
-        for (unsigned short int i = 0; i < 3; i++)
-          {
-            output[i][5]=0.25*(input_tensor[i][i][0][1]+input_tensor[i][i][1][2]+input_tensor[0][1][i][i]+input_tensor[1][0][i][i]);
-            //output[5][i]=output[i][5];
-          }
-
-        output[3][3]=0.25*(input_tensor[1][2][1][2]+input_tensor[1][2][2][1]+input_tensor[2][1][1][2]+input_tensor[2][1][2][1]);
-        output[4][4]=0.25*(input_tensor[0][2][0][2]+input_tensor[0][2][2][0]+input_tensor[2][0][0][2]+input_tensor[2][0][2][0]);
-        output[5][5]=0.25*(input_tensor[1][0][1][0]+input_tensor[1][0][0][1]+input_tensor[0][1][1][0]+input_tensor[0][1][0][1]);
-
-        output[3][4]=0.125*(input_tensor[1][2][0][2]+input_tensor[1][2][2][0]+input_tensor[2][1][0][2]+input_tensor[2][1][2][0]+input_tensor[0][2][1][2]+input_tensor[0][2][2][1]+input_tensor[2][0][1][2]+input_tensor[2][0][2][1]);
-        //output[4][3]=output[3][4];
-        output[3][5]=0.125*(input_tensor[1][2][0][1]+input_tensor[1][2][1][0]+input_tensor[2][1][0][1]+input_tensor[2][1][1][0]+input_tensor[0][1][1][2]+input_tensor[0][1][2][1]+input_tensor[1][0][1][2]+input_tensor[1][0][2][1]);
-        //output[5][3]=output[3][5];
-        output[4][5]=0.125*(input_tensor[0][2][0][1]+input_tensor[0][2][1][0]+input_tensor[2][0][0][1]+input_tensor[2][0][1][0]+input_tensor[0][1][0][2]+input_tensor[0][1][2][0]+input_tensor[1][0][0][2]+input_tensor[1][0][2][0]);
-        //output[5][4]=output[4][5];
-
-        return output;
-      }
-
-      template<int dim>
-      Tensor<4,3>
-      LpoHexagonalAxes<dim>::transform_6x6_matrix_to_4th_order_tensor(const SymmetricTensor<2,6> &input_tensor) const
-      {
-        Tensor<4,3> output;
-
-        for (unsigned short int i = 0; i < 3; i++)
-          for (unsigned short int j = 0; j < 3; j++)
-            for (unsigned short int k = 0; k < 3; k++)
-              for (unsigned short int l = 0; l < 3; l++)
-                {
-                  // The first part of the inline if statment gets the diagonal.
-                  // The second part is never higher then 5 (which is the limit of the tensor index)
-                  // because to reach this part the variables need to be different, which results in
-                  // at least a minus 1.
-                  const unsigned short int p = (i == j ? i : 6 - i - j);
-                  const unsigned short int q = (k == l ? k : 6 - k - l);
-                  output[i][j][k][l] = input_tensor[p][q];
-                }
-
-      }
-
-      template<int dim>
-      Tensor<1,21>
-      LpoHexagonalAxes<dim>::transform_6x6_matrix_to_21D_vector(const SymmetricTensor<2,6> &input) const
-      {
-        return Tensor<1,21,double> (
-        {
-          input[0][0],           // 0  // 1
-          input[1][1],           // 1  // 2
-          input[2][2],           // 2  // 3
-          sqrt(2)*input[1][2],   // 3  // 4
-          sqrt(2)*input[0][2],   // 4  // 5
-          sqrt(2)*input[0][1],   // 5  // 6
-          2*input[3][3],         // 6  // 7
-          2*input[4][4],         // 7  // 8
-          2*input[5][5],         // 8  // 9
-          2*input[0][3],         // 9  // 10
-          2*input[1][4],         // 10 // 11
-          2*input[2][5],         // 11 // 12
-          2*input[2][3],         // 12 // 13
-          2*input[0][4],         // 13 // 14
-          2*input[1][5],         // 14 // 15
-
-          2*input[1][3],         // 15 // 16
-          2*input[2][4],         // 16 // 17
-          2*input[0][5],         // 17 // 18
-          2*sqrt(2)*input[4][5], // 18 // 19
-          2*sqrt(2)*input[3][5], // 19 // 20
-          2*sqrt(2)*input[3][4]  // 20 // 21
-        });
-
-      }
 
 
       template<int dim>
-      Tensor<1,21>
-      LpoHexagonalAxes<dim>::transform_4th_order_tensor_to_21D_vector(const Tensor<4,3> &input_tensor) const
-      {
-        return Tensor<1,21,double> (
-        {
-          input_tensor[0][0][0][0],           // 0  // 1
-          input_tensor[1][1][1][1],           // 1  // 2
-          input_tensor[2][2][2][2],           // 2  // 3
-          sqrt(2)*0.5*(input_tensor[1][1][2][2] + input_tensor[2][2][1][1]),   // 3  // 4
-          sqrt(2)*0.5*(input_tensor[0][0][2][2] + input_tensor[2][2][0][0]),   // 4  // 5
-          sqrt(2)*0.5*(input_tensor[0][0][1][1] + input_tensor[1][1][0][0]),   // 5  // 6
-          0.5*(input_tensor[1][2][1][2]+input_tensor[1][2][2][1]+input_tensor[2][1][1][2]+input_tensor[2][1][2][1]),         // 6  // 7
-          0.5*(input_tensor[0][2][0][2]+input_tensor[0][2][2][0]+input_tensor[2][0][0][2]+input_tensor[2][0][2][0]),         // 7  // 8
-          0.5*(input_tensor[1][0][1][0]+input_tensor[1][0][0][1]+input_tensor[0][1][1][0]+input_tensor[0][1][0][1]),         // 8  // 9
-          0.5*(input_tensor[0][0][1][2]+input_tensor[0][0][2][1]+ input_tensor[1][2][0][0]+input_tensor[2][1][0][0]),         // 9  // 10
-          0.5*(input_tensor[1][1][0][2]+input_tensor[1][1][2][0]+ input_tensor[0][2][1][1]+input_tensor[2][0][1][1]),         // 10 // 11
-          0.5*(input_tensor[2][2][0][1]+input_tensor[2][2][1][2]+input_tensor[0][1][2][2]+input_tensor[1][0][2][2]),         // 11 // 12
-          0.5*(input_tensor[2][2][1][2]+input_tensor[2][2][2][1]+ input_tensor[1][2][2][2]+input_tensor[2][1][2][2]),         // 12 // 13
-          0.5*(input_tensor[0][0][0][2]+input_tensor[0][0][2][0]+ input_tensor[0][2][0][0]+input_tensor[2][0][0][0]),         // 13 // 14
-          0.5*(input_tensor[1][1][0][1]+input_tensor[1][1][1][2]+input_tensor[0][1][1][1]+input_tensor[1][0][1][1]),         // 14 // 15
-          0.5*(input_tensor[1][1][1][2]+input_tensor[1][1][2][1]+ input_tensor[1][2][1][1]+input_tensor[2][1][1][1]),         // 15 // 16
-          0.5*(input_tensor[2][2][0][2]+input_tensor[2][2][2][0]+ input_tensor[0][2][2][2]+input_tensor[2][0][2][2]),         // 16 // 17
-          0.5*(input_tensor[0][0][0][1]+input_tensor[0][0][1][2]+input_tensor[0][1][0][0]+input_tensor[1][0][0][0]),         // 17 // 18
-          sqrt(2)*0.25*(input_tensor[0][2][0][1]+input_tensor[0][2][1][0]+input_tensor[2][0][0][1]+input_tensor[2][0][1][0]+input_tensor[0][1][0][2]+input_tensor[0][1][2][0]+input_tensor[1][0][0][2]+input_tensor[1][0][2][0]), // 18 // 19
-          sqrt(2)*0.25*(input_tensor[1][2][0][1]+input_tensor[1][2][1][0]+input_tensor[2][1][0][1]+input_tensor[2][1][1][0]+input_tensor[0][1][1][2]+input_tensor[0][1][2][1]+input_tensor[1][0][1][2]+input_tensor[1][0][2][1]), // 19 // 20
-          sqrt(2)*0.25*(input_tensor[1][2][0][2]+input_tensor[1][2][2][0]+input_tensor[2][1][0][2]+input_tensor[2][1][2][0]+input_tensor[0][2][1][2]+input_tensor[0][2][2][1]+input_tensor[2][0][1][2]+input_tensor[2][0][2][1])  // 20 // 21
-        });
-
-      }
-
-
-      template<int dim>
-      Tensor<2,3> 
+      Tensor<2,3>
       LpoHexagonalAxes<dim>::compute_unprojected_SCC(const SymmetricTensor<2,6> &elastic_tensor) const
       {
         /**
@@ -425,35 +258,96 @@ namespace aspect
         // computing the eigenvector of this matrix
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_a = eigenvectors(voigt_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
 
-        return Tensor<2,3>({
+        return Tensor<2,3>(
+        {
           {eigenvectors_a[0].second[0],eigenvectors_a[0].second[1],eigenvectors_a[0].second[2]},
           {eigenvectors_a[1].second[1],eigenvectors_a[1].second[1],eigenvectors_a[1].second[2]},
-          {eigenvectors_a[2].second[2],eigenvectors_a[2].second[1],eigenvectors_a[2].second[2]}});
+          {eigenvectors_a[2].second[2],eigenvectors_a[2].second[1],eigenvectors_a[2].second[2]}
+        });
       }
 
 
       template<int dim>
-      Tensor<2,3> 
-      LpoHexagonalAxes<dim>::compute_minimum_SCC_projection(const Tensor<2,3> &unprojected_SCC, const SymmetricTensor<2,6> &elastic_tensor) const
+      std::pair<SymmetricTensor<2,6>,Tensor<2,3> >
+      LpoHexagonalAxes<dim>::compute_minimum_hexagonal_projection(
+        const Tensor<2,3> &unprojected_SCC,
+        const SymmetricTensor<2,6> &elastic_tensor,
+        const double elastic_vector_norm) const
       {
-        return unprojected_SCC;
+        Tensor<1,21> elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_tensor);
+        double lowest_norm = elastic_vector_norm;
+        unsigned short int lowest_norm_permutation = 99;
+
+
+        /**
+         * Try the different permutations to determine what is the best hexagonal projection.
+         * This is based on Browaeys and Chevrot (2004), GJI (doi: 10.1111/j.1365-246X.2004.024115.x),
+         * which states at the end of paragraph 3.3 that "... an important property of an orthogonal projection
+         * is that the distance between a vector $X$ and its orthogonal projection $X_H = p(X)$ on a given
+         * subspace is minimum. These two features ensure that the decomposition is optimal once a 3-D Cartesian
+         * coordiante systeem is chosen.". The other property they talk about is that "The space of elastic
+         * vectors has a finite dimension [...], i.e. using a differnt norm from eq. (2.3 will change disstances
+         * but not the resulting decomposition.".
+         */
+        Tensor<2,3> projected_SCC[3];
+        SymmetricTensor<2,6> projected_elastic_matrix;
+        for (unsigned short int i = 0; i < 3; i++)
+          {
+            std::array<unsigned short int, 3> perumation = indexed_permutation(i);
+
+
+            for (size_t j = 0; j < 3; j++)
+              {
+                projected_SCC[i][j] = unprojected_SCC[perumation[j]];
+              }
+
+            projected_elastic_matrix = LpoElasticTensor<dim>::rotate_6x6_matrix(elastic_tensor,(projected_SCC[i]));
+
+            const Tensor<1,21> projected_elatic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(projected_elastic_matrix);
+
+            const Tensor<1,9> hexagonal_elastic_vector = project_onto_hexagonal_symmetry(projected_elatic_vector);
+
+            Tensor<1,21> elastic_vector_tmp = elastic_vector;
+
+            // now compute how much is left over in the origional elastic vector
+            for (size_t i = 0; i < 9; i++)
+              {
+                elastic_vector_tmp[i] - hexagonal_elastic_vector[i];
+              }
+
+            const double current_norm = elastic_vector_tmp.norm();
+
+            if (current_norm < lowest_norm)
+              {
+                lowest_norm = current_norm;
+                lowest_norm_permutation = i;
+              }
+          }
+
+        AssertThrow(lowest_norm_permutation < 3,
+                    ExcMessage("LPO Hexagonal axes plugin could not find a good hexagonal projection."));
+
+
+        return std::make_pair(projected_elastic_matrix,projected_SCC[lowest_norm_permutation]);
       }
 
 
       template<int dim>
-      std::array<std::array<double,3>,3>
-      LpoHexagonalAxes<dim>::compute_hexagonal_axes(Tensor<2,6> &elastic_tensor) const
+      Tensor<1,9>
+      LpoHexagonalAxes<dim>::project_onto_hexagonal_symmetry(const Tensor<1,21> &elastic_vector) const
       {
-        // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
-
-
-        std::array a = {0,0,0};
-        std::array b = {0,0,0};
-        std::array c = {0,0,0};
-
-        //return {a,b,c};
-
-        return std::array<std::array<double,3>,3>();
+        return Tensor<1,9>(
+        {
+          0.375 * (elastic_vector[0] + elastic_vector[1]) + std::sqrt(2) * 0.25 * elastic_vector[5] + 0.25 * elastic_vector[8],              // 0 // 1
+          0.375 * (elastic_vector[0] + elastic_vector[1]) + std::sqrt(2) * 0.25 * elastic_vector[5] + 0.25 * elastic_vector[8],              // 1 // 2
+          elastic_vector[2],                                                                                                                 // 2 // 3
+          0.5 * (elastic_vector[3] + elastic_vector[4]),                                                                                     // 3 // 4
+          0.5 * (elastic_vector[3] + elastic_vector[4]),                                                                                     // 4 // 5
+          std::sqrt(2) * 0.25 * (elastic_vector[0] + elastic_vector[1]) + 0.75 * elastic_vector[5] - std::sqrt(2) * 0.5 * elastic_vector[8], // 5 // 6
+          0.5 * (elastic_vector[6] + elastic_vector[8]),                                                                                     // 6 // 7
+          0.5 * (elastic_vector[6] + elastic_vector[8]),                                                                                     // 7 // 8
+          0.25 * (elastic_vector[0] + elastic_vector[1]) - std::sqrt(2) * 0.5 * elastic_vector[5] + 0.5 * elastic_vector[8]                  // 8 // 9
+        });
       }
 
       template<int dim>

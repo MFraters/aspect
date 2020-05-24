@@ -145,33 +145,6 @@ namespace aspect
 
 
           /**
-           * Rotate a 3D 4th order tensor with an other 3D 4th
-           */
-          inline Tensor<4,3> rotate_4th_order_tensor(const Tensor<4,3> &input_tensor, const Tensor<2,3> &rotation_tensor) const;
-
-          /**
-           * Transform a 4th order tensor into a 6x6 matrix
-           */
-          inline SymmetricTensor<2,6> transform_4th_order_tensor_to_6x6_matrix(const Tensor<4,3> &input_tensor) const;
-
-
-          /**
-           * Transform a 6x6 matrix into a 4th order tensor
-           */
-          inline Tensor<4,3> transform_6x6_matrix_to_4th_order_tensor(const SymmetricTensor<2,6> &input_tensor) const;
-
-
-          /**
-           * From a 21D vector from a 6xt matrix
-           */
-          inline Tensor<1,21> transform_6x6_matrix_to_21D_vector(const SymmetricTensor<2,6> &input_tensor) const;
-
-          /**
-           * Tranform a 4th order tensor directly into a 21D vector.
-           */
-          Tensor<1,21> transform_4th_order_tensor_to_21D_vector(const Tensor<4,3> &input) const;
-
-          /**
            * todo
            */
           Tensor<2,3> compute_unprojected_SCC(const SymmetricTensor<2,6> &elastic_tensor) const;
@@ -179,7 +152,9 @@ namespace aspect
           /**
            * todo
            */
-          Tensor<2,3> compute_minimum_SCC_projection(const Tensor<2,3> &unprojected_SCC, const SymmetricTensor<2,6> &elastic_tensor) const;
+          std::pair<SymmetricTensor<2,6>,Tensor<2,3>> compute_minimum_hexagonal_projection(const Tensor<2,3> &unprojected_SCC,
+                                                   const SymmetricTensor<2,6> &elastic_tensor,
+                                                   const double elastic_vector_norm) const;
 
 
           /**
@@ -194,9 +169,10 @@ namespace aspect
           get_property_information() const;
 
           /**
-           * todo
+           * project elastc vector onto hexagonal symmetry as explained in the appendix A4 of
+           * Browaeys and Chevrot (2004), GJI (doi: 10.1111/j.1365-246X.2004.024115.x).
            */
-          std::array<std::array<double,3>,3> compute_hexagonal_axes(Tensor<2,6> &matrices) const;
+          Tensor<1,9> project_onto_hexagonal_symmetry(const Tensor<1,21> &elastic_vector) const;
 
           /**
            * todo
