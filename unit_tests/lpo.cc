@@ -445,6 +445,112 @@ TEST_CASE("LPO")
     }*/
 }
 
+TEST_CASE("LPO elastic tensor transform functions")
+{
+  dealii::SymmetricTensor<2,6> reference_elastic_tensor({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21});
+
+// first test whether the functions are invertable
+  {
+    dealii::SymmetricTensor<2,6> result_up_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor));
+
+    for (size_t i = 0; i < 6; i++)
+      {
+        for (size_t j = 0; j < 6; j++)
+          {
+            //std::cout << "i = " << i << ", j = " << j << std::endl;
+            REQUIRE(reference_elastic_tensor[i][j] == Approx(result_up_down[i][j]));
+          }
+      }
+  }
+  {
+    dealii::SymmetricTensor<2,6> result_down_up = aspect::Particle::Property::LpoElasticTensor<3>::transform_21D_to_6x6_matrix_vector(aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_21D_vector(reference_elastic_tensor));
+
+    for (size_t i = 0; i < 6; i++)
+      {
+        for (size_t j = 0; j < 6; j++)
+          {
+            //std::cout << "i = " << i << ", j = " << j << std::endl;
+            REQUIRE(reference_elastic_tensor[i][j] == Approx(result_down_up[i][j]));
+          }
+      }
+  }
+  {
+    dealii::SymmetricTensor<2,6> result_up_2down_up = aspect::Particle::Property::LpoElasticTensor<3>::transform_21D_to_6x6_matrix_vector(aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_21D_vector(aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor)));
+
+    for (size_t i = 0; i < 6; i++)
+      {
+        for (size_t j = 0; j < 6; j++)
+          {
+            //std::cout << "i = " << i << ", j = " << j << std::endl;
+            REQUIRE(reference_elastic_tensor[i][j] == Approx(result_up_2down_up[i][j]));
+          }
+      }
+  }
+
+// test rotations
+  {
+    // rotation matrix
+    dealii::Tensor<2,3> rotation_tensor;
+    {
+      double radians = (dealii::numbers::PI/180.0)*36; //0.35*dealii::numbers::PI; //(dealii::numbers::PI/180.0)*36;
+      double alpha = radians;
+      double beta = radians;
+      double gamma = radians;
+      rotation_tensor[0][0] = cos(alpha) * cos(beta);
+      rotation_tensor[0][1] = sin(alpha) * cos(beta);
+      rotation_tensor[0][2] = -sin(beta);
+      rotation_tensor[1][0] = cos(alpha) * sin(beta) * sin(gamma) - sin(alpha)*cos(gamma);
+      rotation_tensor[1][1] = sin(alpha) * sin(beta) * sin(gamma) + cos(alpha)*cos(gamma);
+      rotation_tensor[1][2] = cos(beta) * sin(gamma);
+      rotation_tensor[2][0] = cos(alpha) * sin(beta) * cos(gamma) + sin(alpha)*sin(gamma);
+      rotation_tensor[2][1] = sin(alpha) * sin(beta) * cos(gamma) - cos(alpha)*sin(gamma);
+      rotation_tensor[2][2] = cos(beta) * cos(gamma);
+    }
+
+    dealii::SymmetricTensor<2,6> result_up_1_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(
+                                                             aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(
+                                                               aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor),rotation_tensor));
+    dealii::SymmetricTensor<2,6> result_1_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(reference_elastic_tensor,rotation_tensor);
+
+    for (size_t i = 0; i < 6; i++)
+      {
+        for (size_t j = 0; j < 6; j++)
+          {
+            std::cout << "i = " << i << ", j = " << j << ", quick = " << result_1_rotate[i][j] << ", updown = " << result_up_1_rotate_down[i][j]  << ", ref = " << reference_elastic_tensor[i][j] <<  std::endl;
+            REQUIRE(result_1_rotate[i][j] == Approx(result_up_1_rotate_down[i][j]));
+          }
+      }
+
+    dealii::Tensor<4,3> result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(result_up_1_rotate_down);
+
+    dealii::SymmetricTensor<2,6> result_10_rotate = result_1_rotate;
+
+    for (size_t i = 0; i < 9; i++)
+      {
+        dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
+        std::cout << i << " before  quick = " << result_10_rotate[0][0] << ", updown = " << result_up_10_rotate_down[0][0] << ", ref = " << reference_elastic_tensor[0][0] <<  std::endl;
+        result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(result_up_10_rotate, rotation_tensor);
+        result_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(result_10_rotate, rotation_tensor);
+        result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
+        std::cout << i << " after   quick = " << result_10_rotate[0][0] << ", updown = " << result_up_10_rotate_down[0][0] << ", ref = " << reference_elastic_tensor[0][0] <<  std::endl;
+
+      }
+
+    dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
+
+    for (size_t i = 0; i < 6; i++)
+      {
+        for (size_t j = 0; j < 6; j++)
+          {
+            std::cout << "i = " << i << ", j = " << j << ", quick = " << result_10_rotate[i][j] << ", updown = " << result_up_10_rotate_down[i][j] << ", ref = " << reference_elastic_tensor[i][j] <<  std::endl;
+            REQUIRE(result_10_rotate[i][j] == Approx(result_up_10_rotate_down[i][j]));
+            //REQUIRE(result_1_rotate[i][j] == Approx(reference_elastic_tensor[i][j]));
+          }
+      }
+  }
+
+}
+
 TEST_CASE("LPO elastic tensor")
 {
   double volume_fraction_olivine = 0.7;
@@ -660,7 +766,6 @@ TEST_CASE("LPO elastic tensor")
   reference_elastic_tensor[5][5] = 80.599981331604567;
 
 
-
   aspect::Particle::Property::LpoElasticTensor<3> lpo_elastic_tensor;
   computed_elastic_tensor = lpo_elastic_tensor.compute_elastic_tensor(volume_fraction_olivine,
                                                                       volume_fractions_olivine,
@@ -702,13 +807,15 @@ TEST_CASE("LPO elastic tensor")
                                37
                               };
 
+  // There used be be 36 unique entries, but now because we are using the
+  // symmetric tensor, there are only 21 unique entries.
   std::vector<double> array_plus_100 = {0.0,
                                         101.,102.,103.,104.,105.,106.,
                                         107.,108.,109.,110.,111.,112.,
                                         113.,114.,115.,116.,117.,118.,
-                                        119.,120.,121.,122.,123.,124.,
-                                        125.,126.,127.,128.,129.,130.,
-                                        131.,132.,133.,134.,135.,136.,
+                                        119.,120.,121.,22.,23.,24.,
+                                        25.,26.,27.,28.,29.,30.,
+                                        31.,32.,33.,34.,35.,36.,
                                         37.
                                        };
 
