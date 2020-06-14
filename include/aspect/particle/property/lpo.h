@@ -240,7 +240,8 @@ namespace aspect
           wrap_angle(const double angle) const;
 
 
-          std::vector<double>
+
+          std::array<double,3>
           extract_euler_angles_from_dcm(const Tensor<2,3> &rotation_matrix) const;
 
           Tensor<2,3>

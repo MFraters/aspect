@@ -73,6 +73,111 @@ MaterialModel::MaterialModelOutputs<dim> &out) const
 }*/
 
 
+/**
+ * Compare the given two std::array<double,3> entries with an epsilon (using Catch::Approx)
+ */
+inline void compare_3d_arrays_approx(
+  const std::array<double,3> &computed,
+  const std::array<double,3> &expected)
+{
+  CHECK(computed.size() == expected.size());
+  for (unsigned int i=0; i< computed.size(); ++i)
+    {
+      INFO("vector index i=" << i << ": ");
+      CHECK(computed[i] == Approx(expected[i]));
+    }
+}
+
+
+
+/**
+ * Compare two rotation matrices
+ */
+inline void compare_rotation_matrices_approx(
+  const std::array<std::array<double,3>,3> &computed,
+  const std::array<std::array<double,3>,3> &expected)
+{
+  // sign of eigenvector is not important
+  INFO("rotation matrices are not the same: \n" <<
+       "expected = " << expected[0][0] << " " << expected[0][1] << " " << expected[0][2] << "\n" <<
+       "           " << expected[1][0] << " " << expected[1][1] << " " << expected[1][2] << "\n" <<
+       "           " << expected[2][0] << " " << expected[2][1] << " " << expected[2][2] << "\n" <<
+       "computed = " << computed[0][0] << " " << computed[0][1] << " " << computed[0][2] << "\n" <<
+       "           " << computed[1][0] << " " << computed[1][1] << " " << computed[1][2] << "\n" <<
+       "           " << computed[2][0] << " " << computed[2][1] << " " << computed[2][2] << "\n" );
+  CHECK((
+          (computed[0][0] == Approx(expected[0][0]) && computed[0][1] == Approx(expected[0][1]) && computed[0][2] == Approx(expected[0][2]) &&
+           computed[1][0] == Approx(expected[1][0]) && computed[1][1] == Approx(expected[1][1]) && computed[1][2] == Approx(expected[1][2]) &&
+           computed[2][0] == Approx(expected[2][0]) && computed[2][1] == Approx(expected[2][1]) && computed[2][2] == Approx(expected[2][2]))
+          ||
+          (computed[0][0] == Approx(-expected[0][0]) && computed[0][1] == Approx(-expected[0][1]) && computed[0][2] == Approx(-expected[0][2]) &&
+           computed[1][0] == Approx(-expected[1][0]) && computed[1][1] == Approx(-expected[1][1]) && computed[1][2] == Approx(-expected[1][2]) &&
+           computed[2][0] == Approx(-expected[2][0]) && computed[2][1] == Approx(-expected[2][1]) && computed[2][2] == Approx(-expected[2][2]))));
+}
+
+/**
+ * Compare two rotation matrices
+ */
+inline void compare_rotation_matrices_approx(
+  const dealii::Tensor<2,3> &computed,
+  const dealii::Tensor<2,3> &expected)
+{
+  // sign of eigenvector is not important
+  INFO("rotation matrices are not the same: \n" <<
+       "expected = " << expected[0][0] << " " << expected[0][1] << " " << expected[0][2] << "\n" <<
+       "           " << expected[1][0] << " " << expected[1][1] << " " << expected[1][2] << "\n" <<
+       "           " << expected[2][0] << " " << expected[2][1] << " " << expected[2][2] << "\n" <<
+       "computed = " << computed[0][0] << " " << computed[0][1] << " " << computed[0][2] << "\n" <<
+       "           " << computed[1][0] << " " << computed[1][1] << " " << computed[1][2] << "\n" <<
+       "           " << computed[2][0] << " " << computed[2][1] << " " << computed[2][2] << "\n" );
+  CHECK((
+          (computed[0][0] == Approx(expected[0][0]) && computed[0][1] == Approx(expected[0][1]) && computed[0][2] == Approx(expected[0][2]) &&
+           computed[1][0] == Approx(expected[1][0]) && computed[1][1] == Approx(expected[1][1]) && computed[1][2] == Approx(expected[1][2]) &&
+           computed[2][0] == Approx(expected[2][0]) && computed[2][1] == Approx(expected[2][1]) && computed[2][2] == Approx(expected[2][2]))
+          ||
+          (computed[0][0] == Approx(-expected[0][0]) && computed[0][1] == Approx(-expected[0][1]) && computed[0][2] == Approx(-expected[0][2]) &&
+           computed[1][0] == Approx(-expected[1][0]) && computed[1][1] == Approx(-expected[1][1]) && computed[1][2] == Approx(-expected[1][2]) &&
+           computed[2][0] == Approx(-expected[2][0]) && computed[2][1] == Approx(-expected[2][1]) && computed[2][2] == Approx(-expected[2][2]))));
+}
+
+TEST_CASE("Euler angle functions")
+{
+  using namespace aspect;
+  {
+    std::array<std::array<double,3>,3> array = {{{{0.36,0.48,-0.8}},{{-0.8,0.6,0}}, {{0.48,0.64, 0.6}}}};
+    dealii::Tensor<2,3> rot1;
+    rot1[0][0] = 0.36;
+    rot1[0][1] = 0.48;
+    rot1[0][2] = -0.8;
+
+    rot1[1][0] = -0.8;
+    rot1[1][1] = 0.6;
+    rot1[1][2] = 0;
+
+    rot1[1][0] = 0.48;
+    rot1[1][1] = 0.64;
+    rot1[1][2] = 0.6;
+
+    Particle::Property::LPO<3> lpo;
+    std::array<double,3> ea0 = {{20,30,40}};
+    auto rot0 = lpo.dir_cos_matrix2(20,30,40);
+    auto ea1 = lpo.extract_euler_angles_from_dcm(rot1);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.dir_cos_matrix2(ea1[0],ea1[1],ea1[2]);
+    std::cout << "flag 1 " << std::endl;
+    compare_rotation_matrices_approx(rot2, rot1);
+    std::cout << "flag 2 " << std::endl;
+    auto ea2 = lpo.extract_euler_angles_from_dcm(rot2);
+    std::cout << "flag 3 " << std::endl;
+    compare_3d_arrays_approx(ea2,ea1);
+    std::cout << "flag 4 " << std::endl;
+    auto rot3 = lpo.dir_cos_matrix2(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+    std::cout << "flag 5 " << std::endl;
+  }
+}
+
+
 TEST_CASE("LPO")
 {
   using namespace dealii;
@@ -80,10 +185,9 @@ TEST_CASE("LPO")
 
   std::cout << "test compute derivatives 1" << std::endl;
   {
-    std::cout << "flag 1" << std::endl;
+    // first test initialization 2d.
     const int dim2=2;
 
-    // first test initialization 2d.
     Particle::Property::LPO<dim2> lpo_2d;
     ParameterHandler prm;
     lpo_2d.declare_parameters(prm);
@@ -122,84 +226,40 @@ TEST_CASE("LPO")
     // always be the same, so test that for seed = 1. Forthermore, in the data
     // I can only really test that the first entry is the water content (0) and
     // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
-    //for(unsigned int i = 0; i < data.size(); ++i)
-    //  std::cout << "REQUIRE(data[" << i << "] == Approx(" << data[i] << "));" << std::endl;
-    std::cout << "flag 2" << std::endl;
-    //REQUIRE(data.size() == 50);
-    REQUIRE(data[0] == Approx(0)); // default water value
-    REQUIRE(data[1] == Approx(0.5)); // default volume fraction olivine
-    REQUIRE(data[2] == Approx(0.2));
-    REQUIRE(data[3] == Approx(0.159063));
-    REQUIRE(data[4] == Approx(-0.11941));
-    REQUIRE(data[5] == Approx(-0.0888556));
-    REQUIRE(data[6] == Approx(-0.990362));
-    REQUIRE(data[7] == Approx(0.2));
-    REQUIRE(data[8] == Approx(0.409534));
-    REQUIRE(data[9] == Approx(-0.340175));
-    REQUIRE(data[10] == Approx(0.760572));
-    REQUIRE(data[11] == Approx(0.639715));
-    REQUIRE(data[12] == Approx(0.2));
-    REQUIRE(data[13] == Approx(0.181749));
-    REQUIRE(data[14] == Approx(0.896388));
-    REQUIRE(data[15] == Approx(0.96535));
-    REQUIRE(data[16] == Approx(-0.0843498));
-    REQUIRE(data[17] == Approx(0.2));
-    REQUIRE(data[18] == Approx(-0.677912));
-    REQUIRE(data[19] == Approx(-0.184765));
-    REQUIRE(data[20] == Approx(-0.589107));
-    REQUIRE(data[21] == Approx(0.715529));
-    REQUIRE(data[22] == Approx(0.2));
-    REQUIRE(data[23] == Approx(0.741772));
-    REQUIRE(data[24] == Approx(0.148462));
-    REQUIRE(data[25] == Approx(0.0584955));
-    REQUIRE(data[26] == Approx(-0.985796));
-    REQUIRE(data[27] == Approx(0.2));
-    REQUIRE(data[28] == Approx(0.0152744));
-    REQUIRE(data[29] == Approx(-0.913698));
-    REQUIRE(data[30] == Approx(-0.997266));
-    REQUIRE(data[31] == Approx(0.0154452));
-    REQUIRE(data[32] == Approx(0.2));
-    REQUIRE(data[33] == Approx(0.828733));
-    REQUIRE(data[34] == Approx(0.103259));
-    REQUIRE(data[35] == Approx(0.437761));
-    REQUIRE(data[36] == Approx(-0.73192));
-    REQUIRE(data[37] == Approx(0.2));
-    REQUIRE(data[38] == Approx(-0.912544));
-    REQUIRE(data[39] == Approx(0.195949));
-    REQUIRE(data[40] == Approx(-0.0787487));
-    REQUIRE(data[41] == Approx(0.777138));
-    REQUIRE(data[42] == Approx(0.2));
-    REQUIRE(data[43] == Approx(0.185986));
-    REQUIRE(data[44] == Approx(-0.973828));
-    REQUIRE(data[45] == Approx(0.51699));
-    REQUIRE(data[46] == Approx(0.210064));
-    REQUIRE(data[47] == Approx(0.2));
-    REQUIRE(data[48] == Approx(0.641855));
-    REQUIRE(data[49] == Approx(0.56884));
-    REQUIRE(data[50] == Approx(0.748989));
-    REQUIRE(data[51] == Approx(-0.608861));
-
-
-    // test function update_one_particle_property;
-
-    // test function get_property_information
-
-    // test function compute_runge_kutta
-
-    // test function compute_derivatives
-    /*
-    compute_derivatives(const std::vector<double> &volume_fractions,
-     const std::vector<Tensor<2,3> > &a_cosine_matrices,
-     const SymmetricTensor<2,dim2> &strain_rate_nondimensional,
-     const Tensor<2,dim2> &velocity_gradient_tensor_nondimensional,
-     const DeformationType deformation_type,
-     const std::array<double,4> &ref_resolved_shear_stress) const
-    */
+    CHECK(data[0] == Approx(0)); // default water value
+    CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
+    CHECK(data[2] == Approx(0.2));
+    CHECK(data[3] == Approx(0.159063));
+    CHECK(data[4] == Approx(-0.11941));
+    CHECK(data[5] == Approx(0.9800204275));
+    CHECK(data[6] == Approx(-0.0888556));
+    CHECK(data[7] == Approx(-0.990362));
+    CHECK(data[8] == Approx(-0.1062486256));
+    CHECK(data[9] == Approx(0.983261702));
+    CHECK(data[10] == Approx(-0.0701800114));
+    CHECK(data[11] == Approx(-0.1681403917));
+    CHECK(data[12] == Approx(0.2));
+    CHECK(data[13] == Approx(0.4095335744));
+    CHECK(data[14] == Approx(-0.3401753011));
+    CHECK(data[15] == Approx(0.8465004524));
+    CHECK(data[16] == Approx(0.7605716382));
+    CHECK(data[17] == Approx(0.639714977));
+    CHECK(data[18] == Approx(-0.1108852174));
+    CHECK(data[19] == Approx(-0.5037986052));
+    CHECK(data[20] == Approx(0.6892354553));
+    CHECK(data[21] == Approx(0.5207124471));
+    CHECK(data[22] == Approx(0.2));
+    CHECK(data[32] == Approx(0.2));
+    CHECK(data[42] == Approx(0.2));
+    CHECK(data[52] == Approx(0.2));
+    CHECK(data[62] == Approx(0.2));
+    CHECK(data[72] == Approx(0.2));
+    CHECK(data[82] == Approx(0.2));
+    CHECK(data[92] == Approx(0.2));
 
     std::vector<double> volume_fractions(5,0.2);
-    std::cout << "test compute derivatives 1.0.1" << std::endl;
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
-    std::cout << "test compute derivatives 1.0.2" << std::endl;
+    std::cout << "test compute derivatives 1.0.0" << std::endl;
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
@@ -210,7 +270,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[0][2][1] = 0.5;
     a_cosine_matrices[0][2][2] = 0.5;
 
-    std::cout << "test compute derivatives 2.0.0" << std::endl;
     a_cosine_matrices[1][0][0] = 0.1;
     a_cosine_matrices[1][0][1] = 0.2;
     a_cosine_matrices[1][0][2] = 0.3;
@@ -220,7 +279,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[1][2][0] = 0.7;
     a_cosine_matrices[1][2][1] = 0.8;
     a_cosine_matrices[1][2][2] = 0.9;
-    std::cout << "test compute derivatives 3.0.0" << std::endl;
 
     a_cosine_matrices[2][0][0] = 0.1;
     a_cosine_matrices[2][0][1] = 0.2;
@@ -231,7 +289,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[2][2][0] = 0.7;
     a_cosine_matrices[2][2][1] = 0.8;
     a_cosine_matrices[2][2][2] = 0.9;
-    std::cout << "test compute derivatives 4.0.0" << std::endl;
 
     a_cosine_matrices[3][0][0] = 0.1;
     a_cosine_matrices[3][0][1] = 0.2;
@@ -242,7 +299,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[3][2][0] = 0.7;
     a_cosine_matrices[3][2][1] = 0.8;
     a_cosine_matrices[3][2][2] = 0.9;
-    std::cout << "test compute derivatives 5.0.0" << std::endl;
 
     a_cosine_matrices[4][0][0] = 0.1;
     a_cosine_matrices[4][0][1] = 0.2;
@@ -253,16 +309,16 @@ TEST_CASE("LPO")
     a_cosine_matrices[4][2][0] = 0.7;
     a_cosine_matrices[4][2][1] = 0.8;
     a_cosine_matrices[4][2][2] = 0.9;
-    std::cout << "test compute derivatives 6.0.0" << std::endl;
+
     // init a
     SymmetricTensor<2,dim2> strain_rate_nondimensional;
     strain_rate_nondimensional[0][1] = 0.5959;
-    std::cout << "test compute derivatives 7.0.0" << std::endl;
+
     // init eta
     Tensor<2,dim2> velocity_gradient_tensor_nondimensional;
     velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
     velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
-    std::cout << "test compute derivatives 8.0.0" << std::endl;
+
     // init grad_u
     Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
     std::array<double,4> ref_resolved_shear_stress;
@@ -270,8 +326,6 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[1] = 2;
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
-    std::cout << "test compute derivatives 9.0.0" << std::endl;
-
 
     std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
     std::cout << "test compute derivatives 10" << std::endl;
@@ -279,16 +333,20 @@ TEST_CASE("LPO")
                                              strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
                                              deformation_type, ref_resolved_shear_stress);
     std::cout << "test compute derivatives 11" << std::endl;
+    // The correct analytical solution to check against
+    double solution[5] = {0.63011275122, -0.157528187805, -0.157528187805, -0.157528187805 ,-0.157528187805};
     for (unsigned int i = 0; i < derivatives.first.size(); ++i)
-      std::cout << derivatives.first[i] << std::endl;
+      REQUIRE(derivatives.first[i] == Approx(solution[i]));
   }
 
   std::cout << "test compute derivatives 12" << std::endl;
 
   std::cout << std::endl << std::endl << "test compute derivatives part 2" << std::endl;
   {
+    // secondly test initialization 3d.
+    // This should be exactly the same as the 2d version
     const int dim3=3;
-    // first test initialization 2d.
+
     Particle::Property::LPO<dim3> lpo_3d;
     ParameterHandler prm;
     lpo_3d.declare_parameters(prm);
@@ -323,10 +381,44 @@ TEST_CASE("LPO")
     std::vector<double> data;
     lpo_3d.initialize_one_particle_property(dummy_point, data);
 
+    // The LPO particles are initialized. With the same seed, the outcome should
+    // always be the same, so test that for seed = 1. Forthermore, in the data
+    // I can only really test that the first entry is the water content (0) and
+    // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
+    CHECK(data[0] == Approx(0)); // default water value
+    CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
+    CHECK(data[2] == Approx(0.2));
+    CHECK(data[3] == Approx(0.159063));
+    CHECK(data[4] == Approx(-0.11941));
+    CHECK(data[5] == Approx(0.9800204275));
+    CHECK(data[6] == Approx(-0.0888556));
+    CHECK(data[7] == Approx(-0.990362));
+    CHECK(data[8] == Approx(-0.1062486256));
+    CHECK(data[9] == Approx(0.983261702));
+    CHECK(data[10] == Approx(-0.0701800114));
+    CHECK(data[11] == Approx(-0.1681403917));
+    CHECK(data[12] == Approx(0.2));
+    CHECK(data[13] == Approx(0.4095335744));
+    CHECK(data[14] == Approx(-0.3401753011));
+    CHECK(data[15] == Approx(0.8465004524));
+    CHECK(data[16] == Approx(0.7605716382));
+    CHECK(data[17] == Approx(0.639714977));
+    CHECK(data[18] == Approx(-0.1108852174));
+    CHECK(data[19] == Approx(-0.5037986052));
+    CHECK(data[20] == Approx(0.6892354553));
+    CHECK(data[21] == Approx(0.5207124471));
+    CHECK(data[22] == Approx(0.2));
+    CHECK(data[32] == Approx(0.2));
+    CHECK(data[42] == Approx(0.2));
+    CHECK(data[52] == Approx(0.2));
+    CHECK(data[62] == Approx(0.2));
+    CHECK(data[72] == Approx(0.2));
+    CHECK(data[82] == Approx(0.2));
+    CHECK(data[92] == Approx(0.2));
+
     std::vector<double> volume_fractions(5,0.2);
-    std::cout << "test compute derivatives 1.0.1" << std::endl;
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
-    std::cout << "test compute derivatives 1.0.2" << std::endl;
+    std::cout << "test compute derivatives 1.0.0" << std::endl;
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
@@ -337,7 +429,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[0][2][1] = 0.5;
     a_cosine_matrices[0][2][2] = 0.5;
 
-    std::cout << "test compute derivatives 2.0.0" << std::endl;
     a_cosine_matrices[1][0][0] = 0.1;
     a_cosine_matrices[1][0][1] = 0.2;
     a_cosine_matrices[1][0][2] = 0.3;
@@ -347,7 +438,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[1][2][0] = 0.7;
     a_cosine_matrices[1][2][1] = 0.8;
     a_cosine_matrices[1][2][2] = 0.9;
-    std::cout << "test compute derivatives 3.0.0" << std::endl;
 
     a_cosine_matrices[2][0][0] = 0.1;
     a_cosine_matrices[2][0][1] = 0.2;
@@ -358,7 +448,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[2][2][0] = 0.7;
     a_cosine_matrices[2][2][1] = 0.8;
     a_cosine_matrices[2][2][2] = 0.9;
-    std::cout << "test compute derivatives 4.0.0" << std::endl;
 
     a_cosine_matrices[3][0][0] = 0.1;
     a_cosine_matrices[3][0][1] = 0.2;
@@ -369,7 +458,6 @@ TEST_CASE("LPO")
     a_cosine_matrices[3][2][0] = 0.7;
     a_cosine_matrices[3][2][1] = 0.8;
     a_cosine_matrices[3][2][2] = 0.9;
-    std::cout << "test compute derivatives 5.0.0" << std::endl;
 
     a_cosine_matrices[4][0][0] = 0.1;
     a_cosine_matrices[4][0][1] = 0.2;
@@ -380,7 +468,7 @@ TEST_CASE("LPO")
     a_cosine_matrices[4][2][0] = 0.7;
     a_cosine_matrices[4][2][1] = 0.8;
     a_cosine_matrices[4][2][2] = 0.9;
-    std::cout << "test compute derivatives 6.0.0" << std::endl;
+
     // init a
     SymmetricTensor<2,dim3> strain_rate_nondimensional; // e
     strain_rate_nondimensional[0][0] = 7.5;
@@ -392,7 +480,7 @@ TEST_CASE("LPO")
     //strain_rate_nondimensional[2][0] = 10.5;
     //strain_rate_nondimensional[2][1] = 11;
     strain_rate_nondimensional[2][2] = 11.5;
-    std::cout << "test compute derivatives 7.0.0" << std::endl;
+
     // init eta
     Tensor<2,dim3> velocity_gradient_tensor_nondimensional; // l
     velocity_gradient_tensor_nondimensional[0][0] = 2;
@@ -404,7 +492,7 @@ TEST_CASE("LPO")
     velocity_gradient_tensor_nondimensional[2][0] = 5;
     velocity_gradient_tensor_nondimensional[2][1] = 5.5;
     velocity_gradient_tensor_nondimensional[2][2] = 6;
-    std::cout << "test compute derivatives 8.0.0" << std::endl;
+
     // init grad_u
     Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
     std::array<double,4> ref_resolved_shear_stress;
@@ -412,17 +500,17 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[1] = 2;
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
-    std::cout << "test compute derivatives 9.0.0" << std::endl;
-
 
     std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
-    std::cout << "test compute derivatives 10" << std::endl;
+
     derivatives = lpo_3d.compute_derivatives(volume_fractions, a_cosine_matrices,
                                              strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
                                              deformation_type, ref_resolved_shear_stress);
     std::cout << "test compute derivatives 11" << std::endl;
+    // The correct analytical solution to check against
+    double solution[5] = {0.63011275122, -0.157528187805, -0.157528187805, -0.157528187805 ,-0.157528187805};
     for (unsigned int i = 0; i < derivatives.first.size(); ++i)
-      std::cout << derivatives.first[i] << std::endl;
+      REQUIRE(derivatives.first[i] == Approx(solution[i]));
   }
   /*
     REQUIRE(out.get_additional_output<AdditionalOutputs1<dim> >() == NULL);
@@ -457,7 +545,6 @@ TEST_CASE("LPO elastic tensor transform functions")
       {
         for (size_t j = 0; j < 6; j++)
           {
-            //std::cout << "i = " << i << ", j = " << j << std::endl;
             REQUIRE(reference_elastic_tensor[i][j] == Approx(result_up_down[i][j]));
           }
       }
@@ -469,7 +556,6 @@ TEST_CASE("LPO elastic tensor transform functions")
       {
         for (size_t j = 0; j < 6; j++)
           {
-            //std::cout << "i = " << i << ", j = " << j << std::endl;
             REQUIRE(reference_elastic_tensor[i][j] == Approx(result_down_up[i][j]));
           }
       }
@@ -481,18 +567,19 @@ TEST_CASE("LPO elastic tensor transform functions")
       {
         for (size_t j = 0; j < 6; j++)
           {
-            //std::cout << "i = " << i << ", j = " << j << std::endl;
             REQUIRE(reference_elastic_tensor[i][j] == Approx(result_up_2down_up[i][j]));
           }
       }
   }
 
 // test rotations
+  // rotation matrix
+  dealii::Tensor<2,3> rotation_tensor;
+
   {
-    // rotation matrix
-    dealii::Tensor<2,3> rotation_tensor;
+    // fill the rotation matrix with a rotations in all directions
     {
-      double radians = (dealii::numbers::PI/180.0)*36; //0.35*dealii::numbers::PI; //(dealii::numbers::PI/180.0)*36;
+      double radians = (dealii::numbers::PI/180.0)*(360/5); //0.35*dealii::numbers::PI; //(dealii::numbers::PI/180.0)*36;
       double alpha = radians;
       double beta = radians;
       double gamma = radians;
@@ -507,46 +594,205 @@ TEST_CASE("LPO elastic tensor transform functions")
       rotation_tensor[2][2] = cos(beta) * cos(gamma);
     }
 
-    dealii::SymmetricTensor<2,6> result_up_1_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(
-                                                             aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(
-                                                               aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor),rotation_tensor));
-    dealii::SymmetricTensor<2,6> result_1_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(reference_elastic_tensor,rotation_tensor);
+    {
+      dealii::SymmetricTensor<2,6> result_up_1_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(
+                                                               aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(
+                                                                 aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor),rotation_tensor));
+      dealii::SymmetricTensor<2,6> result_1_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(reference_elastic_tensor,rotation_tensor);
 
-    for (size_t i = 0; i < 6; i++)
-      {
-        for (size_t j = 0; j < 6; j++)
-          {
-            std::cout << "i = " << i << ", j = " << j << ", quick = " << result_1_rotate[i][j] << ", updown = " << result_up_1_rotate_down[i][j]  << ", ref = " << reference_elastic_tensor[i][j] <<  std::endl;
-            REQUIRE(result_1_rotate[i][j] == Approx(result_up_1_rotate_down[i][j]));
-          }
-      }
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_1_rotate[i][j] == Approx(result_up_1_rotate_down[i][j]));
+            }
+        }
 
-    dealii::Tensor<4,3> result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(result_up_1_rotate_down);
+      dealii::Tensor<4,3> result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(result_up_1_rotate_down);
 
-    dealii::SymmetricTensor<2,6> result_10_rotate = result_1_rotate;
+      dealii::SymmetricTensor<2,6> result_5_rotate = result_1_rotate;
 
-    for (size_t i = 0; i < 9; i++)
-      {
-        dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
-        std::cout << i << " before  quick = " << result_10_rotate[0][0] << ", updown = " << result_up_10_rotate_down[0][0] << ", ref = " << reference_elastic_tensor[0][0] <<  std::endl;
-        result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(result_up_10_rotate, rotation_tensor);
-        result_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(result_10_rotate, rotation_tensor);
-        result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
-        std::cout << i << " after   quick = " << result_10_rotate[0][0] << ", updown = " << result_up_10_rotate_down[0][0] << ", ref = " << reference_elastic_tensor[0][0] <<  std::endl;
+      for (size_t i = 0; i < 4; i++)
+        {
+          result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(result_up_10_rotate, rotation_tensor);
+          result_5_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(result_5_rotate, rotation_tensor);
+        }
 
-      }
+      dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
 
-    dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_5_rotate[i][j] == Approx(result_up_10_rotate_down[i][j]));
+              // This test doesn't work when rotating in all rotations at the same time.
+              //REQUIRE(result_1_rotate[i][j] == Approx(reference_elastic_tensor[i][j]));
+            }
+        }
+    }
+  }
+  {
+    // fill the rotation matrix with a rotations in the alpha direction
+    {
+      double radians = (dealii::numbers::PI/180.0)*(360/5); //0.35*dealii::numbers::PI; //(dealii::numbers::PI/180.0)*36;
+      double alpha = radians;
+      double beta = 0;
+      double gamma = 0;
+      rotation_tensor[0][0] = cos(alpha) * cos(beta);
+      rotation_tensor[0][1] = sin(alpha) * cos(beta);
+      rotation_tensor[0][2] = -sin(beta);
+      rotation_tensor[1][0] = cos(alpha) * sin(beta) * sin(gamma) - sin(alpha)*cos(gamma);
+      rotation_tensor[1][1] = sin(alpha) * sin(beta) * sin(gamma) + cos(alpha)*cos(gamma);
+      rotation_tensor[1][2] = cos(beta) * sin(gamma);
+      rotation_tensor[2][0] = cos(alpha) * sin(beta) * cos(gamma) + sin(alpha)*sin(gamma);
+      rotation_tensor[2][1] = sin(alpha) * sin(beta) * cos(gamma) - cos(alpha)*sin(gamma);
+      rotation_tensor[2][2] = cos(beta) * cos(gamma);
+    }
 
-    for (size_t i = 0; i < 6; i++)
-      {
-        for (size_t j = 0; j < 6; j++)
-          {
-            std::cout << "i = " << i << ", j = " << j << ", quick = " << result_10_rotate[i][j] << ", updown = " << result_up_10_rotate_down[i][j] << ", ref = " << reference_elastic_tensor[i][j] <<  std::endl;
-            REQUIRE(result_10_rotate[i][j] == Approx(result_up_10_rotate_down[i][j]));
-            //REQUIRE(result_1_rotate[i][j] == Approx(reference_elastic_tensor[i][j]));
-          }
-      }
+    {
+      dealii::SymmetricTensor<2,6> result_up_1_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(
+                                                               aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(
+                                                                 aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor),rotation_tensor));
+      dealii::SymmetricTensor<2,6> result_1_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(reference_elastic_tensor,rotation_tensor);
+
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_1_rotate[i][j] == Approx(result_up_1_rotate_down[i][j]));
+            }
+        }
+
+      dealii::Tensor<4,3> result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(result_up_1_rotate_down);
+
+      dealii::SymmetricTensor<2,6> result_5_rotate = result_1_rotate;
+
+      for (size_t i = 0; i < 4; i++)
+        {
+          result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(result_up_10_rotate, rotation_tensor);
+          result_5_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(result_5_rotate, rotation_tensor);
+        }
+
+      dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
+
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_5_rotate[i][j] == Approx(result_up_10_rotate_down[i][j]));
+              REQUIRE(result_5_rotate[i][j] == Approx(reference_elastic_tensor[i][j]));
+            }
+        }
+    }
+  }
+  {
+    // fill the rotation matrix with a rotations in the beta direction
+    {
+      double radians = (dealii::numbers::PI/180.0)*(360/5); //0.35*dealii::numbers::PI; //(dealii::numbers::PI/180.0)*36;
+      double alpha = 0;
+      double beta = radians;
+      double gamma = 0;
+      rotation_tensor[0][0] = cos(alpha) * cos(beta);
+      rotation_tensor[0][1] = sin(alpha) * cos(beta);
+      rotation_tensor[0][2] = -sin(beta);
+      rotation_tensor[1][0] = cos(alpha) * sin(beta) * sin(gamma) - sin(alpha)*cos(gamma);
+      rotation_tensor[1][1] = sin(alpha) * sin(beta) * sin(gamma) + cos(alpha)*cos(gamma);
+      rotation_tensor[1][2] = cos(beta) * sin(gamma);
+      rotation_tensor[2][0] = cos(alpha) * sin(beta) * cos(gamma) + sin(alpha)*sin(gamma);
+      rotation_tensor[2][1] = sin(alpha) * sin(beta) * cos(gamma) - cos(alpha)*sin(gamma);
+      rotation_tensor[2][2] = cos(beta) * cos(gamma);
+    }
+
+    {
+      dealii::SymmetricTensor<2,6> result_up_1_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(
+                                                               aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(
+                                                                 aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor),rotation_tensor));
+      dealii::SymmetricTensor<2,6> result_1_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(reference_elastic_tensor,rotation_tensor);
+
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_1_rotate[i][j] == Approx(result_up_1_rotate_down[i][j]));
+            }
+        }
+
+      dealii::Tensor<4,3> result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(result_up_1_rotate_down);
+
+      dealii::SymmetricTensor<2,6> result_5_rotate = result_1_rotate;
+
+      for (size_t i = 0; i < 4; i++)
+        {
+          result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(result_up_10_rotate, rotation_tensor);
+          result_5_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(result_5_rotate, rotation_tensor);
+        }
+
+      dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
+
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_5_rotate[i][j] == Approx(result_up_10_rotate_down[i][j]));
+              REQUIRE(result_5_rotate[i][j] == Approx(reference_elastic_tensor[i][j]));
+            }
+        }
+    }
+  }
+
+  {
+    // fill the rotation matrix with a rotations in the gamma direction
+    {
+      double radians = (dealii::numbers::PI/180.0)*(360/5); //0.35*dealii::numbers::PI; //(dealii::numbers::PI/180.0)*36;
+      double alpha = 0;
+      double beta = 0;
+      double gamma = radians;
+      rotation_tensor[0][0] = cos(alpha) * cos(beta);
+      rotation_tensor[0][1] = sin(alpha) * cos(beta);
+      rotation_tensor[0][2] = -sin(beta);
+      rotation_tensor[1][0] = cos(alpha) * sin(beta) * sin(gamma) - sin(alpha)*cos(gamma);
+      rotation_tensor[1][1] = sin(alpha) * sin(beta) * sin(gamma) + cos(alpha)*cos(gamma);
+      rotation_tensor[1][2] = cos(beta) * sin(gamma);
+      rotation_tensor[2][0] = cos(alpha) * sin(beta) * cos(gamma) + sin(alpha)*sin(gamma);
+      rotation_tensor[2][1] = sin(alpha) * sin(beta) * cos(gamma) - cos(alpha)*sin(gamma);
+      rotation_tensor[2][2] = cos(beta) * cos(gamma);
+    }
+
+    {
+      dealii::SymmetricTensor<2,6> result_up_1_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(
+                                                               aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(
+                                                                 aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor),rotation_tensor));
+      dealii::SymmetricTensor<2,6> result_1_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(reference_elastic_tensor,rotation_tensor);
+
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_1_rotate[i][j] == Approx(result_up_1_rotate_down[i][j]));
+            }
+        }
+
+      dealii::Tensor<4,3> result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(result_up_1_rotate_down);
+
+      dealii::SymmetricTensor<2,6> result_5_rotate = result_1_rotate;
+
+      for (size_t i = 0; i < 4; i++)
+        {
+          result_up_10_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_4th_order_tensor(result_up_10_rotate, rotation_tensor);
+          result_5_rotate = aspect::Particle::Property::LpoElasticTensor<3>::rotate_6x6_matrix(result_5_rotate, rotation_tensor);
+        }
+
+      dealii::SymmetricTensor<2,6> result_up_10_rotate_down = aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_6x6_matrix(result_up_10_rotate);
+
+      for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t j = 0; j < 6; j++)
+            {
+              REQUIRE(result_5_rotate[i][j] == Approx(result_up_10_rotate_down[i][j]));
+              REQUIRE(result_5_rotate[i][j] == Approx(reference_elastic_tensor[i][j]));
+            }
+        }
+    }
   }
 
 }
