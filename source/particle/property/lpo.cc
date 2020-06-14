@@ -50,6 +50,7 @@ namespace aspect
       {
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
+
         // todo: check wheter this works correctly. Since the get_random_number function takes a reference
         // to the random_number_generator function, changing the function should mean that I have to update the
         // get_random_number function as well. But I will need to test this.
@@ -215,9 +216,13 @@ namespace aspect
             // the public domain, and is yours to study, modify, and use."
 
             // first generate three random numbers between 0 and 1 and multiply them with 2 PI or 2 for z. Note that these are not the same as phi_1, theta and phi_2.
-            double theta = two_pi * uniform_distribution(this->random_number_generator); // Rotation about the pole (Z)
-            double phi = two_pi * uniform_distribution(this->random_number_generator); // For direction of pole deflection.
-            double z = 2.0* uniform_distribution(this->random_number_generator); //For magnitude of pole deflection.
+            double one = uniform_distribution(this->random_number_generator);
+            double two = uniform_distribution(this->random_number_generator);
+            double three = uniform_distribution(this->random_number_generator);
+
+            double theta = two_pi * one; // Rotation about the pole (Z)
+            double phi = two_pi * two; // For direction of pole deflection.
+            double z = 2.0* three; //For magnitude of pole deflection.
 
             // Compute a vector V used for distributing points over the sphere
             // via the reflection I - V Transpose(V).  This formulation of V
@@ -255,8 +260,8 @@ namespace aspect
             a_cosine_matrix[i_grain][2][2] = 1.0 - z;   // This equals Vz * Vz - 1.0
 
 
-            for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
-              data.push_back(a_cosine_matrix[i_grain][Tensor<2,dim>::unrolled_to_component_indices(i)]);
+            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+              data.push_back(a_cosine_matrix[i_grain][Tensor<2,3>::unrolled_to_component_indices(i)]);
           }
       }
 
@@ -692,10 +697,10 @@ namespace aspect
 
 
       template <int dim>
-      std::vector<double>
+      std::array<double,3>
       LPO<dim>::extract_euler_angles_from_dcm(const Tensor<2,3> &rotation_matrix) const
       {
-        std::vector<double> euler_angles(3);
+        std::array<double,3> euler_angles;
         const double s2 = std::sqrt(rotation_matrix[2][1] * rotation_matrix[2][1] + rotation_matrix[2][0] * rotation_matrix[2][0]);
         const double phi1  = std::atan2(rotation_matrix[2][0],-rotation_matrix[2][1]) * rad_to_degree;
         const double theta = std::acos(rotation_matrix[2][2]) * rad_to_degree;
