@@ -533,12 +533,7 @@ namespace aspect
                   // at least a minus 1.
                   const unsigned short int p = (i == j ? i : 6 - i - j);
                   const unsigned short int q = (k == l ? k : 6 - k - l);
-                  //std::cout << "p = " << p << ", q = " << q << std::endl;
                   output[i][j][k][l] = input_tensor[p][q];
-
-                  //if(output[i][j][k][l] == 0)
-                  if ((p==0 && q==5) || (p==5 && q==0))
-                    std::cout << "output = " << output[i][j][k][l] << ", " << input_tensor[p][q] << "i:j:k:l = " << i << ":" << j <<":"<< k <<":"<< l << ", p:q = " << p << ":" << q << std::endl;
                 }
         return output;
       }
