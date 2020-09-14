@@ -236,17 +236,6 @@ namespace aspect
           std::vector<std::vector<double> >
           volume_weighting(std::vector<double> fv, std::vector<std::vector<double> > angles) const;
 
-          double
-          wrap_angle(const double angle) const;
-
-
-
-          std::array<double,3>
-          extract_euler_angles_from_dcm(const Tensor<2,3> &rotation_matrix) const;
-
-          Tensor<2,3>
-          dir_cos_matrix2(double phi1, double theta, double phi2) const;
-
           /**
            * Return the number of grains per particle
            */

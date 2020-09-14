@@ -204,7 +204,7 @@ namespace aspect
             // set a uniform random a_cosine_matrix per grain
             // This function is based on an article in Graphic Gems III, written by James Arvo, Cornell University (p 116-120).
             // The original code can be found on  http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/rand_rotation.c
-            // andis licenend accourding to this website with the following licence:
+            // and is licenend accourding to this website with the following licence:
             //
             // "The Graphics Gems code is copyright-protected. In other words, you cannot claim the text of the code as your own and
             // resell it. Using the code is permitted in any program, product, or library, non-commercial or commercial. Giving credit
@@ -594,7 +594,7 @@ namespace aspect
               ref_resolved_shear_stress[3] = 3;
               break;
 
-            // using this form the matlab code, not sure where it comes from
+            // Kaminski, Ribe and Browaeys, JGI, 2004 (same as in the matlab code)
             case DeformationType::E_type :
               ref_resolved_shear_stress[0] = 2;
               ref_resolved_shear_stress[1] = 1;
@@ -689,52 +689,6 @@ namespace aspect
 
 
       template <int dim>
-      double
-      LPO<dim>::wrap_angle(const double angle) const
-      {
-        return angle - 360.0*std::floor(angle/360.0);
-      }
-
-
-      template <int dim>
-      std::array<double,3>
-      LPO<dim>::extract_euler_angles_from_dcm(const Tensor<2,3> &rotation_matrix) const
-      {
-        std::array<double,3> euler_angles;
-        const double s2 = std::sqrt(rotation_matrix[2][1] * rotation_matrix[2][1] + rotation_matrix[2][0] * rotation_matrix[2][0]);
-        const double phi1  = std::atan2(rotation_matrix[2][0],-rotation_matrix[2][1]) * rad_to_degree;
-        const double theta = std::acos(rotation_matrix[2][2]) * rad_to_degree;
-        const double phi2  = std::atan2(rotation_matrix[0][2],rotation_matrix[1][2]) * rad_to_degree;
-
-        euler_angles[0] = wrap_angle(phi1);
-        euler_angles[1] = wrap_angle(theta);
-        euler_angles[2] = wrap_angle(phi2);
-
-        return euler_angles;
-      }
-
-      template <int dim>
-      Tensor<2,3>
-      LPO<dim>::dir_cos_matrix2(double phi1, double theta, double phi2) const
-      {
-        Tensor<2,3> dcm;
-
-
-        dcm[0][0] = cos(phi2)*cos(phi1) - cos(theta)*sin(phi1)*sin(phi2);
-        dcm[0][1] = cos(phi2)*sin(phi1) + cos(theta)*cos(phi1)*sin(phi2);
-        dcm[0][2] = sin(phi2)*sin(theta);
-
-        dcm[1][0] = -1.0*sin(phi2)*cos(phi1) - cos(theta)*sin(phi1)*cos(phi2);
-        dcm[1][1] = -1.0*sin(phi2)*sin(phi1) + cos(theta)*cos(phi1)*cos(phi2);
-        dcm[1][2] = cos(phi2)*sin(theta);
-
-        dcm[2][0] = sin(theta)*sin(phi1);
-        dcm[2][1] = -1.0*sin(theta)*cos(phi1);
-        dcm[2][2] = cos(theta);
-        return dcm;
-      }
-
-      template <int dim>
       UpdateTimeFlags
       LPO<dim>::need_update() const
       {
@@ -787,7 +741,7 @@ namespace aspect
                                     const double dt) const
       {
 
-        // RK step 1
+        // RK step 1: slope at the beginning of the interval
         std::vector<double> k_volume_fractions_zero = volume_fractions;
         std::vector<Tensor<2,3> > a_cosine_matrices_zero = a_cosine_matrices;
         std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
