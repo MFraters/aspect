@@ -22,6 +22,7 @@
 #include <aspect/particle/property/lpo.h>
 #include <deal.II/base/parameter_handler.h>
 #include <aspect/particle/property/lpo_elastic_tensor.h>
+#include <aspect/postprocess/particle_lpo.h>
 #include <deal.II/base/array_view.h>
 //#include <aspect/utilities.h>
 
@@ -89,6 +90,22 @@ inline void compare_3d_arrays_approx(
 }
 
 
+/**
+ * Compare the given two std::array<double,3> entries with an epsilon (using Catch::Approx)
+ */
+inline void compare_3d_arrays_approx(
+  const std::vector<double> &computed,
+  const std::vector<double> &expected)
+{
+  CHECK(computed.size() == expected.size());
+  for (unsigned int i=0; i< computed.size(); ++i)
+    {
+      INFO("vector index i=" << i << ": ");
+      CHECK(computed[i] == Approx(expected[i]));
+    }
+}
+
+
 
 /**
  * Compare two rotation matrices
@@ -144,6 +161,7 @@ TEST_CASE("Euler angle functions")
 {
   using namespace aspect;
   {
+    Postprocess::LPO<3> lpo;
     std::array<std::array<double,3>,3> array = {{{{0.36,0.48,-0.8}},{{-0.8,0.6,0}}, {{0.48,0.64, 0.6}}}};
     dealii::Tensor<2,3> rot1;
     rot1[0][0] = 0.36;
@@ -158,22 +176,27 @@ TEST_CASE("Euler angle functions")
     rot1[1][1] = 0.64;
     rot1[1][2] = 0.6;
 
-    Particle::Property::LPO<3> lpo;
-    std::array<double,3> ea0 = {{20,30,40}};
-    auto rot0 = lpo.dir_cos_matrix2(20,30,40);
-    auto ea1 = lpo.extract_euler_angles_from_dcm(rot1);
-    compare_3d_arrays_approx(ea1,ea0);
-    auto rot2 = lpo.dir_cos_matrix2(ea1[0],ea1[1],ea1[2]);
-    std::cout << "flag 1 " << std::endl;
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot1);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
     compare_rotation_matrices_approx(rot2, rot1);
-    std::cout << "flag 2 " << std::endl;
-    auto ea2 = lpo.extract_euler_angles_from_dcm(rot2);
-    std::cout << "flag 3 " << std::endl;
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
     compare_3d_arrays_approx(ea2,ea1);
-    std::cout << "flag 4 " << std::endl;
-    auto rot3 = lpo.dir_cos_matrix2(ea2[0],ea2[1],ea2[2]);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
     compare_rotation_matrices_approx(rot3, rot2);
-    std::cout << "flag 5 " << std::endl;
+  }
+
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{20,30,40}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(20,30,40);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
   }
 }
 
