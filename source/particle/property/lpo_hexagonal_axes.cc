@@ -22,6 +22,7 @@
 #include <aspect/particle/property/lpo_hexagonal_axes.h>
 #include <aspect/particle/property/lpo_elastic_tensor.h>
 #include <aspect/particle/property/lpo.h>
+#include <aspect/particle/world.h>
 
 #include <aspect/utilities.h>
 

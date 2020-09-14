@@ -175,14 +175,14 @@ namespace aspect
       std::string particle_file_prefix_content_raw = this->get_output_directory() +  "particle_LPO/LPO-" + Utilities::int_to_string (output_file_number, 5);
       std::string particle_file_prefix_content_draw_volume_weighting = this->get_output_directory() +  "particle_LPO/weighted_LPO-" + Utilities::int_to_string (output_file_number, 5);
 
-      const typename Particles::ParticleHandler<dim> &particle_handler = this->get_particle_world().get_particle_handler();
+      const auto &particle_handler = this->get_particle_world().get_particle_handler();
 
       std::stringstream string_stream_master;
       std::stringstream string_stream_content_raw;
       std::stringstream string_stream_content_draw_volume_weighting;
 
       // get particle data
-      for (typename Particles::ParticleHandler<dim>::particle_iterator it = particle_handler.begin(); it != particle_handler.end(); ++it)
+      for (typename dealii::Particles::ParticleHandler<dim>::particle_iterator it = particle_handler.begin(); it != particle_handler.end(); ++it)
         {
 
           AssertThrow(it->has_properties(),
