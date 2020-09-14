@@ -21,6 +21,7 @@
 //#include <cstdlib>
 #include <aspect/particle/property/lpo_elastic_tensor.h>
 #include <aspect/particle/property/lpo.h>
+#include <aspect/particle/world.h>
 
 #include <aspect/utilities.h>
 
@@ -112,7 +113,7 @@ namespace aspect
         this->random_number_generator.seed(random_number_seed+my_rank);
         //std::cout << ">>> random_number_seed+my_rank = " << random_number_seed+my_rank << ", random_number_seed = " << random_number_seed << std::endl;
 
-        const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
+        const auto &manager = this->get_particle_world().get_property_manager();
         AssertThrow(manager.plugin_name_exists("lpo"),
                     ExcMessage("No lpo property plugin found."));
         Assert(manager.plugin_name_exists("lpo elastic tensor"),
