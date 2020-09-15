@@ -358,11 +358,6 @@ namespace aspect
         for (unsigned int i = 0; i < dim; ++i)
           velocity[i] = solution[this->introspection().component_indices.velocities[i]];
 
-        // if the velocity is zero, we do not need to update because
-        // no LPO is formed.
-        if (velocity.norm() < 1e-15)
-          return;
-
 
         // get velocity gradient tensor.
         Tensor<2,dim> grad_u;
