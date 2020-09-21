@@ -287,10 +287,10 @@ namespace aspect
           double stress_exponent;
 
           /**
-           * efficientcy of nucliation parameter.
+           * efficientcy of nucleation parameter.
            * lamda_m in equation 8 of Kamisnki et al. (2004, Geophys. J. Int)
            */
-          double nucliation_efficientcy;
+          double nucleation_efficientcy;
 
           /**
            * An exponent described in equation 10 of Kaminsty and Ribe (2001, EPSL)

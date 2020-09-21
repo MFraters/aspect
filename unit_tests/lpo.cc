@@ -157,6 +157,89 @@ inline void compare_rotation_matrices_approx(
            computed[2][0] == Approx(-expected[2][0]) && computed[2][1] == Approx(-expected[2][1]) && computed[2][2] == Approx(-expected[2][2]))));
 }
 
+TEST_CASE("Fabric determination function")
+{
+  using namespace aspect;
+  using namespace Particle::Property;
+  LPO<3> lpo;
+  double MPa = 1e6;
+
+  CHECK(lpo.determine_deformation_type(379.*MPa, 0.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(381.*MPa, 0.) == DeformationType::D_type);
+  CHECK(lpo.determine_deformation_type(0.*MPa, 100.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 50.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 50.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(379.*MPa, 50.) == DeformationType::D_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 49.) == DeformationType::D_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 75.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 100.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 100.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(379.*MPa, 100.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 100.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 200.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 200.) == DeformationType::A_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 200.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 200.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 200.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 200.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 300.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 300.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 300.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 300.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 300.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 300.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 380.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 380.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 380.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 380.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 380.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 380.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 380.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 400.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 400.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 400.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 400.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 400.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 400.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 400.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 600.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 600.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 600.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 600.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 600.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 600.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 600.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 800.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 800.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 800.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 800.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 800.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 800.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 800.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 1000.) == DeformationType::E_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 1000.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 1000.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 1000.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 1000.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 1000.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 1000.) == DeformationType::B_type);
+
+  CHECK(lpo.determine_deformation_type(20.*MPa, 1200.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 1200.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 1200.) == DeformationType::C_type);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 1200.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 1200.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 1200.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 1200.) == DeformationType::B_type);
+}
+
 TEST_CASE("Euler angle functions")
 {
   using namespace aspect;
@@ -228,7 +311,7 @@ TEST_CASE("LPO")
           x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
           stress_exponent = prm.get_double("Stress exponents"); //3.5;
           exponent_p = prm.get_double("Exponents p"); //1.5;
-          nucliation_efficientcy = prm.get_double("Nucliation efficientcy"); //5;
+          nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
           threshold_GBS = prm.get_double("Threshold GBS"); //0.0;*/
         }
         prm.leave_subsection ();
@@ -387,7 +470,7 @@ TEST_CASE("LPO")
           x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
           stress_exponent = prm.get_double("Stress exponents"); //3.5;
           exponent_p = prm.get_double("Exponents p"); //1.5;
-          nucliation_efficientcy = prm.get_double("Nucliation efficientcy"); //5;
+          nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
           threshold_GBS = prm.get_double("Threshold GBS"); //0.0;*/
         }
         prm.leave_subsection ();
