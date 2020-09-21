@@ -39,6 +39,10 @@ namespace aspect
       {
         A_type, B_type, C_type, D_type, E_type, enstatite
       };
+      enum class OlivineDeformationTypeSelector
+      {
+        A_type, B_type, C_type, D_type, E_type, Karato2008
+      };
       /**
        * Todo: write what this plugin does.
        *
@@ -194,6 +198,13 @@ namespace aspect
                                double tolerance) const;
 
           /**
+           * todo
+           */
+          DeformationType
+          determine_deformation_type(const double stress, const double water_content) const;
+
+
+          /**
            * Return resolved shear stress based on deformation type.
            * @param max_value is set by default to 1e60 instead of infinity or
            * std::numeric_limits<double>::max() because it needs to be able to
@@ -274,6 +285,8 @@ namespace aspect
 
         private:
 
+          OlivineDeformationTypeSelector olivine_deformation_type_selector;
+
           double rad_to_degree = 180.0/M_PI;
           double degree_to_rad = M_PI/180.0;
           /**
@@ -296,10 +309,10 @@ namespace aspect
           double stress_exponent;
 
           /**
-           * efficientcy of nucliation parameter.
+           * efficientcy of nucleation parameter.
            * lamda_m in equation 8 of Kamisnki et al. (2004, Geophys. J. Int)
            */
-          double nucliation_efficientcy;
+          double nucleation_efficientcy;
 
           /**
            * An exponent described in equation 10 of Kaminsty and Ribe (2001, EPSL)

@@ -182,6 +182,8 @@ namespace aspect
       std::stringstream string_stream_content_draw_volume_weighting;
 
       // get particle data
+      bool wrote_weighted_header = false;
+      bool wrote_unweighted_header = false;
       for (typename dealii::Particles::ParticleHandler<dim>::particle_iterator it = particle_handler.begin(); it != particle_handler.end(); ++it)
         {
 
@@ -317,6 +319,52 @@ namespace aspect
 
           if (write_raw_lpo.size() != 0)
             {
+              // write unweighted header
+              if (wrote_unweighted_header == false)
+                {
+                  string_stream_content_raw << "id" << " ";
+                  for (unsigned int property_i = 0; property_i < write_raw_lpo.size(); ++property_i)
+                    {
+                      switch (write_raw_lpo[property_i])
+                        {
+                          case Output::olivine_volume_fraction:
+                            string_stream_content_raw << "olivine_volume_fraction" << " ";
+                            break;
+
+                          case Output::olivine_A_matrix:
+                            string_stream_content_raw << "olivine_A_matrix_1" << " " << "olivine_A_matrix_2" << " " << "olivine_A_matrix_3" << " "
+                                                      << "olivine_A_matrix_4" << " " << "olivine_A_matrix_5" << " " << "olivine_A_matrix_6" << " "
+                                                      << "olivine_A_matrix_7" << " " << "olivine_A_matrix_8" << " " << "olivine_A_matrix_9" << " ";
+                            break;
+
+                          case Output::olivine_Euler_angles:
+                            string_stream_content_raw << "olivine_Euler_angles_phi" << " " <<  "olivine_Euler_angles_theta" << " " <<  "olivine_Euler_angles_z" << " ";
+                            break;
+
+                          case Output::enstatite_volume_fraction:
+                            string_stream_content_raw << "enstatite_volume_fraction" << " ";
+                            break;
+
+                          case Output::enstatite_A_matrix:
+                            string_stream_content_raw << "enstatite_A_matrix_1" << " " << "enstatite_A_matrix_2" << " " << "enstatite_A_matrix_3" << " "
+                                                      << "enstatite_A_matrix_4" << " " << "enstatite_A_matrix_5" << " " << "enstatite_A_matrix_6" << " "
+                                                      << "enstatite_A_matrix_7" << " " << "enstatite_A_matrix_8" << " " << "enstatite_A_matrix_9" << " ";
+                            break;
+
+                          case Output::enstatite_Euler_angles:
+                            string_stream_content_raw << "enstatite_Euler_angles_phi" << " " <<  "enstatite_Euler_angles_theta" << " " <<  "enstatite_Euler_angles_z" << " ";
+                            break;
+
+                          default:
+                            Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
+                            break;
+                        }
+                    }
+                  string_stream_content_raw << std::endl;
+                  wrote_unweighted_header = true;
+                }
+
+              // write unweighted data
               for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
                 {
                   string_stream_content_raw << id << " ";
@@ -390,6 +438,53 @@ namespace aspect
                                                                                                 weighted_euler_angles_enstatite[i][2]);
                     }
                 }
+
+              // write weighted header
+              if (wrote_weighted_header == false)
+                {
+                  string_stream_content_draw_volume_weighting << "id" << " ";
+                  for (unsigned int property_i = 0; property_i < write_draw_volume_weighted_lpo.size(); ++property_i)
+                    {
+                      switch (write_draw_volume_weighted_lpo[property_i])
+                        {
+                          case Output::olivine_volume_fraction:
+                            string_stream_content_draw_volume_weighting << "olivine_volume_fraction" << " ";
+                            break;
+
+                          case Output::olivine_A_matrix:
+                            string_stream_content_draw_volume_weighting << "olivine_A_matrix_1" << " " << "olivine_A_matrix_2" << " " << "olivine_A_matrix_3" << " "
+                                                                        << "olivine_A_matrix_4" << " " << "olivine_A_matrix_5" << " " << "olivine_A_matrix_6" << " "
+                                                                        << "olivine_A_matrix_7" << " " << "olivine_A_matrix_8" << " " << "olivine_A_matrix_9" << " ";
+                            break;
+
+                          case Output::olivine_Euler_angles:
+                            string_stream_content_draw_volume_weighting << "olivine_Euler_angles_phi" << " " <<  "olivine_Euler_angles_theta" << " " <<  "olivine_Euler_angles_z" << " ";
+                            break;
+
+                          case Output::enstatite_volume_fraction:
+                            string_stream_content_draw_volume_weighting << "enstatite_volume_fraction" << " ";
+                            break;
+
+                          case Output::enstatite_A_matrix:
+                            string_stream_content_draw_volume_weighting << "enstatite_A_matrix_1" << " " << "enstatite_A_matrix_2" << " " << "enstatite_A_matrix_3" << " "
+                                                                        << "enstatite_A_matrix_4" << " " << "enstatite_A_matrix_5" << " " << "enstatite_A_matrix_6" << " "
+                                                                        << "enstatite_A_matrix_7" << " " << "enstatite_A_matrix_8" << " " << "enstatite_A_matrix_9" << " ";
+                            break;
+
+                          case Output::enstatite_Euler_angles:
+                            string_stream_content_draw_volume_weighting << "enstatite_Euler_angles_phi" << " " <<  "enstatite_Euler_angles_theta" << " " <<  "enstatite_Euler_angles_z" << " ";
+                            break;
+
+                          default:
+                            Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
+                            break;
+                        }
+                    }
+                  string_stream_content_draw_volume_weighting << std::endl;
+                  wrote_weighted_header = true;
+                }
+
+              // write data
               for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
                 {
                   string_stream_content_draw_volume_weighting << id << " ";
@@ -604,10 +699,10 @@ namespace aspect
     template <int dim>
     Tensor<2,3>
     LPO<dim>::euler_angles_to_rotation_matrix(double phi1_d, double theta_d, double phi2_d) const
-      {
-        const double phi1 = phi1_d *degree_to_rad;
-        const double theta = theta_d *degree_to_rad;
-        const double phi2 = phi2_d *degree_to_rad;
+    {
+      const double phi1 = phi1_d *degree_to_rad;
+      const double theta = theta_d *degree_to_rad;
+      const double phi2 = phi2_d *degree_to_rad;
       Tensor<2,3> rot_matrix;
 
 

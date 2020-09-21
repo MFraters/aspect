@@ -400,26 +400,51 @@ namespace aspect
             compositions.push_back(solution[solution_component]);
           }
 
-        // construct the material model inputs and outputs
-        // Since this function is only evaluating one particle,
-        // we use 1 for the amount of quadrature points.
-        MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
-        material_model_inputs.position[0] = position;
-        material_model_inputs.temperature[0] = temperature;
-        material_model_inputs.pressure[0] = pressure;
-        material_model_inputs.velocity[0] = velocity;
-        material_model_inputs.composition[0] = compositions;
-        material_model_inputs.strain_rate[0] = strain_rate;
 
-        MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
-        this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
-        double eta = material_model_outputs.viscosities[0];
-
-        const SymmetricTensor<2,dim> stress = 2*eta*compressible_strain_rate +
-                                              pressure * unit_symmetric_tensor<dim>();
 
         // Now compute what type of deformation takes place. For now just use type A
         DeformationType deformation_type = DeformationType::A_type;
+
+        switch (olivine_deformation_type_selector)
+          {
+            case OlivineDeformationTypeSelector::A_type:
+              deformation_type =  DeformationType::A_type;
+              break;
+            case OlivineDeformationTypeSelector::B_type:
+              deformation_type =  DeformationType::B_type;
+              break;
+            case OlivineDeformationTypeSelector::C_type:
+              deformation_type =  DeformationType::C_type;
+              break;
+            case OlivineDeformationTypeSelector::D_type:
+              deformation_type =  DeformationType::D_type;
+              break;
+            case OlivineDeformationTypeSelector::E_type:
+              deformation_type =  DeformationType::E_type;
+              break;
+            case OlivineDeformationTypeSelector::Karato2008:
+              // construct the material model inputs and outputs
+              // Since this function is only evaluating one particle,
+              // we use 1 for the amount of quadrature points.
+              MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
+              material_model_inputs.position[0] = position;
+              material_model_inputs.temperature[0] = temperature;
+              material_model_inputs.pressure[0] = pressure;
+              material_model_inputs.velocity[0] = velocity;
+              material_model_inputs.composition[0] = compositions;
+              material_model_inputs.strain_rate[0] = strain_rate;
+
+              MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
+              this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
+              double eta = material_model_outputs.viscosities[0];
+
+              const SymmetricTensor<2,dim> stress = 2*eta*compressible_strain_rate +
+                                                    pressure * unit_symmetric_tensor<dim>();
+              const std::array< double, dim > eigenvalues = dealii::eigenvalues(stress);
+              double differential_stress = eigenvalues[0]-eigenvalues[dim-1];
+              deformation_type = determine_deformation_type(differential_stress, water_content);
+              break;
+          }
 
         const std::array<double,4> ref_resolved_shear_stress = reference_resolved_shear_stress_from_deformation_type(deformation_type);
 
@@ -547,6 +572,43 @@ namespace aspect
             // todo: find or add dealii functionallity to copy in one step.
             matrix_olivine = result2;
             matrix_olivine.copy_to(tensor);
+          }
+      }
+
+      template<int dim>
+      DeformationType
+      LPO<dim>::determine_deformation_type(const double stress, const double water_content) const
+      {
+        constexpr double MPa = 1e6;
+        constexpr double ec_line_slope = -500./1050.;
+        if (stress > (380. - 0.05 * water_content)*MPa)
+          {
+            if (stress > (625. - 2.5 * water_content)*MPa)
+              {
+                return DeformationType::B_type;
+              }
+            else
+              {
+                return DeformationType::D_type;
+              }
+          }
+        else
+          {
+            if (stress < (625.0 -2.5 * water_content)*MPa)
+              {
+                return DeformationType::A_type;
+              }
+            else
+              {
+                if (stress < (500.0 + ec_line_slope*-100. + ec_line_slope * water_content)*MPa)
+                  {
+                    return DeformationType::E_type;
+                  }
+                else
+                  {
+                    return DeformationType::C_type;
+                  }
+              }
           }
       }
 
@@ -1114,7 +1176,7 @@ namespace aspect
                 // todo: check beta is alright
                 const double rhos = std::pow(tau[3],(exponent_p-stress_exponent)) *
                                     std::pow(std::abs(gamma*beta[0]),exponent_p/stress_exponent);
-                strain_energy[grain_i] = rhos * std::exp(-nucliation_efficientcy*rhos*rhos);
+                strain_energy[grain_i] = rhos * std::exp(-nucleation_efficientcy*rhos*rhos);
               }
             else
               {
@@ -1130,13 +1192,13 @@ namespace aspect
                 const double rhos4 = std::pow(tau[index_inactive_q],exponent_p-stress_exponent) *
                                      std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent);
 
-                strain_energy[grain_i] = (rhos1 * exp(-nucliation_efficientcy * rhos1 * rhos1)
-                                          + rhos2 * exp(-nucliation_efficientcy * rhos2 * rhos2)
-                                          + rhos3 * exp(-nucliation_efficientcy * rhos3 * rhos3)
-                                          + rhos4 * exp(-nucliation_efficientcy * rhos4 * rhos4));
+                strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficientcy * rhos1 * rhos1)
+                                          + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
+                                          + rhos3 * exp(-nucleation_efficientcy * rhos3 * rhos3)
+                                          + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
 
                 Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
-                                                                    + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3) + ", rhos4= " + std::to_string(rhos4) + ", nucliation_efficientcy = " + std::to_string(nucliation_efficientcy) + "."));
+                                                                    + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3) + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficientcy = " + std::to_string(nucleation_efficientcy) + "."));
               }
 
             // compute the derivative of the cosine matrix a: \frac{\partial a_{ij}}{\partial t}
@@ -1227,7 +1289,7 @@ namespace aspect
                                  Patterns::Double(0),
                                  "This is exponent p as defined in equation 11 of Kaminski et al., 2004. ");
 
-              prm.declare_entry ("Nucliation efficientcy", "5",
+              prm.declare_entry ("Nucleation efficientcy", "5",
                                  Patterns::Double(0),
                                  "This is the dimensionless nucleation rate as defined in equation 8 of "
                                  "Kaminski et al., 2004. ");
@@ -1241,6 +1303,14 @@ namespace aspect
                                  "This determines how many samples are taken when using the random "
                                  "draw volume averaging. Setting it to zero means that the number of "
                                  "samples is set to be equal to the number of grains.");
+
+
+              prm.declare_entry ("Olivine fabric", "Karato 2008",
+                                 Patterns::Anything(),
+                                 "This determines what fabric or fabric selector is used used for the LPO calculation. "
+                                 "The options are A-fabric, B-fabric, C-fabric, D-fabric, E-fabric or Karato 2008. The "
+                                 "Karato 2008 selector selects a fabric based on stress and water content as defined in "
+                                 "figure 4 of the Karato 2008 review paper (doi: 10.1146/annurev.earth.36.031207.124120).");
             }
             prm.leave_subsection ();
           }
@@ -1268,12 +1338,44 @@ namespace aspect
               x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
               stress_exponent = prm.get_double("Stress exponents"); //3.5;
               exponent_p = prm.get_double("Exponents p"); //1.5;
-              nucliation_efficientcy = prm.get_double("Nucliation efficientcy"); //5;
+              nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
               threshold_GBS = prm.get_double("Threshold GBS"); //0.0;
               n_samples = prm.get_integer("Number of samples"); // 0
               if (n_samples == 0)
                 n_samples = n_grains;
             }
+
+            const std::string temp_olivine_deformation_type_selector = prm.get("Olivine fabric"); // todo trim?
+            if (temp_olivine_deformation_type_selector == "Karato 2008")
+              {
+                olivine_deformation_type_selector = OlivineDeformationTypeSelector::Karato2008;
+              }
+            else if (temp_olivine_deformation_type_selector ==  "A-fabric")
+              {
+                olivine_deformation_type_selector = OlivineDeformationTypeSelector::A_type;
+              }
+            else if (temp_olivine_deformation_type_selector ==  "B-fabric")
+              {
+                olivine_deformation_type_selector = OlivineDeformationTypeSelector::B_type;
+              }
+            else if (temp_olivine_deformation_type_selector ==  "C-fabric")
+              {
+                olivine_deformation_type_selector = OlivineDeformationTypeSelector::C_type;
+              }
+            else if (temp_olivine_deformation_type_selector ==  "D-fabric")
+              {
+                olivine_deformation_type_selector = OlivineDeformationTypeSelector::D_type;
+              }
+            else if (temp_olivine_deformation_type_selector ==  "E-fabric")
+              {
+                olivine_deformation_type_selector = OlivineDeformationTypeSelector::E_type;
+              }
+            else
+              {
+                AssertThrow(false,
+                            ExcMessage("The Olivine fabric needs to be one of the following: Karato 2008, "
+                                       "A-fabric,B-fabric,C-fabric,D-fabric,E-fabric."))
+              }
             prm.leave_subsection ();
           }
           prm.leave_subsection ();
