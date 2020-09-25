@@ -645,6 +645,7 @@ namespace aspect
           unsigned int counter = 0;
           for (unsigned int grain_j = 0; grain_j < n_grains-1; ++grain_j)
             {
+              //std::cout << "grain_i = " << grain_i << ", grain_j = " << grain_j <<  ", counter = " << counter << ", cum_weight[grain_j] = " << cum_weight[grain_j] << ", idgrain = " << idxgrain[grain_i] << std::endl;
               if (cum_weight[grain_j] < idxgrain[grain_i])
                 {
                   counter++;
@@ -652,6 +653,7 @@ namespace aspect
 
               Assert(angles_sorted[counter].size() == 3, ExcMessage("angles_sorted vector (size = " + std::to_string(angles_sorted[counter].size()) +
                                                                     ") should have size 3."));
+
               angles_out[grain_i] = angles_sorted[counter];
               Assert(angles_out[counter].size() == 3, ExcMessage("angles_out vector (size = " + std::to_string(angles_out[counter].size()) +
                                                                  ") should have size 3."));
@@ -685,13 +687,52 @@ namespace aspect
                             + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
 
 
+      AssertThrow(rotation_matrix[2][2] <= 1.0, ExcMessage("rot_matrix[2][2] > 1.0"));
+      //double costheta = rotation_matrix[2][2];
+      //if(rotation_matrix[2][2] > 1.0)
+      //  rotation_matrix[2][2] -= 2.0;
       const double theta = std::acos(rotation_matrix[2][2]);
-      const double phi1  = std::atan2(rotation_matrix[2][0]/-sin(theta),rotation_matrix[2][1]/-sin(theta));
-      const double phi2  = std::atan2(rotation_matrix[0][2]/-sin(theta),rotation_matrix[1][2]/sin(theta));
+      double phi1 = 0.0;
+      double phi2 = 0.0;
+      //std::cout << "rotation_matrix[2][0] = " << rotation_matrix[2][0] << ", theta = " << theta << ", sin(theta) = " << sin(theta) << std::endl;
+      if (theta != 0.0 && theta != dealii::numbers::PI)
+        {
+          phi1  = std::atan2(rotation_matrix[2][0]/-sin(theta),rotation_matrix[2][1]/-sin(theta));
+          phi2  = std::atan2(rotation_matrix[0][2]/-sin(theta),rotation_matrix[1][2]/sin(theta));
+        }
+      else
+        {
+          // note that in the case theta is 0 or phi a dimension is lost
+          // see: https://en.wikipedia.org/wiki/Gimbal_lock. We set phi1
+          // to 0 and compute the corresponding phi2. The resulting direction
+          // (cosine matrix) should be the same.
+          if (theta == 0.0)
+            {
+              phi2 = - phi1 - std::atan2(rotation_matrix[0][1],rotation_matrix[0][0]);
+            }
+          else
+            {
+              phi2 = phi1 + std::atan2(rotation_matrix[0][1],rotation_matrix[0][0]);
+            }
+
+        }
+
+      if (rotation_matrix[2][2] > 1.0)
+        std::cout << "rotation_matrix[2][2] -1 = " << rotation_matrix[2][2] - 1.0 << std::endl;
+      AssertThrow(!std::isnan(phi1), ExcMessage(" phi1 is nan. theta = " + std::to_string(theta) + ", rotation_matrix[2][2]= " + std::to_string(rotation_matrix[2][2])
+                                                + ", acos(rotation_matrix[2][2]) = " + std::to_string(std::acos(rotation_matrix[2][2])) + ", acos(1.0) = " + std::to_string(std::acos(1.0))));
+      AssertThrow(!std::isnan(theta), ExcMessage(" theta is nan."));
+      AssertThrow(!std::isnan(phi2), ExcMessage(" phi2 is nan."));
 
       euler_angles[0] = wrap_angle(phi1 * rad_to_degree);
       euler_angles[1] = wrap_angle(theta * rad_to_degree);
       euler_angles[2] = wrap_angle(phi2 * rad_to_degree);
+
+
+      //std::cout << " euler_angles = " <<  euler_angles[0] << ":" <<  euler_angles[1] << ":" <<  euler_angles[2] << std::endl;
+      AssertThrow(!std::isnan(euler_angles[0]), ExcMessage(" euler_angles[0] is nan."));
+      AssertThrow(!std::isnan(euler_angles[1]), ExcMessage(" euler_angles[1] is nan."));
+      AssertThrow(!std::isnan(euler_angles[2]), ExcMessage(" euler_angles[2] is nan."));
 
       return euler_angles;
     }
@@ -717,6 +758,7 @@ namespace aspect
       rot_matrix[2][0] = -sin(theta)*sin(phi1);
       rot_matrix[2][1] = -sin(theta)*cos(phi1);
       rot_matrix[2][2] = cos(theta);
+      AssertThrow(rot_matrix[2][2] <= 1.0, ExcMessage("rot_matrix[2][2] > 1.0"));
       return rot_matrix;
     }
 
