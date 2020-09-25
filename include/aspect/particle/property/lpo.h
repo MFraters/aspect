@@ -43,6 +43,11 @@ namespace aspect
       {
         A_type, B_type, C_type, D_type, E_type, Karato2008
       };
+
+      enum class AdvectionMethod
+      {
+        ForwardEuler, BackwardEuler, RK4Invalid, RK4Strain
+      };
       /**
        * Todo: write what this plugin does.
        *
@@ -224,6 +229,44 @@ namespace aspect
            * derivatives: Todo
            */
           double
+          advect_rk4_strain(std::vector<double> &volume_fractions,
+                            std::vector<Tensor<2,3> > &a_cosine_matrices,
+                            const SymmetricTensor<2,dim> &strain_rate,
+                            const Tensor<2,dim> &velocity_gradient_tensor,
+                            const DeformationType deformation_type,
+                            const std::array<double,4> &ref_resolved_shear_stress,
+                            const double strain_rate_second_invariant,
+                            const double dt) const;
+
+          /**
+           * derivatives: Todo
+           */
+          double
+          advect_forward_euler(std::vector<double> &volume_fractions,
+                               std::vector<Tensor<2,3> > &a_cosine_matrices,
+                               const SymmetricTensor<2,dim> &strain_rate,
+                               const Tensor<2,dim> &velocity_gradient_tensor,
+                               const DeformationType deformation_type,
+                               const std::array<double,4> &ref_resolved_shear_stress,
+                               const double strain_rate_second_invariant,
+                               const double dt) const;
+          /**
+           * derivatives: Todo
+           */
+          double
+          advect_backward_euler(std::vector<double> &volume_fractions,
+                                std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                const SymmetricTensor<2,dim> &strain_rate,
+                                const Tensor<2,dim> &velocity_gradient_tensor,
+                                const DeformationType deformation_type,
+                                const std::array<double,4> &ref_resolved_shear_stress,
+                                const double strain_rate_second_invariant,
+                                const double dt) const;
+
+          /**
+           * derivatives: Todo
+           */
+          double
           compute_runge_kutta(std::vector<double> &volume_fractions,
                               std::vector<Tensor<2,3> > &a_cosine_matrices,
                               const SymmetricTensor<2,dim> &strain_rate,
@@ -333,6 +376,11 @@ namespace aspect
            * grain boundery mobility
            */
           double mobility;
+
+          /**
+           * Advection method for particle properties
+           */
+          AdvectionMethod advection_method;
 
 
 

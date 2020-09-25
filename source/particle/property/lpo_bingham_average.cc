@@ -76,7 +76,8 @@ namespace aspect
                                                                std::vector<double> &data) const
       {
 
-
+        const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+        this->random_number_generator.seed(random_number_seed+my_rank);
         double water_content = 0;
         double volume_fraction_olivine = 0;
         std::vector<double> volume_fractions_olivine(n_grains);
@@ -134,7 +135,8 @@ namespace aspect
                                                            const std::vector<Tensor<1,dim> > &gradients,
                                                            const ArrayView<double> &data) const
       {
-
+        const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+        this->random_number_generator.seed(random_number_seed+my_rank);
         double water_content = 0;
         double volume_fraction_olivine = 0;
         std::vector<double> volume_fractions_olivine(n_grains);
