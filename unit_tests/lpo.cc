@@ -147,14 +147,27 @@ inline void compare_rotation_matrices_approx(
        "computed = " << computed[0][0] << " " << computed[0][1] << " " << computed[0][2] << "\n" <<
        "           " << computed[1][0] << " " << computed[1][1] << " " << computed[1][2] << "\n" <<
        "           " << computed[2][0] << " " << computed[2][1] << " " << computed[2][2] << "\n" );
+  const double tol = 1e-14;
   CHECK((
-          (computed[0][0] == Approx(expected[0][0]) && computed[0][1] == Approx(expected[0][1]) && computed[0][2] == Approx(expected[0][2]) &&
-           computed[1][0] == Approx(expected[1][0]) && computed[1][1] == Approx(expected[1][1]) && computed[1][2] == Approx(expected[1][2]) &&
-           computed[2][0] == Approx(expected[2][0]) && computed[2][1] == Approx(expected[2][1]) && computed[2][2] == Approx(expected[2][2]))
+          ((computed[0][0] == Approx(expected[0][0]) || std::fabs(computed[0][0] < tol))
+           && (computed[0][1] == Approx(expected[0][1]) || std::fabs(computed[0][1] < tol))
+           && (computed[0][2] == Approx(expected[0][2]) || std::fabs(computed[0][2] < tol))
+           && (computed[1][0] == Approx(expected[1][0]) || std::fabs(computed[1][0] < tol))
+           && (computed[1][1] == Approx(expected[1][1]) || std::fabs(computed[1][1] < tol))
+           && (computed[1][2] == Approx(expected[1][2]) || std::fabs(computed[1][2] < tol))
+           && (computed[2][0] == Approx(expected[2][0]) || std::fabs(computed[2][0] < tol))
+           && (computed[2][1] == Approx(expected[2][1]) || std::fabs(computed[2][1] < tol))
+           && (computed[2][2] == Approx(expected[2][2]) || std::fabs(computed[2][2] < tol)))
           ||
-          (computed[0][0] == Approx(-expected[0][0]) && computed[0][1] == Approx(-expected[0][1]) && computed[0][2] == Approx(-expected[0][2]) &&
-           computed[1][0] == Approx(-expected[1][0]) && computed[1][1] == Approx(-expected[1][1]) && computed[1][2] == Approx(-expected[1][2]) &&
-           computed[2][0] == Approx(-expected[2][0]) && computed[2][1] == Approx(-expected[2][1]) && computed[2][2] == Approx(-expected[2][2]))));
+          ((computed[0][0] == Approx(-expected[0][0]) || std::fabs(computed[0][0] < tol))
+           && (computed[0][1] == Approx(-expected[0][1]) || std::fabs(computed[0][1] < tol))
+           && (computed[0][2] == Approx(-expected[0][2]) || std::fabs(computed[0][2] < tol))
+           && (computed[1][0] == Approx(-expected[1][0]) || std::fabs(computed[1][0] < tol))
+           && (computed[1][1] == Approx(-expected[1][1]) || std::fabs(computed[1][1] < tol))
+           && (computed[1][2] == Approx(-expected[1][2]) || std::fabs(computed[1][2] < tol))
+           && (computed[2][0] == Approx(-expected[2][0]) || std::fabs(computed[2][0] < tol))
+           && (computed[2][1] == Approx(-expected[2][1]) || std::fabs(computed[2][1] < tol))
+           && (computed[2][2] == Approx(-expected[2][2]) || std::fabs(computed[2][2] < tol)))));
 }
 
 TEST_CASE("Fabric determination function")
@@ -281,6 +294,107 @@ TEST_CASE("Euler angle functions")
     auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
     compare_rotation_matrices_approx(rot3, rot2);
   }
+
+  // note that in the case theta is 0 or phi a dimension is lost
+  // see: https://en.wikipedia.org/wiki/Gimbal_lock. We set phi1
+  // to 0 and compute the corresponding phi2. The resulting direction
+  // (cosine matrix) should be the same, but the euler angles will change
+  // the first time.
+  // For theta = 0, the sum of phi1 and phi2 should still be the same.
+  // For theta = phi, the difference between phi1 and phi2 should remain the same.
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{0,0,0}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(0,0,0);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{0,0,80}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(20,0,60);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{0.0,0,70}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(30.0,0,40);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{0,0,140}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(240,0,260);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{0,180,20}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(20,180,40);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{0,180,40}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(20,180,60);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+  {
+    Postprocess::LPO<3> lpo;
+    std::vector<double> ea0 = {{0.0,180,20}};
+    auto rot0 = lpo.euler_angles_to_rotation_matrix(20,-180,40);
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot0);
+    compare_3d_arrays_approx(ea1,ea0);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot0);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+
 }
 
 
@@ -320,13 +434,17 @@ TEST_CASE("LPO")
     }
     prm.leave_subsection ();
 
+    std::cout << "test compute derivatives 1.0" << std::endl;
     lpo_2d.parse_parameters(prm);
+    std::cout << "test compute derivatives 1.1" << std::endl;
     lpo_2d.initialize();
+    std::cout << "test compute derivatives 1.2" << std::endl;
 
 
     Point<dim2> dummy_point;
     std::vector<double> data;
     lpo_2d.initialize_one_particle_property(dummy_point, data);
+    std::cout << "test compute derivatives 1.3" << std::endl;
 
     // The LPO particles are initialized. With the same seed, the outcome should
     // always be the same, so test that for seed = 1. Forthermore, in the data
@@ -365,7 +483,7 @@ TEST_CASE("LPO")
 
     std::vector<double> volume_fractions(5,0.2);
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
-    std::cout << "test compute derivatives 1.0.0" << std::endl;
+    std::cout << "test compute derivatives 2.0.0" << std::endl;
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
