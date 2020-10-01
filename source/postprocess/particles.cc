@@ -339,7 +339,7 @@ namespace aspect
 
       // If it's not time to generate an output file
       // return early with the number of particles that were advected
-      if (this->get_time() < last_output_time + output_interval)
+      if (this->get_time() < last_output_time + output_interval && this->get_time() != end_time)
         return std::make_pair("Number of advected particles:",
                               Utilities::int_to_string(world.n_global_particles()));
 
@@ -667,6 +667,10 @@ namespace aspect
     void
     Particles<dim>::parse_parameters (ParameterHandler &prm)
     {
+      end_time = prm.get_double ("End time");
+      if (this->convert_output_to_years())
+        end_time *= year_in_seconds;
+
       prm.enter_subsection("Postprocess");
       {
         prm.enter_subsection("Particles");

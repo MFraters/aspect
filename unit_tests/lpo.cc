@@ -409,9 +409,14 @@ TEST_CASE("LPO")
     const int dim2=2;
 
     Particle::Property::LPO<dim2> lpo_2d;
+    std::cout << "test compute derivatives 1.0.1" << std::endl;
     ParameterHandler prm;
+    std::cout << "test compute derivatives 1.0.2" << std::endl;
     lpo_2d.declare_parameters(prm);
-
+    std::cout << "test compute derivatives 1.0.3" << std::endl;
+    prm.declare_entry("World builder file", "", dealii::Patterns::Anything(), "");
+    prm.set("World builder file", "/home/fraters/Documents/post-doc/2019-02-01-magali/code/aspect/aspect-C/build-dg-u-nj/advection_test.wb");
+    std::cout << "test compute derivatives 1.0.4" << std::endl;
     prm.enter_subsection("Postprocess");
     {
       prm.enter_subsection("Particles");
@@ -535,11 +540,11 @@ TEST_CASE("LPO")
     a_cosine_matrices[4][2][2] = 0.9;
 
     // init a
-    SymmetricTensor<2,dim2> strain_rate_nondimensional;
+    SymmetricTensor<2,3> strain_rate_nondimensional;
     strain_rate_nondimensional[0][1] = 0.5959;
 
     // init eta
-    Tensor<2,dim2> velocity_gradient_tensor_nondimensional;
+    Tensor<2,3> velocity_gradient_tensor_nondimensional;
     velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
     velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
 
@@ -1021,6 +1026,7 @@ TEST_CASE("LPO elastic tensor transform functions")
 
 }
 
+
 TEST_CASE("LPO elastic tensor")
 {
   double volume_fraction_olivine = 0.7;
@@ -1295,12 +1301,12 @@ TEST_CASE("LPO elastic tensor")
   lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
-    REQUIRE(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+    CHECK(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
 
   lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
 
   for (unsigned int i = 0; i < array.size() ; ++i)
-    REQUIRE(data[i] == array_ref[i]);
+    CHECK(data[i] == array_ref[i]);
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
     tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)] += 100;
@@ -1309,15 +1315,15 @@ TEST_CASE("LPO elastic tensor")
   lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
 
   for (unsigned int i = 0; i < array.size() ; ++i)
-    REQUIRE(data[i] == array_plus_100[i]);
+    CHECK(data[i] == array_plus_100[i]);
 
   lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
-    REQUIRE(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+    CHECK(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
-    REQUIRE(array_plus_100[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+    CHECK(array_plus_100[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
 
   for (unsigned int i = 0; i < array.size() ; ++i)
     REQUIRE(data[i] == array_plus_100[i]);

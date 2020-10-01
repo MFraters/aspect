@@ -115,6 +115,79 @@ namespace aspect
 
       template <int dim>
       void
+      LPO<dim>::load_particle_data_extended(unsigned int lpo_data_position,
+                                            const ArrayView<double> &data,
+                                            unsigned int n_grains,
+                                            double &water_content,
+                                            double &volume_fraction_olivine,
+                                            std::vector<double> &volume_fractions_olivine,
+                                            std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                            std::vector<double> &volume_fractions_enstatite,
+                                            std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite,
+                                            std::vector<double> &volume_fractions_olivine_derivatives,
+                                            std::vector<Tensor<2,3> > &a_cosine_matrices_olivine_derivatives,
+                                            std::vector<double> &volume_fractions_enstatite_derivatives,
+                                            std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite_derivatives) const
+      {
+        load_particle_data(lpo_data_position,
+                           data,
+                           n_grains,
+                           water_content,
+                           volume_fraction_olivine,
+                           volume_fractions_olivine,
+                           a_cosine_matrices_olivine,
+                           volume_fractions_enstatite,
+                           a_cosine_matrices_enstatite);
+
+        // now store the derivatives if needed
+        if (this->advection_method == AdvectionMethod::CrankNicolson)
+          {
+
+            //std::cout << "load CN: " << std::endl;
+            unsigned int data_grain_i = 0;
+            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+              {
+                // retrieve volume fraction for olvine grains
+                volume_fractions_olivine_derivatives[grain_i] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + data_grain_i *
+                                                                     (Tensor<2,3>::n_independent_components + 1) + 2];
+
+                // retrieve a_{ij} for olvine grains
+                //Tensor<2,dim> a_cosine_matrices_olivine;
+                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+                  {
+                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                    a_cosine_matrices_olivine_derivatives[grain_i][index] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + data_grain_i *
+                                                                                 (Tensor<2,3>::n_independent_components + 1) + 3 + i];
+                    //if (grain_i == 0)
+                    //  {
+                    //    std::cout << a_cosine_matrices_olivine_derivatives[grain_i][index] << " ";
+                    //  }
+                  }
+                //if (grain_i == 0)
+                //  {
+                //    std::cout << std::endl;
+                //  }
+
+                // retrieve volume fraction for enstatite grains
+                volume_fractions_enstatite_derivatives[grain_i] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + (data_grain_i+1) *
+                                                                       (Tensor<2,3>::n_independent_components + 1) + 2];
+
+                // retrieve a_{ij} for enstatite grains
+                //Tensor<2,dim> a_cosine_matrices;
+                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+                  {
+                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                    a_cosine_matrices_enstatite_derivatives[grain_i][index] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + (data_grain_i+1) *
+                                                                                   (Tensor<2,3>::n_independent_components + 1) + 3 + i];
+                  }
+                data_grain_i = data_grain_i + 2;
+              }
+          }
+      }
+
+
+      template <int dim>
+      void
       LPO<dim>::store_particle_data(unsigned int lpo_data_position,
                                     const ArrayView<double> &data,
                                     unsigned int n_grains,
@@ -153,6 +226,84 @@ namespace aspect
                 const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
                 data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + i] = a_cosine_matrices_enstatite[grain_i][index];
               }
+          }
+        //std::cout << "last olivine index = "   << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 3 + Tensor<2,3>::n_independent_components << std::endl;
+        //std::cout << "last enstatite index = " << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + Tensor<2,3>::n_independent_components << std::endl;
+      }
+
+
+
+      template <int dim>
+      void
+      LPO<dim>::store_particle_data_extended(unsigned int lpo_data_position,
+                                             const ArrayView<double> &data,
+                                             unsigned int n_grains,
+                                             double water_content,
+                                             double volume_fraction_olivine,
+                                             std::vector<double> &volume_fractions_olivine,
+                                             std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                             std::vector<double> &volume_fractions_enstatite,
+                                             std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite,
+                                             std::vector<double> &volume_fractions_olivine_derivatives,
+                                             std::vector<Tensor<2,3> > &a_cosine_matrices_olivine_derivatives,
+                                             std::vector<double> &volume_fractions_enstatite_derivatives,
+                                             std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite_derivatives) const
+      {
+        Assert(volume_fractions_olivine.size() == n_grains, ExcMessage("Internal error: volume_fractions_olivine is not the same as n_grains."));
+        Assert(a_cosine_matrices_olivine.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_olivine is not the same as n_grains."));
+        Assert(volume_fractions_enstatite.size() == n_grains, ExcMessage("Internal error: volume_fractions_enstatite is not the same as n_grains."));
+        Assert(a_cosine_matrices_enstatite.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite is not the same as n_grains."));
+        store_particle_data(lpo_data_position,
+                            data,
+                            n_grains,
+                            water_content,
+                            volume_fraction_olivine,
+                            volume_fractions_olivine,
+                            a_cosine_matrices_olivine,
+                            volume_fractions_enstatite,
+                            a_cosine_matrices_enstatite);
+
+        // now store the derivatives if needed
+        if (this->advection_method == AdvectionMethod::CrankNicolson)
+          {
+
+            //std::cout << "store CN: " << std::endl;
+            Assert(volume_fractions_olivine_derivatives.size() == n_grains, ExcMessage("Internal error: volume_fractions_olivine_derivatives is not the same as n_grains."));
+            Assert(a_cosine_matrices_olivine_derivatives.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_olivine_derivatives is not the same as n_grains."));
+            Assert(volume_fractions_enstatite_derivatives.size() == n_grains, ExcMessage("Internal error: volume_fractions_enstatite_derivatives is not the same as n_grains."));
+            Assert(a_cosine_matrices_enstatite_derivatives.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite_derivatives is not the same as n_grains."));
+            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+              {
+                // store volume fraction for olvine grains
+                data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 2] = volume_fractions_olivine_derivatives[grain_i];
+
+                // store a_{ij} for olvine grains
+                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+                  {
+                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                    data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 3 + i] = a_cosine_matrices_olivine_derivatives[grain_i][index];
+                    //if (grain_i == 0)
+                    //  {
+                    //    std::cout << a_cosine_matrices_olivine_derivatives[grain_i][index] << " ";
+                    //  }
+                  }
+                // if (grain_i == 0)
+                //   {
+                //     std::cout << std::endl;
+                //   }
+
+                // store volume fraction for enstatite grains
+                data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 12] = volume_fractions_enstatite_derivatives[grain_i];
+
+                // store a_{ij} for enstatite grains
+                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+                  {
+                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
+                    data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + i] = a_cosine_matrices_enstatite_derivatives[grain_i][index];
+                  }
+              }
+            //std::cout << "last olivine index extra = " << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 3 + Tensor<2,3>::n_independent_components << std::endl;
+            //std::cout << "last enstatite index extra = " << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + Tensor<2,3>::n_independent_components << std::endl;
           }
       }
 
@@ -318,6 +469,19 @@ namespace aspect
               }
           }
 
+
+        if (this->advection_method == AdvectionMethod::CrankNicolson)
+          {
+            //std::cout << "init CN" << std::endl;
+            // start with derivatives set to zero
+            for (unsigned int i_grain = 0; i_grain < 2 * n_grains ; ++i_grain)
+              {
+                data.push_back(0.0);
+                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
+                  data.push_back(0.0);
+              }
+          }
+
       }
 
       template<int dim>
@@ -423,6 +587,12 @@ namespace aspect
         // Calculate strain rate from velocity gradients
         const SymmetricTensor<2,dim> strain_rate = symmetrize (grad_u);
 
+        /*std::cout << "1. strainrate inv= " << std::sqrt(std::abs(second_invariant(strain_rate))) << ": "
+        << strain_rate[0][0] << " " << strain_rate[0][1]<< " " << strain_rate[0][2] << " - "
+        << strain_rate[1][0] << " " << strain_rate[1][1]<< " " << strain_rate[1][2] << " - "
+        << strain_rate[2][0] << " " << strain_rate[2][1]<< " " << strain_rate[2][2] << std::endl;*/
+        //Assert(!std::isnan(strain_rate_second_invariant), ExcMessage("The second invariant of the strain rate is not a number."));
+
         // compute local stress tensor
         const SymmetricTensor<2,dim> compressible_strain_rate
           = (this->get_material_model().is_compressible()
@@ -443,7 +613,11 @@ namespace aspect
         double temperature = solution[this->introspection().component_indices.temperature];
         double water_content = data[data_position];
         const double dt = this->get_timestep();
-        const double strain_rate_second_invariant = std::sqrt(std::abs(second_invariant(strain_rate)));
+        const double strain_rate_second_invariant = 1.0;//
+        /*std::cout << "2. strainrate inv= " << std::sqrt(std::abs(second_invariant(strain_rate))) << ": "
+        << strain_rate[0][0] << " " << strain_rate[0][1]<< " " << strain_rate[0][2] << " - "
+        << strain_rate[1][0] << " " << strain_rate[1][1]<< " " << strain_rate[1][2] << " - "
+        << strain_rate[2][0] << " " << strain_rate[2][1]<< " " << strain_rate[2][2] << std::endl;;*/
         Assert(!std::isnan(strain_rate_second_invariant), ExcMessage("The second invariant of the strain rate is not a number."));
 
 
@@ -508,17 +682,26 @@ namespace aspect
         std::vector<double> volume_fractions_enstatite(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
 
+        std::vector<double> volume_fractions_olivine_derivatives(n_grains);
+        std::vector<Tensor<2,3> > a_cosine_matrices_olivine_derivatives(n_grains);
+        std::vector<double> volume_fractions_enstatite_derivatives(n_grains);
+        std::vector<Tensor<2,3> > a_cosine_matrices_enstatite_derivatives(n_grains);
+
         double volume_fraction_olivine = 0;
         //std::cout << "data_position = " << data_position << ", n_grains" << n_grains << std::endl;
-        load_particle_data(data_position,
-                           data,
-                           n_grains,
-                           water_content,
-                           volume_fraction_olivine,
-                           volume_fractions_olivine,
-                           a_cosine_matrices_olivine,
-                           volume_fractions_enstatite,
-                           a_cosine_matrices_enstatite);
+        load_particle_data_extended(data_position,
+                                    data,
+                                    n_grains,
+                                    water_content,
+                                    volume_fraction_olivine,
+                                    volume_fractions_olivine,
+                                    a_cosine_matrices_olivine,
+                                    volume_fractions_enstatite,
+                                    a_cosine_matrices_enstatite,
+                                    volume_fractions_olivine_derivatives,
+                                    a_cosine_matrices_olivine_derivatives,
+                                    volume_fractions_enstatite_derivatives,
+                                    a_cosine_matrices_enstatite_derivatives);
 
 
         for (unsigned int i = 0; i < n_grains; ++i)
@@ -562,6 +745,38 @@ namespace aspect
             strain_rate_nondimensional /= strain_rate_second_invariant;
             velocity_gradient_nondimensional /=  strain_rate_second_invariant;
           }
+
+        // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
+        // adding an extra dimension which is zero.
+        // Todo: for now we just add a thrid row and column
+        // and make them zero. We have to check whether that is correct.
+        SymmetricTensor<2,3> strain_rate_nondimensional_3d;
+        strain_rate_nondimensional_3d[0][0] = strain_rate_nondimensional[0][0];
+        strain_rate_nondimensional_3d[0][1] = strain_rate_nondimensional[0][1];
+        //sym: strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[1][0];
+        strain_rate_nondimensional_3d[1][1] = strain_rate_nondimensional[1][1];
+
+        if (dim == 3)
+          {
+            strain_rate_nondimensional_3d[0][2] = strain_rate_nondimensional[0][2];
+            strain_rate_nondimensional_3d[1][2] = strain_rate_nondimensional[1][2];
+            //sym: strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[2][0];
+            //sym: strain_rate_nondim_3d[0][1] = strain_rate_nondimensional[2][1];
+            strain_rate_nondimensional_3d[2][2] = strain_rate_nondimensional[2][2];
+          }
+        Tensor<2,3> velocity_gradient_nondimensional_3d;
+        velocity_gradient_nondimensional_3d[0][0] = velocity_gradient_nondimensional[0][0];
+        velocity_gradient_nondimensional_3d[0][1] = velocity_gradient_nondimensional[0][1];
+        velocity_gradient_nondimensional_3d[1][0] = velocity_gradient_nondimensional[1][0];
+        velocity_gradient_nondimensional_3d[1][1] = velocity_gradient_nondimensional[1][1];
+        if (dim == 3)
+          {
+            velocity_gradient_nondimensional_3d[0][2] = velocity_gradient_nondimensional[0][2];
+            velocity_gradient_nondimensional_3d[1][2] = velocity_gradient_nondimensional[1][2];
+            velocity_gradient_nondimensional_3d[2][0] = velocity_gradient_nondimensional[2][0];
+            velocity_gradient_nondimensional_3d[2][1] = velocity_gradient_nondimensional[2][1];
+            velocity_gradient_nondimensional_3d[2][2] = velocity_gradient_nondimensional[2][2];
+          }
         // Now we have loaded all the data and can do the actual computation.
         //
         // Use a 4th order R-K integration to calculate the change in the
@@ -572,58 +787,62 @@ namespace aspect
 
         double sum_volume_olivine = 0;
         double sum_volume_enstatite = 0;
+
+        std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_olivine = this->compute_derivatives(volume_fractions_olivine,
+            a_cosine_matrices_olivine,
+            strain_rate_nondimensional_3d,
+            velocity_gradient_nondimensional_3d,
+            deformation_type,
+            ref_resolved_shear_stress);
+
+        std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_enstatite = this->compute_derivatives(volume_fractions_enstatite,
+            a_cosine_matrices_enstatite,
+            strain_rate_nondimensional_3d,
+            velocity_gradient_nondimensional_3d,
+            deformation_type,
+            ref_resolved_shear_stress);
         switch (advection_method)
           {
             case AdvectionMethod::ForwardEuler:
 
-              sum_volume_olivine = this->advect_forward_euler(volume_fractions_olivine, a_cosine_matrices_olivine,
-                                                              strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                              deformation_type, ref_resolved_shear_stress,
+              sum_volume_olivine = this->advect_forward_euler(volume_fractions_olivine,
+                                                              a_cosine_matrices_olivine,
+                                                              derivatives_olivine,
                                                               strain_rate_second_invariant, dt);
 
-              sum_volume_enstatite = this->advect_forward_euler(volume_fractions_enstatite, a_cosine_matrices_enstatite,
-                                                                strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                                deformation_type, ref_resolved_shear_stress,
+              sum_volume_enstatite = this->advect_forward_euler(volume_fractions_enstatite,
+                                                                a_cosine_matrices_enstatite,
+                                                                derivatives_enstatite,
                                                                 strain_rate_second_invariant, dt);
               break;
 
             case AdvectionMethod::BackwardEuler:
 
-              sum_volume_olivine = this->advect_backward_euler(volume_fractions_olivine, a_cosine_matrices_olivine,
-                                                               strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                               deformation_type, ref_resolved_shear_stress,
+              sum_volume_olivine = this->advect_backward_euler(volume_fractions_olivine,
+                                                               a_cosine_matrices_olivine,
+                                                               derivatives_olivine,
                                                                strain_rate_second_invariant, dt);
 
-              sum_volume_enstatite = this->advect_backward_euler(volume_fractions_enstatite, a_cosine_matrices_enstatite,
-                                                                 strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                                 deformation_type, ref_resolved_shear_stress,
+              sum_volume_enstatite = this->advect_backward_euler(volume_fractions_enstatite,
+                                                                 a_cosine_matrices_enstatite,
+                                                                 derivatives_olivine,
                                                                  strain_rate_second_invariant, dt);
               break;
 
-            case AdvectionMethod::RK4Strain:
+            case AdvectionMethod::CrankNicolson:
 
-              sum_volume_olivine = this->advect_rk4_strain(volume_fractions_olivine, a_cosine_matrices_olivine,
-                                                           strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                           deformation_type, ref_resolved_shear_stress,
-                                                           strain_rate_second_invariant, dt);
-
-              sum_volume_enstatite = this->advect_rk4_strain(volume_fractions_enstatite, a_cosine_matrices_enstatite,
-                                                             strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                             deformation_type, ref_resolved_shear_stress,
-                                                             strain_rate_second_invariant, dt);
-              break;
-
-            case AdvectionMethod::RK4Invalid:
-
-              sum_volume_olivine = this->compute_runge_kutta(volume_fractions_olivine, a_cosine_matrices_olivine,
-                                                             strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                             deformation_type, ref_resolved_shear_stress,
-                                                             strain_rate_second_invariant, dt);
-
-              sum_volume_enstatite = this->compute_runge_kutta(volume_fractions_enstatite, a_cosine_matrices_enstatite,
-                                                               strain_rate_nondimensional, velocity_gradient_nondimensional,
-                                                               deformation_type, ref_resolved_shear_stress,
+              //std::cout << "case CN" << std::endl;
+              sum_volume_olivine = this->advect_Crank_Nicolson(volume_fractions_olivine,
+                                                               a_cosine_matrices_olivine,
+                                                               derivatives_olivine,
+                                                               volume_fractions_olivine_derivatives, a_cosine_matrices_olivine_derivatives,
                                                                strain_rate_second_invariant, dt);
+
+              sum_volume_enstatite = this->advect_Crank_Nicolson(volume_fractions_enstatite,
+                                                                 a_cosine_matrices_enstatite,
+                                                                 derivatives_enstatite,
+                                                                 volume_fractions_enstatite_derivatives, a_cosine_matrices_enstatite_derivatives,
+                                                                 strain_rate_second_invariant, dt);
               break;
           }
 
@@ -696,9 +915,37 @@ namespace aspect
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
             // make tolerance variable
-            double tolerance = 1e-10;
-            dealii::project_onto_orthogonal_tensors(a_cosine_matrices_olivine[grain_i]); //, tolerance);
-            dealii::project_onto_orthogonal_tensors(a_cosine_matrices_enstatite[grain_i]);//, tolerance);
+            double tolerance = 1e-16;
+            //if (std::abs(determinant(a_cosine_matrices_olivine[grain_i]) - 1.0) > tolerance)
+            {
+              //std::cout << "ortho tensor 1.1: " << std::abs(determinant(a_cosine_matrices_olivine[grain_i]) - 1.0) << std::endl;
+              //a_cosine_matrices_olivine[grain_i] = dealii::project_onto_orthogonal_tensors(a_cosine_matrices_olivine[grain_i]); //, tolerance);
+              //std::cout << "ortho tensor 1.2: " << std::abs(determinant(a_cosine_matrices_olivine[grain_i]) - 1.0) << std::endl;
+              for (size_t i = 0; i < 3; i++)
+                for (size_t j = 0; j < 3; j++)
+                  {
+                    //if (a_cosine_matrices_olivine[grain_i][i][j] > 1.0)
+                    //  a_cosine_matrices_olivine[grain_i][i][j] = 1.0;
+                    //else if (a_cosine_matrices_olivine[grain_i][i][j] < -1.0)
+                    //  a_cosine_matrices_olivine[grain_i][i][j] = -1.0;
+                  }
+            }
+
+            //if (std::abs(determinant(a_cosine_matrices_olivine[grain_i]) - 1.0) > tolerance)
+            {
+
+              //std::cout << "ortho tensor 2.1: " << std::abs(determinant(a_cosine_matrices_enstatite[grain_i]) - 1.0) << std::endl;
+              a_cosine_matrices_enstatite[grain_i] = dealii::project_onto_orthogonal_tensors(a_cosine_matrices_enstatite[grain_i]);//, tolerance);
+              //std::cout << "ortho tensor 2.2: " << std::abs(determinant(a_cosine_matrices_enstatite[grain_i]) - 1.0) << std::endl;
+              for (size_t i = 0; i < 3; i++)
+                for (size_t j = 0; j < 3; j++)
+                  {
+                    if (a_cosine_matrices_enstatite[grain_i][i][j] > 1.0)
+                      a_cosine_matrices_enstatite[grain_i][i][j] = 1.0;
+                    else if (a_cosine_matrices_enstatite[grain_i][i][j] < -1.0)
+                      a_cosine_matrices_enstatite[grain_i][i][j] = -1.0;
+                  }
+            }
           }
 
         for (unsigned int i = 0; i < n_grains; ++i)
@@ -720,7 +967,7 @@ namespace aspect
               for (size_t j = 0; j < 3; j++)
                 Assert(abs(a_cosine_matrices_olivine[grain_i][i][j]) <= 1.0,
                        ExcMessage("3. a_cosine_matrices_olivine[" + std::to_string(i) + "][" + std::to_string(j) +
-                                  "] is larger than one: " + std::to_string(a_cosine_matrices_olivine[grain_i][i][j]) + ". rotation_matrix = \n"
+                                  "] is larger than one: " + std::to_string(a_cosine_matrices_olivine[grain_i][i][j]) + " (" + std::to_string(a_cosine_matrices_olivine[grain_i][i][j]-1.0) + "). rotation_matrix = \n"
                                   + std::to_string(a_cosine_matrices_olivine[grain_i][0][0]) + " " + std::to_string(a_cosine_matrices_olivine[grain_i][0][1]) + " " + std::to_string(a_cosine_matrices_olivine[grain_i][0][2]) + "\n"
                                   + std::to_string(a_cosine_matrices_olivine[grain_i][1][0]) + " " + std::to_string(a_cosine_matrices_olivine[grain_i][1][1]) + " " + std::to_string(a_cosine_matrices_olivine[grain_i][1][2]) + "\n"
                                   + std::to_string(a_cosine_matrices_olivine[grain_i][2][0]) + " " + std::to_string(a_cosine_matrices_olivine[grain_i][2][1]) + " " + std::to_string(a_cosine_matrices_olivine[grain_i][2][2])));
@@ -728,21 +975,25 @@ namespace aspect
               for (size_t j = 0; j < 3; j++)
                 Assert(abs(a_cosine_matrices_enstatite[grain_i][i][j]) <= 1.0,
                        ExcMessage("3. a_cosine_matrices_enstatite[" + std::to_string(i) + "][" + std::to_string(j) +
-                                  "] is larger than one: " + std::to_string(a_cosine_matrices_enstatite[grain_i][i][j]) + ". rotation_matrix = \n"
+                                  "] is larger than one: " + std::to_string(a_cosine_matrices_enstatite[grain_i][i][j]) + " (" + std::to_string(a_cosine_matrices_enstatite[grain_i][i][j]-1.0) + "). rotation_matrix = \n"
                                   + std::to_string(a_cosine_matrices_enstatite[grain_i][0][0]) + " " + std::to_string(a_cosine_matrices_enstatite[grain_i][0][1]) + " " + std::to_string(a_cosine_matrices_enstatite[grain_i][0][2]) + "\n"
                                   + std::to_string(a_cosine_matrices_enstatite[grain_i][1][0]) + " " + std::to_string(a_cosine_matrices_enstatite[grain_i][1][1]) + " " + std::to_string(a_cosine_matrices_enstatite[grain_i][1][2]) + "\n"
                                   + std::to_string(a_cosine_matrices_enstatite[grain_i][2][0]) + " " + std::to_string(a_cosine_matrices_enstatite[grain_i][2][1]) + " " + std::to_string(a_cosine_matrices_enstatite[grain_i][2][2])));
           }
 
-        store_particle_data(data_position,
-                            data,
-                            n_grains,
-                            water_content,
-                            x_olivine,
-                            volume_fractions_olivine,
-                            a_cosine_matrices_olivine,
-                            volume_fractions_enstatite,
-                            a_cosine_matrices_enstatite);
+        store_particle_data_extended(data_position,
+                                     data,
+                                     n_grains,
+                                     water_content,
+                                     x_olivine,
+                                     volume_fractions_olivine,
+                                     a_cosine_matrices_olivine,
+                                     volume_fractions_enstatite,
+                                     a_cosine_matrices_enstatite,
+                                     volume_fractions_olivine_derivatives,
+                                     a_cosine_matrices_olivine_derivatives,
+                                     volume_fractions_enstatite_derivatives,
+                                     a_cosine_matrices_enstatite_derivatives);
 
 
 
@@ -991,6 +1242,26 @@ namespace aspect
               }
           }
 
+        if (this->advection_method == AdvectionMethod::CrankNicolson)
+          {
+            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+              {
+                property_information.push_back(std::make_pair("lpo grain " + std::to_string(grain_i) + " volume fraction olivine derivative",1));
+
+                for (unsigned int index = 0; index < Tensor<2,3>::n_independent_components; index++)
+                  {
+                    property_information.push_back(std::make_pair("lpo grain " + std::to_string(grain_i) + " a_cosine_matrix olivine  derivative" + std::to_string(index),1));
+                  }
+
+                property_information.push_back(std::make_pair("lpo grain " + std::to_string(grain_i) + " volume fraction enstatite derivative",1));
+
+                for (unsigned int index = 0; index < Tensor<2,3>::n_independent_components; index++)
+                  {
+                    property_information.push_back(std::make_pair("lpo grain " + std::to_string(grain_i) + " a_cosine_matrix enstatite  derivative" + std::to_string(index),1));
+                  }
+              }
+          }
+
         return property_information;
       }
 
@@ -998,29 +1269,80 @@ namespace aspect
       double
       LPO<dim>::advect_forward_euler(std::vector<double> &volume_fractions,
                                      std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                     const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                                     const Tensor<2,dim> &velocity_gradient_nondimensional,
-                                     const DeformationType deformation_type,
-                                     const std::array<double,4> &ref_resolved_shear_stress,
+                                     const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
                                      const double strain_rate_second_invariant,
                                      const double dt) const
       {
-
-        SymmetricTensor<2,3> strain_rate_nondim_3d;
-        strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[0][0];
-        strain_rate_nondim_3d[0][1] = strain_rate_nondimensional[0][1];
-        //sym: strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[1][0];
-        strain_rate_nondim_3d[1][1] = strain_rate_nondimensional[1][1];
-
-        if (dim == 3)
+        // a_n = a_{n-1} + dt * da/dt
+        double sum_volume_fractions = 0;
+        for (unsigned int grain_i = 0; grain_i < a_cosine_matrices.size(); ++grain_i)
           {
-            strain_rate_nondim_3d[0][2] = strain_rate_nondimensional[0][2];
-            strain_rate_nondim_3d[1][2] = strain_rate_nondimensional[1][2];
-            //sym: strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[2][0];
-            //sym: strain_rate_nondim_3d[0][1] = strain_rate_nondimensional[2][1];
-            strain_rate_nondim_3d[2][2] = strain_rate_nondimensional[2][2];
+            volume_fractions[grain_i] = volume_fractions[grain_i] + dt * derivatives.first[grain_i] * strain_rate_second_invariant;
+            sum_volume_fractions += volume_fractions[grain_i];
           }
 
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            a_cosine_matrices[grain_i] = a_cosine_matrices[grain_i] + dt * a_cosine_matrices[grain_i] * derivatives.second[grain_i] * strain_rate_second_invariant;
+            // Should actually check them all, but this is the most important one.
+            Assert(a_cosine_matrices[grain_i][2][2] <= 1.0, ExcMessage("Internal error."));
+          }
+
+        Assert(sum_volume_fractions != 0, ExcMessage("Sum of volumes is equal to zero, which is not supporsed to happen."));
+        return sum_volume_fractions;
+      }
+
+
+      template <int dim>
+      double
+      LPO<dim>::advect_backward_euler(std::vector<double> &volume_fractions,
+                                      std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                      const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                      const double strain_rate_second_invariant,
+                                      const double dt) const
+      {
+        double sum_volume_fractions = 0;
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            volume_fractions[grain_i] = volume_fractions[grain_i];// + dt * strain_rate_second_invariant * derivatives.first[grain_i];
+            sum_volume_fractions += volume_fractions[grain_i];
+          }
+        //std::cout << "backward advection" << std::endl;
+        //const Tensor<2,3> dt_spin_tensor = dt * -0.5 *(velocity_gradient_nondimensional - dealii::transpose(velocity_gradient_nondimensional));
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            auto cosine_old = a_cosine_matrices[grain_i];
+            auto cosine_new = a_cosine_matrices[grain_i];
+            for (size_t iteration = 0; iteration < 10; iteration++)
+              {
+                cosine_new = cosine_old + dt * cosine_new * derivatives.second[grain_i] * strain_rate_second_invariant;
+                //if()
+              }
+
+            a_cosine_matrices[grain_i] = cosine_new;
+
+            //a_cosine_matrices[grain_i] = a_cosine_matrices[grain_i] - dt * a_cosine_matrices[grain_i] * strain_rate_second_invariant * velocity_gradient_tensor_nondim_3d;// derivatives.second[grain_i];
+
+          }
+
+        return sum_volume_fractions;
+      }
+
+
+
+
+      template <int dim>
+      double
+      LPO<dim>::advect_Crank_Nicolson(std::vector<double> &volume_fractions,
+                                      std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                      const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                      std::vector<double> &previous_volume_fraction_derivatives,
+                                      std::vector<Tensor<2,3> > &previous_a_cosine_matrices_derivatives,
+                                      const double strain_rate_second_invariant,
+                                      const double dt) const
+      {
+
+        /*
         Tensor<2,3> velocity_gradient_tensor_nondim_3d;
         velocity_gradient_tensor_nondim_3d[0][0] = velocity_gradient_nondimensional[0][0];
         velocity_gradient_tensor_nondim_3d[0][1] = velocity_gradient_nondimensional[0][1];
@@ -1034,7 +1356,6 @@ namespace aspect
             velocity_gradient_tensor_nondim_3d[2][1] = velocity_gradient_nondimensional[2][1];
             velocity_gradient_tensor_nondim_3d[2][2] = velocity_gradient_nondimensional[2][2];
           }
-
 
         std::vector<double> k_volume_fractions_zero = volume_fractions;
         std::vector<Tensor<2,3> > a_cosine_matrices_zero = a_cosine_matrices;
@@ -1052,60 +1373,13 @@ namespace aspect
         else
           {
             derivatives.first = std::vector<double>(n_grains,0.0);
-            derivatives.second = std::vector<Tensor<2,3>>(n_grains, Tensor<2,3>());
+            derivatives.second = std::vector<Tensor<2,3>>(n_grains, velocity_gradient_tensor_nondim_3d);
           }
 
-        // a_n = a_{n-1} + dt * a_n * \omega
-        double sum_volume_fractions = 0;
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          if (this->get_timestep_number() == 1)
           {
-            volume_fractions[grain_i] = volume_fractions[grain_i] + dt * strain_rate_second_invariant * derivatives.first[grain_i];
-            sum_volume_fractions += volume_fractions[grain_i];
-          }
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            a_cosine_matrices[grain_i] = a_cosine_matrices[grain_i] - dt * a_cosine_matrices[grain_i] * strain_rate_second_invariant * velocity_gradient_tensor_nondim_3d;// derivatives.second[grain_i];
-            if (a_cosine_matrices[grain_i][2][2] > 1.0)
-              {
-                std::cout << "a matrix[2][2] is larger than 1: "<< a_cosine_matrices[grain_i][2][2] << ", -1: " << a_cosine_matrices[grain_i][2][2]-1.0 << std::endl;
-              }
-            // make tolerance variable
-            //double tolerance = 1e-20;
-            if (a_cosine_matrices[grain_i][2][2] > 1.0)
-              {
-                a_cosine_matrices[grain_i] = dealii::project_onto_orthogonal_tensors(a_cosine_matrices[grain_i]);//, tolerance);
-                std::cout << "b matrix[2][2] is larger than 1: "<< a_cosine_matrices[grain_i][2][2] << ", -1: " << a_cosine_matrices[grain_i][2][2]-1.0 << std::endl;
-              }
-          }
-
-        Assert(sum_volume_fractions != 0, ExcMessage("Sum of volumes is equal to zero, which is not supporsed to happen."));
-        return sum_volume_fractions;
-      }
-
-
-      template <int dim>
-      double
-      LPO<dim>::advect_backward_euler(std::vector<double> &volume_fractions,
-                                      std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                      const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                                      const Tensor<2,dim> &velocity_gradient_nondimensional,
-                                      const DeformationType deformation_type,
-                                      const std::array<double,4> &ref_resolved_shear_stress,
-                                      const double strain_rate_second_invariant,
-                                      const double dt) const
-      {
-        Tensor<2,3> velocity_gradient_tensor_nondim_3d;
-        velocity_gradient_tensor_nondim_3d[0][0] = velocity_gradient_nondimensional[0][0];
-        velocity_gradient_tensor_nondim_3d[0][1] = velocity_gradient_nondimensional[0][1];
-        velocity_gradient_tensor_nondim_3d[1][0] = velocity_gradient_nondimensional[1][0];
-        velocity_gradient_tensor_nondim_3d[1][1] = velocity_gradient_nondimensional[1][1];
-        if (dim == 3)
-          {
-            velocity_gradient_tensor_nondim_3d[0][2] = velocity_gradient_nondimensional[0][2];
-            velocity_gradient_tensor_nondim_3d[1][2] = velocity_gradient_nondimensional[1][2];
-            velocity_gradient_tensor_nondim_3d[2][0] = velocity_gradient_nondimensional[2][0];
-            velocity_gradient_tensor_nondim_3d[2][1] = velocity_gradient_nondimensional[2][1];
-            velocity_gradient_tensor_nondim_3d[2][2] = velocity_gradient_nondimensional[2][2];
+            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+              previous_a_cosine_matrices_derivatives[grain_i] = velocity_gradient_tensor_nondim_3d;
           }
 
         double sum_volume_fractions = 0;
@@ -1122,7 +1396,7 @@ namespace aspect
             auto cosine_new = a_cosine_matrices[grain_i];
             for (size_t iteration = 0; iteration < 10; iteration++)
               {
-                cosine_new = cosine_old - dt * cosine_new * strain_rate_second_invariant * velocity_gradient_tensor_nondim_3d;
+                //cosine_new = cosine_old - dt * cosine_new * strain_rate_second_invariant * velocity_gradient_tensor_nondim_3d;
                 //if()
               }
 
@@ -1132,318 +1406,75 @@ namespace aspect
 
           }
 
-        return sum_volume_fractions;
-      }
+        return sum_volume_fractions;*/
 
 
-
-      /*
-            template <int dim>
-            double
-            LPO<dim>::advect_Crank_Nicolson(std::vector<double> &volume_fractions,
-                                            std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                            const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                                            const Tensor<2,dim> &velocity_gradient_nondimensional,
-                                            const DeformationType deformation_type,
-                                            const std::array<double,4> &ref_resolved_shear_stress,
-                                            const double strain_rate_second_invariant,
-                                            const double dt) const
-            {
-
-                  // We need the velocity gradient for the finite strain (they are not
-                  // in material model inputs), so we get them from the finite element.
-                  std::vector<Point<dim> > quadrature_positions(in.n_evaluation_points());
-                  for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
-                    quadrature_positions[i] = this->get_mapping().transform_real_to_unit_cell(in.current_cell, in.position[i]);
-
-                  FEValues<dim> fe_values (this->get_mapping(),
-                                           this->get_fe(),
-                                           Quadrature<dim>(quadrature_positions),
-                                           update_gradients);
-
-                  std::vector<Tensor<2,dim> > velocity_gradients (quadrature_positions.size(), Tensor<2,dim>());
-
-                  fe_values.reinit (in.current_cell);
-                  fe_values[this->introspection().extractors.velocities].get_function_gradients (this->get_solution(),
-                                                                                                 velocity_gradients);
-
-
-              Tensor<2,3> velocity_gradient_tensor_nondim_3d;
-              velocity_gradient_tensor_nondim_3d[0][0] = velocity_gradient_nondimensional[0][0];
-              velocity_gradient_tensor_nondim_3d[0][1] = velocity_gradient_nondimensional[0][1];
-              velocity_gradient_tensor_nondim_3d[1][0] = velocity_gradient_nondimensional[1][0];
-              velocity_gradient_tensor_nondim_3d[1][1] = velocity_gradient_nondimensional[1][1];
-              if (dim == 3)
-                {
-                  velocity_gradient_tensor_nondim_3d[0][2] = velocity_gradient_nondimensional[0][2];
-                  velocity_gradient_tensor_nondim_3d[1][2] = velocity_gradient_nondimensional[1][2];
-                  velocity_gradient_tensor_nondim_3d[2][0] = velocity_gradient_nondimensional[2][0];
-                  velocity_gradient_tensor_nondim_3d[2][1] = velocity_gradient_nondimensional[2][1];
-                  velocity_gradient_tensor_nondim_3d[2][2] = velocity_gradient_nondimensional[2][2];
-                }
-
-              double sum_volume_fractions = 0;
-              for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-                {
-                  volume_fractions[grain_i] = volume_fractions[grain_i];// + dt * strain_rate_second_invariant * derivatives.first[grain_i];
-                  sum_volume_fractions += volume_fractions[grain_i];
-                }
-              //std::cout << "backward advection" << std::endl;
-
-              for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-                {
-                  auto cosine_old = a_cosine_matrices[grain_i];
-                  auto cosine_new = a_cosine_matrices[grain_i];
-                  for (size_t iteration = 0; iteration < 10; iteration++)
-                    {
-                      cosine_new = cosine_old - dt * cosine_new * strain_rate_second_invariant * velocity_gradient_tensor_nondim_3d;
-                      //if()
-                    }
-
-                  a_cosine_matrices[grain_i] = cosine_new;
-
-                  //a_cosine_matrices[grain_i] = a_cosine_matrices[grain_i] - dt * a_cosine_matrices[grain_i] * strain_rate_second_invariant * velocity_gradient_tensor_nondim_3d;// derivatives.second[grain_i];
-
-                }
-
-              return sum_volume_fractions;
-            }*/
-
-
-
-      template <int dim>
-      double
-      LPO<dim>::advect_rk4_strain(std::vector<double> &volume_fractions,
-                                  std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                  const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                                  const Tensor<2,dim> &velocity_gradient_nondimensional,
-                                  const DeformationType deformation_type,
-                                  const std::array<double,4> &ref_resolved_shear_stress,
-                                  const double strain_rate_second_invariant,
-                                  const double dt) const
-      {
-        Tensor<2,3> velocity_gradient_tensor_nondim_3d;
-        velocity_gradient_tensor_nondim_3d[0][0] = velocity_gradient_nondimensional[0][0];
-        velocity_gradient_tensor_nondim_3d[0][1] = velocity_gradient_nondimensional[0][1];
-        velocity_gradient_tensor_nondim_3d[1][0] = velocity_gradient_nondimensional[1][0];
-        velocity_gradient_tensor_nondim_3d[1][1] = velocity_gradient_nondimensional[1][1];
-        if (dim == 3)
-          {
-            velocity_gradient_tensor_nondim_3d[0][2] = velocity_gradient_nondimensional[0][2];
-            velocity_gradient_tensor_nondim_3d[1][2] = velocity_gradient_nondimensional[1][2];
-            velocity_gradient_tensor_nondim_3d[2][0] = velocity_gradient_nondimensional[2][0];
-            velocity_gradient_tensor_nondim_3d[2][1] = velocity_gradient_nondimensional[2][1];
-            velocity_gradient_tensor_nondim_3d[2][2] = velocity_gradient_nondimensional[2][2];
-          }
-
-        double sum_volume_fractions = 0;
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            volume_fractions[grain_i] = volume_fractions[grain_i];
-            sum_volume_fractions += volume_fractions[grain_i];
-
-            const Tensor<2,3> k1 = velocity_gradient_tensor_nondim_3d * strain_rate_second_invariant * a_cosine_matrices[grain_i] * dt;
-            Tensor<2,3> new_strain =  a_cosine_matrices[grain_i] + 0.5*k1;
-
-            const Tensor<2,3> k2 = velocity_gradient_tensor_nondim_3d * strain_rate_second_invariant  * new_strain * dt;
-            new_strain =  a_cosine_matrices[grain_i] + 0.5*k2;
-
-            const Tensor<2,3> k3 = velocity_gradient_tensor_nondim_3d * strain_rate_second_invariant  * new_strain * dt;
-            new_strain =  a_cosine_matrices[grain_i] + k3;
-
-            const Tensor<2,3> k4 = velocity_gradient_tensor_nondim_3d * strain_rate_second_invariant  * new_strain * dt;
-
-
-            // the new strain is the rotated old strain plus the
-            // strain of the current time step
-            a_cosine_matrices[grain_i] =  a_cosine_matrices[grain_i] - (k1 + 2.0*k2 + 2.0*k3 + k4)/6.0;
-          }
-
-        Assert(sum_volume_fractions != 0, ExcMessage("Sum of volumes is equal to zero, which is not supporsed to happen."));
-        return sum_volume_fractions;
-      }
-
-      template <int dim>
-      double
-      LPO<dim>::compute_runge_kutta(std::vector<double> &volume_fractions,
-                                    std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                    const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                                    const Tensor<2,dim> &velocity_gradient_nondimensional,
-                                    const DeformationType deformation_type,
-                                    const std::array<double,4> &ref_resolved_shear_stress,
-                                    const double strain_rate_second_invariant,
-                                    const double dt) const
-      {
-
-        // RK step 1: slope at the beginning of the interval
-        std::vector<double> k_volume_fractions_zero = volume_fractions;
+        /*std::vector<double> k_volume_fractions_zero = volume_fractions;
         std::vector<Tensor<2,3> > a_cosine_matrices_zero = a_cosine_matrices;
         std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
-        derivatives = this->compute_derivatives(k_volume_fractions_zero,
-                                                a_cosine_matrices_zero,
-                                                strain_rate_nondimensional,
-                                                velocity_gradient_nondimensional,
-                                                deformation_type,
-                                                ref_resolved_shear_stress);
-
-        std::vector<double> k_volume_fractions_one(n_grains);
-        std::vector<Tensor<2,3> > k_a_cosine_matrices_one(n_grains);
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+        bool compute_derivatives = false;
+        if (compute_derivatives == true)
           {
-            k_volume_fractions_one[grain_i] = strain_rate_second_invariant * dt * derivatives.first[grain_i];
-
-            Assert(isfinite(k_volume_fractions_one[grain_i]),
-                   ExcMessage("RK1: k_volume_fractions_one[" + std::to_string(grain_i) + "] is not finite: "
-                              + std::to_string(k_volume_fractions_one[grain_i])));
-            // this will be zero in the zeroth timestep (dt = 0)
-            //Assert(k_volume_fractions_one[grain_i] > 0,
-            //       ExcMessage("RK1: k_volume_fractions_one[ " + std::to_string(grain_i) + "] is smaller or equal to zero: "
-            //                  + std::to_string(k_volume_fractions_one[grain_i])));
-
-            k_a_cosine_matrices_one[grain_i] = strain_rate_second_invariant * dt * derivatives.second[grain_i];
+            derivatives = this->compute_derivatives(k_volume_fractions_zero,
+                                                    a_cosine_matrices_zero,
+                                                    strain_rate_nondimensional,
+                                                    velocity_gradient_nondimensional,
+                                                    deformation_type,
+                                                    ref_resolved_shear_stress);
           }
-
-        // RK step 2: t+0.5*dt, wi+0.5k1
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+        else
           {
-            k_volume_fractions_zero[grain_i] = volume_fractions[grain_i] + 0.5* k_volume_fractions_one[grain_i];
-
-            Assert(isfinite(k_volume_fractions_zero[grain_i]),
-                   ExcMessage("RK2.1: k_volume_fractions_zero[" + std::to_string(grain_i) + "] is not finite: "
-                              + std::to_string(k_volume_fractions_zero[grain_i])));
-            //Assert(k_volume_fractions_zero[grain_i] > 0,
-            //       ExcMessage("RK2.1: k_volume_fractions_zero[ " + std::to_string(grain_i) + "] is smaller or equal to zero: "
-            //                  + std::to_string(k_volume_fractions_zero[grain_i])));
-
-            a_cosine_matrices_zero[grain_i] = a_cosine_matrices[grain_i] + 0.5 * k_a_cosine_matrices_one[grain_i];
-          }
-
-        // Todo: in the python code it has some commented out code which talks about
-        // normalization of the volume fractions zero. Figure out what this is about.
-
-        derivatives = this->compute_derivatives(k_volume_fractions_zero,
-                                                a_cosine_matrices_zero,
-                                                strain_rate_nondimensional,
-                                                velocity_gradient_nondimensional,
-                                                deformation_type,
-                                                ref_resolved_shear_stress);
+            derivatives.first = std::vector<double>(n_grains,0.0);
+            derivatives.second = std::vector<Tensor<2,3>>(n_grains, velocity_gradient_tensor_nondim_3d);
+          }*/
 
 
-        std::vector<double> k_volume_fractions_two(n_grains);
-        std::vector<Tensor<2,3> > k_a_cosine_matrices_two(n_grains);
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+        /*if (this->get_timestep() == 0)
           {
-            k_volume_fractions_two[grain_i] = strain_rate_second_invariant * dt * derivatives.first[grain_i];
+            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+              previous_a_cosine_matrices_derivatives[grain_i] = velocity_gradient_tensor_nondim_3d;
+          }*/
 
-            Assert(isfinite(k_volume_fractions_two[grain_i]),
-                   ExcMessage("RK2.2: k_volume_fractions_two[" + std::to_string(grain_i) + "] is not finite: "
-                              + std::to_string(k_volume_fractions_two[grain_i])));
-
-            // this will be zero in the zeroth timestep (dt = 0)
-            //Assert(k_volume_fractions_two[grain_i] > 0,
-            //       ExcMessage("RK2.2: k_volume_fractions_two[ " + std::to_string(grain_i) + "] is smaller or equal to zero: "
-            //                  + std::to_string(k_volume_fractions_two[grain_i])));
-
-            k_a_cosine_matrices_two[grain_i] = strain_rate_second_invariant * dt * derivatives.second[grain_i];
-          }
-
-        // RK step 3: t+0.5*dt, wi+0.5k2
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            k_volume_fractions_zero[grain_i] = volume_fractions[grain_i] + 0.5* k_volume_fractions_two[grain_i];
-            Assert(isfinite(k_volume_fractions_zero[grain_i]),
-                   ExcMessage("RK3.1: k_volume_fractions_zero[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(k_volume_fractions_zero[grain_i])));
-            //Assert(k_volume_fractions_zero[grain_i] > 0,
-            //       ExcMessage("RK3.1: k_volume_fractions_zero[ " + std::to_string(grain_i) + "] is smaller or equal to zero: " + std::to_string(k_volume_fractions_zero[grain_i])));
-            a_cosine_matrices_zero[grain_i] = a_cosine_matrices[grain_i] + 0.5 * k_a_cosine_matrices_two[grain_i];
-          }
-
-        // Todo: in the python code it has some commented out code which talks about
-        // normalization of the volume fractions zero. Figure out what this is about.
-        derivatives = this->compute_derivatives(k_volume_fractions_zero,
-                                                a_cosine_matrices_zero,
-                                                strain_rate_nondimensional,
-                                                velocity_gradient_nondimensional,
-                                                deformation_type,
-                                                ref_resolved_shear_stress);
-
-
-        std::vector<double> k_volume_fractions_three(n_grains);
-        std::vector<Tensor<2,3> > k_a_cosine_matrices_three(n_grains);
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            k_volume_fractions_three[grain_i] = strain_rate_second_invariant * dt * derivatives.first[grain_i];
-            Assert(isfinite(k_volume_fractions_three[grain_i]),
-                   ExcMessage("RK3.2: k_volume_fractions_three[" + std::to_string(grain_i) + "] is not finite: "
-                              + std::to_string(k_volume_fractions_three[grain_i])));
-
-            // this will be zero in the zeroth timestep (dt = 0)
-            //Assert(k_volume_fractions_three[grain_i] > 0,
-            //       ExcMessage("RK3.2: k_volume_fractions_three[ " + std::to_string(grain_i) + "] is smaller or equal to zero: "
-            //                  + std::to_string(k_volume_fractions_three[grain_i])));
-            k_a_cosine_matrices_three[grain_i] = strain_rate_second_invariant * dt * derivatives.second[grain_i];
-          }
-
-        // RK step 4: t+0.5*dt, wi+0.5k3
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            k_volume_fractions_zero[grain_i] = volume_fractions[grain_i] + 0.5* k_volume_fractions_three[grain_i];
-            Assert(isfinite(k_volume_fractions_zero[grain_i]),
-                   ExcMessage("RK4: k_volume_fractions_zero[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(k_volume_fractions_zero[grain_i])));
-            //Assert(k_volume_fractions_zero[grain_i] > 0,
-            //       ExcMessage("RK4: k_volume_fractions_zero[ " + std::to_string(grain_i) + "] is smaller or equal to zero: " + std::to_string(k_volume_fractions_zero[grain_i])));
-            a_cosine_matrices_zero[grain_i] = a_cosine_matrices[grain_i] + 0.5 * k_a_cosine_matrices_three[grain_i];
-          }
-
-        // Todo: in the python code it has some commented out code which talks about
-        // normalization of the volume fractions zero. Figure out what this is about.
-        derivatives = this->compute_derivatives(k_volume_fractions_zero,
-                                                a_cosine_matrices_zero,
-                                                strain_rate_nondimensional,
-                                                velocity_gradient_nondimensional,
-                                                deformation_type,
-                                                ref_resolved_shear_stress);
-
-
-        std::vector<double> k_volume_fractions_four(n_grains);
-        std::vector<Tensor<2,3> > k_a_cosine_matrices_four(n_grains);
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            k_volume_fractions_four[grain_i] = strain_rate_second_invariant * dt * derivatives.first[grain_i];
-
-            Assert(isfinite(k_volume_fractions_four[grain_i]),
-                   ExcMessage("RK5: k_volume_fractions_four[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(k_volume_fractions_four[grain_i])));
-
-            // this will be zero in the zeroth timestep (dt = 0)
-            //Assert(k_volume_fractions_four[grain_i] > 0,
-            //       ExcMessage("RK5: k_volume_fractions_four[ " + std::to_string(grain_i) + "] is smaller or equal to zero: "
-            //+ std::to_string(k_volume_fractions_four[grain_i])));
-            k_a_cosine_matrices_four[grain_i] = strain_rate_second_invariant * dt * derivatives.second[grain_i];
-          }
-
-        // Now combine all the intermediate RK steps:
-        // python: acs = acs + (kacs1 + 2.0*kacs2 + 2.0*kacs3 + kacs4)/6.0
-        std::vector<double> grain_rotations(n_grains);
         double sum_volume_fractions = 0;
-        for (unsigned int i = 0; i < n_grains; ++i)
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
-            Assert(!isnan(volume_fractions[i]), ExcMessage("Volume fraction of grain " + std::to_string(i) + " is not a number: " + std::to_string(volume_fractions[i]) + "."))
-            Assert(isfinite(volume_fractions[i]), ExcMessage("Volume fraction of grain " + std::to_string(i) + " is not a number: " + std::to_string(volume_fractions[i]) + "."))
-            volume_fractions[i] = volume_fractions[i] +
-                                  (k_volume_fractions_one[i] + 2.0 * k_volume_fractions_two[i] +
-                                   2.0 * k_volume_fractions_three[i] + k_volume_fractions_four[i])/6.0;
-
-
-            Assert(volume_fractions[i] > 0, ExcMessage("volulme_fractions[ " + std::to_string(i) + "] is smaller or equal to zero: " + std::to_string(volume_fractions[i])));
-            sum_volume_fractions += volume_fractions[i];
-
-            Assert(!isnan(sum_volume_fractions), ExcMessage("When adding volume fraction of grain " + std::to_string(i) + ", sum_volume_fractions is not a number: " + std::to_string(sum_volume_fractions) + ", volume_fractions[i] = " + std::to_string(volume_fractions[i]) + "."))
-            a_cosine_matrices[i] = a_cosine_matrices[i] +
-                                   (k_a_cosine_matrices_one[i] + 2.0 * k_a_cosine_matrices_two[i] +
-                                    2.0 * k_a_cosine_matrices_three[i] + k_a_cosine_matrices_four[i])/6.0;
+            volume_fractions[grain_i] = volume_fractions[grain_i];// + dt * strain_rate_second_invariant * derivatives.first[grain_i];
+            sum_volume_fractions += volume_fractions[grain_i];
           }
+        //std::cout << "backward advection" << std::endl;
 
-        Assert(sum_volume_fractions != 0, ExcMessage("sum_volume_fractions is zero, which should never happen."));
+        //const Tensor<2,3> spin_tensor = -0.5 *(velocity_gradient_tensor_nondim_3d - dealii::transpose(velocity_gradient_tensor_nondim_3d));
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            auto cosine_old = a_cosine_matrices[grain_i];
+            auto cosine_new = a_cosine_matrices[grain_i];
+            for (size_t iteration = 0; iteration < 10; iteration++)
+              {
+                cosine_new = cosine_old + dt * 0.5 * ((cosine_old * previous_a_cosine_matrices_derivatives[grain_i] * strain_rate_second_invariant) + (cosine_new * derivatives.second[grain_i] * strain_rate_second_invariant));
+                //if()
+              }
+
+            previous_a_cosine_matrices_derivatives[grain_i] = derivatives.second[grain_i];
+
+            a_cosine_matrices[grain_i] = cosine_new;
+
+            //a_cosine_matrices[grain_i] = a_cosine_matrices[grain_i] - dt * a_cosine_matrices[grain_i] * strain_rate_second_invariant * velocity_gradient_tensor_nondim_3d;// derivatives.second[grain_i];
+
+            /*std::cout << std::endl << "grain " << grain_i << std::endl << "previous_a_cosine_matrices_derivatives[grain_i] = " //<< std::endl
+                      << previous_a_cosine_matrices_derivatives[grain_i][0][0] << " " << previous_a_cosine_matrices_derivatives[grain_i][0][1] << " " << previous_a_cosine_matrices_derivatives[grain_i][0][2] << " " //<< std::endl
+                      << previous_a_cosine_matrices_derivatives[grain_i][1][0] << " " << previous_a_cosine_matrices_derivatives[grain_i][1][1] << " " << previous_a_cosine_matrices_derivatives[grain_i][1][2] << " " //<< std::endl
+                      << previous_a_cosine_matrices_derivatives[grain_i][2][0] << " " << previous_a_cosine_matrices_derivatives[grain_i][2][1] << " " << previous_a_cosine_matrices_derivatives[grain_i][2][2] << std::endl;
+            std::cout << "spin_tensor = " //<< std::endl
+                      << spin_tensor[0][0] << " " << spin_tensor[0][1] << " " << spin_tensor[0][2] << " " //<< std::endl
+                      << spin_tensor[1][0] << " " << spin_tensor[1][1] << " " << spin_tensor[1][2] << " " //<< std::endl
+                      << spin_tensor[2][0] << " " << spin_tensor[2][1] << " " << spin_tensor[2][2] << std::endl;*/
+
+
+            /*std::cout << "previous_a_cosine_matrices_derivatives[grain_i] = "
+                      << previous_a_cosine_matrices_derivatives[grain_i][0][0] << " " << previous_a_cosine_matrices_derivatives[grain_i][0][1] << " " << previous_a_cosine_matrices_derivatives[grain_i][0][2] << " " //<< std::endl
+                      << previous_a_cosine_matrices_derivatives[grain_i][1][0] << " " << previous_a_cosine_matrices_derivatives[grain_i][1][1] << " " << previous_a_cosine_matrices_derivatives[grain_i][1][2] << " " //<< std::endl
+                      << previous_a_cosine_matrices_derivatives[grain_i][2][0] << " " << previous_a_cosine_matrices_derivatives[grain_i][2][1] << " " << previous_a_cosine_matrices_derivatives[grain_i][2][2] << std::endl;*/
+          }
 
 
         return sum_volume_fractions;
@@ -1453,42 +1484,72 @@ namespace aspect
       std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
       LPO<dim>::compute_derivatives(const std::vector<double> &volume_fractions,
                                     const std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                    const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                                    const Tensor<2,dim> &velocity_gradient_tensor_nondimensional,
+                                    const SymmetricTensor<2,3> &strain_rate_nondimensional,
+                                    const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                                     const DeformationType deformation_type,
                                     const std::array<double,4> &ref_resolved_shear_stress) const
       {
-        // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
-        // adding an extra dimension which is zero.
-        // Todo: for now we just add a thrid row and column
-        // and make them zero. We have to check whether that is correct.
-        SymmetricTensor<2,3> strain_rate_nondim_3d;
-        strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[0][0];
-        strain_rate_nondim_3d[0][1] = strain_rate_nondimensional[0][1];
-        //sym: strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[1][0];
-        strain_rate_nondim_3d[1][1] = strain_rate_nondimensional[1][1];
+        //
+        std::vector<double> k_volume_fractions_zero = volume_fractions;
+        std::vector<Tensor<2,3> > a_cosine_matrices_zero = a_cosine_matrices;
+        std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
+        switch (lpo_derivative_algorithm)
+          {
+            case LpoDerivativeAlgorithm::SpinTensor:
+            {
+              return this->compute_derivatives_spin_tensor(k_volume_fractions_zero,
+                                                           a_cosine_matrices_zero,
+                                                           strain_rate_nondimensional,
+                                                           velocity_gradient_tensor_nondimensional,
+                                                           deformation_type,
+                                                           ref_resolved_shear_stress);
+              break;
+            }
+            case LpoDerivativeAlgorithm::DRex2004:
+              return this->compute_derivatives_drex2004(k_volume_fractions_zero,
+                                                        a_cosine_matrices_zero,
+                                                        strain_rate_nondimensional,
+                                                        velocity_gradient_tensor_nondimensional,
+                                                        deformation_type,
+                                                        ref_resolved_shear_stress);
+              break;
+            default:
+              AssertThrow(false, ExcMessage("Internal error."));
+              break;
+          }
+      }
 
-        if (dim == 3)
+      template <int dim>
+      std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+      LPO<dim>::compute_derivatives_spin_tensor(const std::vector<double> &volume_fractions,
+                                                const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                                const SymmetricTensor<2,3> &strain_rate_nondimensional,
+                                                const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
+                                                const DeformationType,
+                                                const std::array<double,4> &) const
+      {
+        // dA/dt = W * A, where W is the spin tensor and A is the rotation matrix
+        // The spin tensor is defined as W = 0.5 * ( L - L^T ), where L is the velocity gradient tensor.
+        const Tensor<2,3> spin_tensor = -0.5 *(velocity_gradient_tensor_nondimensional - dealii::transpose(velocity_gradient_tensor_nondimensional));
+        //derivatives.first = std::vector<double>(n_grains,0.0);
+        //derivatives.second = std::vector<Tensor<2,3>>(n_grains, spin_tensor);
+        /*for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
-            strain_rate_nondim_3d[0][2] = strain_rate_nondimensional[0][2];
-            strain_rate_nondim_3d[1][2] = strain_rate_nondimensional[1][2];
-            //sym: strain_rate_nondim_3d[0][0] = strain_rate_nondimensional[2][0];
-            //sym: strain_rate_nondim_3d[0][1] = strain_rate_nondimensional[2][1];
-            strain_rate_nondim_3d[2][2] = strain_rate_nondimensional[2][2];
-          }
-        Tensor<2,3> velocity_gradient_tensor_nondim_3d;
-        velocity_gradient_tensor_nondim_3d[0][0] = velocity_gradient_tensor_nondimensional[0][0];
-        velocity_gradient_tensor_nondim_3d[0][1] = velocity_gradient_tensor_nondimensional[0][1];
-        velocity_gradient_tensor_nondim_3d[1][0] = velocity_gradient_tensor_nondimensional[1][0];
-        velocity_gradient_tensor_nondim_3d[1][1] = velocity_gradient_tensor_nondimensional[1][1];
-        if (dim == 3)
-          {
-            velocity_gradient_tensor_nondim_3d[0][2] = velocity_gradient_tensor_nondimensional[0][2];
-            velocity_gradient_tensor_nondim_3d[1][2] = velocity_gradient_tensor_nondimensional[1][2];
-            velocity_gradient_tensor_nondim_3d[2][0] = velocity_gradient_tensor_nondimensional[2][0];
-            velocity_gradient_tensor_nondim_3d[2][1] = velocity_gradient_tensor_nondimensional[2][1];
-            velocity_gradient_tensor_nondim_3d[2][2] = velocity_gradient_tensor_nondimensional[2][2];
-          }
+            derivatives.second[grain_i] = a_cosine_matrices[grain_i] * derivatives.second[grain_i];
+          }*/
+
+        return std::pair<std::vector<double>, std::vector<Tensor<2,3> > >(std::vector<double>(n_grains,0.0), std::vector<Tensor<2,3>>(n_grains, spin_tensor));
+      }
+
+      template <int dim>
+      std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+      LPO<dim>::compute_derivatives_drex2004(const std::vector<double> &volume_fractions,
+                                             const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                             const SymmetricTensor<2,3> &strain_rate_nondimensional,
+                                             const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
+                                             const DeformationType deformation_type,
+                                             const std::array<double,4> &ref_resolved_shear_stress) const
+      {
 
         // create output variables
         std::vector<double> deriv_volume_fractions(n_grains);
@@ -1549,65 +1610,75 @@ namespace aspect
                     for (unsigned int j = 0; j < 3; ++j)
                       {
                         //strain_rate_nondimensional is in 2d not big enough
-                        bigI[0] = bigI[0] + strain_rate_nondim_3d[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j];
+                        bigI[0] = bigI[0] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j];
 
-                        bigI[1] = bigI[1] + strain_rate_nondim_3d[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j];
+                        bigI[1] = bigI[1] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j];
 
-                        bigI[2] = bigI[2] + strain_rate_nondim_3d[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j];
+                        bigI[2] = bigI[2] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j];
 
-                        bigI[3] = bigI[3] + strain_rate_nondim_3d[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j];
+                        bigI[3] = bigI[3] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j];
                       }
                   }
 
-                // compute the element wise absolute value of the element wise
-                // division of BigI by tau (tau = ref_resolved_shear_stress).
-                std::vector<double> q_abs(4);
-                for (unsigned int i = 0; i < 4; i++)
+                if (bigI[0] == 0.0 && bigI[1] == 0.0 && bigI[2] == 0.0 && bigI[3] == 0.0)
                   {
-                    q_abs[i] = std::abs(bigI[i] / tau[i]);
+                    // In this case there is no shear, only (posibily) a rotation. So \gamma_y and/or G should be zero.
+                    // Which is the default value, so do nothing.
                   }
-
-                // here we find the indices starting at the largest value and ending at the smallest value
-                // and assign them to special variables. Because all the variables are absolute values,
-                // we can set them to a negative value to ignore them. This should be faster then deleting
-                // the element, which would require allocation. (not tested)
-                index_max_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                q_abs[index_max_q] = -1;
-
-                index_intermediate_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                q_abs[index_intermediate_q] = -1;
-
-                index_min_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                q_abs[index_min_q] = -1;
-
-                index_inactive_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                // todo: explain
-                double ratio = tau[index_max_q]/bigI[index_max_q];
-
-                double q_intermediate = ratio * (bigI[index_intermediate_q]/tau[index_intermediate_q]);
-
-                double q_min = ratio * (bigI[index_min_q]/tau[index_min_q]);
-
-                // todo: explain
-                beta[index_max_q] = 1.0; // max q_abs, weak system (most deformation) "s=1"
-                beta[index_intermediate_q] = q_intermediate * std::pow(std::abs(q_intermediate), stress_exponent-1);
-                beta[index_min_q] = q_min * std::pow(std::abs(q_min), stress_exponent-1);
-                beta[index_inactive_q] = 0.0;
-
-
-                // todo: explain
-                for (unsigned int i = 0; i < 3; i++)
+                else
                   {
-                    for (unsigned int j = 0; j < 3; j++)
+
+                    // compute the element wise absolute value of the element wise
+                    // division of BigI by tau (tau = ref_resolved_shear_stress).
+                    std::vector<double> q_abs(4);
+                    for (unsigned int i = 0; i < 4; i++)
                       {
-                        G[i][j] = 2.0 * (beta[0] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j]
-                                         + beta[1] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j]
-                                         + beta[2] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j]
-                                         + beta[3] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j]);
+                        q_abs[i] = std::abs(bigI[i] / tau[i]);
+                      }
+
+                    // here we find the indices starting at the largest value and ending at the smallest value
+                    // and assign them to special variables. Because all the variables are absolute values,
+                    // we can set them to a negative value to ignore them. This should be faster then deleting
+                    // the element, which would require allocation. (not tested)
+                    index_max_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                    q_abs[index_max_q] = -1;
+
+                    index_intermediate_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                    q_abs[index_intermediate_q] = -1;
+
+                    index_min_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                    q_abs[index_min_q] = -1;
+
+                    index_inactive_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                    // todo: explain
+                    Assert(bigI[index_max_q] != 0.0, ExcMessage("Internal error: bigI is zero."));
+                    double ratio = tau[index_max_q]/bigI[index_max_q];
+
+                    double q_intermediate = ratio * (bigI[index_intermediate_q]/tau[index_intermediate_q]);
+
+                    double q_min = ratio * (bigI[index_min_q]/tau[index_min_q]);
+
+                    // todo: explain
+                    beta[index_max_q] = 1.0; // max q_abs, weak system (most deformation) "s=1"
+                    beta[index_intermediate_q] = q_intermediate * std::pow(std::abs(q_intermediate), stress_exponent-1);
+                    beta[index_min_q] = q_min * std::pow(std::abs(q_min), stress_exponent-1);
+                    beta[index_inactive_q] = 0.0;
+
+
+                    // todo: explain
+                    for (unsigned int i = 0; i < 3; i++)
+                      {
+                        for (unsigned int j = 0; j < 3; j++)
+                          {
+                            G[i][j] = 2.0 * (beta[0] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j]
+                                             + beta[1] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j]
+                                             + beta[2] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j]
+                                             + beta[3] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j]);
+                          }
                       }
                   }
               }
@@ -1626,23 +1697,24 @@ namespace aspect
                 if (ip2 > 2)
                   ip2 = ip2-3;
 
-                top = top - (velocity_gradient_tensor_nondim_3d[i][ip2]-velocity_gradient_tensor_nondim_3d[ip2][i])*(G[i][ip2]-G[ip2][i]);
+                top = top - (velocity_gradient_tensor_nondimensional[i][ip2]-velocity_gradient_tensor_nondimensional[ip2][i])*(G[i][ip2]-G[ip2][i]);
                 bottom = bottom - (G[i][ip2]-G[ip2][i])*(G[i][ip2]-G[ip2][i]);
 
                 for (unsigned int j = 0; j < 3; ++j)
                   {
-                    top = top + 2.0 * G[i][j]*velocity_gradient_tensor_nondim_3d[i][j];
+                    top = top + 2.0 * G[i][j]*velocity_gradient_tensor_nondimensional[i][j];
                     bottom = bottom + 2.0* G[i][j] * G[i][j];
                   }
               }
-            double gamma = top/bottom;
+            // see comment on if all BigI are zero. In that case gamma should be zero.
+            double gamma = bottom != 0.0 ? top/bottom : 0;
 
             // compute w (equation 8, Kaminiski & Ribe, 2001)
             // todo: explain what w is
             // todo: there was a loop around this in the phyton code, discuss/check
-            w[0] = 0.5*(velocity_gradient_tensor_nondim_3d[2][1]-velocity_gradient_tensor_nondim_3d[1][2]) - 0.5*(G[2][1]-G[1][2])*gamma;
-            w[1] = 0.5*(velocity_gradient_tensor_nondim_3d[0][2]-velocity_gradient_tensor_nondim_3d[2][0]) - 0.5*(G[0][2]-G[2][0])*gamma;
-            w[2] = 0.5*(velocity_gradient_tensor_nondim_3d[1][0]-velocity_gradient_tensor_nondim_3d[0][1]) - 0.5*(G[1][0]-G[0][1])*gamma;
+            w[0] = 0.5*(velocity_gradient_tensor_nondimensional[2][1]-velocity_gradient_tensor_nondimensional[1][2]) - 0.5*(G[2][1]-G[1][2])*gamma;
+            w[1] = 0.5*(velocity_gradient_tensor_nondimensional[0][2]-velocity_gradient_tensor_nondimensional[2][0]) - 0.5*(G[0][2]-G[2][0])*gamma;
+            w[2] = 0.5*(velocity_gradient_tensor_nondimensional[1][0]-velocity_gradient_tensor_nondimensional[0][1]) - 0.5*(G[1][0]-G[0][1])*gamma;
 
             // Compute strain energy for this grain (abrivated Estr)
             // For olivine: DREX only sums over 1-3. But Thissen's matlab code corrected
@@ -1688,8 +1760,18 @@ namespace aspect
                     for (unsigned int k = 0; k < 3; ++k)
                       for (unsigned int l = 0; l < 3; ++l)
                         {
-                          deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][l] * a_cosine_matrices[grain_i][i][l]*w[k];
+                          //deriv_a_cosine_matrices[grain_i][i][j] = /*deriv_a_cosine_matrices[grain_i][i][j] +*/ permutation_operator_3d[j][k][l] * a_cosine_matrices[grain_i][i][l]*w[k];
+                          //deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][l] * w[k];
                         }
+
+                deriv_a_cosine_matrices[grain_i] = permutation_operator_3d * w;
+
+                /*deriv_a_cosine_matrices[grain_i][0][1] = -w[2];
+                deriv_a_cosine_matrices[grain_i][1][0] = w[2];
+                deriv_a_cosine_matrices[grain_i][0][2] = w[1];
+                deriv_a_cosine_matrices[grain_i][2][0] = -w[1];
+                deriv_a_cosine_matrices[grain_i][1][2] = -w[0];
+                deriv_a_cosine_matrices[grain_i][2][1] = w[0];*/
 
 
                 mean_strain_energy += volume_fractions[grain_i] * strain_energy[grain_i];
@@ -1791,7 +1873,11 @@ namespace aspect
 
               prm.declare_entry ("Property advection method", "Forward Euler",
                                  Patterns::Anything(),
-                                 "Options: Forward Euler, RK4 invalid");
+                                 "Options: Forward Euler, Backward Euler, Crank-Nicolson, RK4 invalid");
+
+              prm.declare_entry ("LPO derivatives algorithm", "D-Rex 2004",
+                                 Patterns::Anything(),
+                                 "Options: Spin tensor, D-Rex 2004");
             }
             prm.leave_subsection ();
           }
@@ -1824,61 +1910,83 @@ namespace aspect
               n_samples = prm.get_integer("Number of samples"); // 0
               if (n_samples == 0)
                 n_samples = n_grains;
+
+              const std::string temp_lpo_derivative_algorithm = prm.get("LPO derivatives algorithm"); // todo trim?
+
+              if (temp_lpo_derivative_algorithm == "Spin tensor")
+                {
+                  lpo_derivative_algorithm = LpoDerivativeAlgorithm::SpinTensor;
+                }
+              else if (temp_lpo_derivative_algorithm ==  "D-Rex 2004")
+                {
+                  lpo_derivative_algorithm = LpoDerivativeAlgorithm::DRex2004;
+                }
+              else
+                {
+                  AssertThrow(false,
+                              ExcMessage("The LPO derivatives algorithm needs to be one of the following: "
+                                         "Spin tensor, D-Rex 2004."))
+                }
+
+
+              const std::string temp_olivine_deformation_type_selector = prm.get("Olivine fabric"); // todo trim?
+              if (temp_olivine_deformation_type_selector == "Karato 2008")
+                {
+                  olivine_deformation_type_selector = OlivineDeformationTypeSelector::Karato2008;
+                }
+              else if (temp_olivine_deformation_type_selector ==  "A-fabric")
+                {
+                  olivine_deformation_type_selector = OlivineDeformationTypeSelector::A_type;
+                }
+              else if (temp_olivine_deformation_type_selector ==  "B-fabric")
+                {
+                  olivine_deformation_type_selector = OlivineDeformationTypeSelector::B_type;
+                }
+              else if (temp_olivine_deformation_type_selector ==  "C-fabric")
+                {
+                  olivine_deformation_type_selector = OlivineDeformationTypeSelector::C_type;
+                }
+              else if (temp_olivine_deformation_type_selector ==  "D-fabric")
+                {
+                  olivine_deformation_type_selector = OlivineDeformationTypeSelector::D_type;
+                }
+              else if (temp_olivine_deformation_type_selector ==  "E-fabric")
+                {
+                  olivine_deformation_type_selector = OlivineDeformationTypeSelector::E_type;
+                }
+              else
+                {
+                  AssertThrow(false,
+                              ExcMessage("The Olivine fabric needs to be one of the following: Karato 2008, "
+                                         "A-fabric,B-fabric,C-fabric,D-fabric,E-fabric."))
+                }
+
+              const std::string temp_advection_method = prm.get("Property advection method");
+              if (temp_advection_method == "Forward Euler")
+                {
+                  advection_method = AdvectionMethod::ForwardEuler;
+                }
+              else if (temp_advection_method == "Backward Euler")
+                {
+                  advection_method = AdvectionMethod::BackwardEuler;
+                }
+              else if (temp_advection_method == "Crank-Nicolson")
+                {
+                  advection_method = AdvectionMethod::CrankNicolson;
+                }
+              else if (temp_advection_method == "RK4 Invalid")
+                {
+                  advection_method = AdvectionMethod::RK4Invalid;
+                }
+              else if (temp_advection_method == "RK4 Strain")
+                {
+                  advection_method = AdvectionMethod::RK4Strain;
+                }
+              else
+                {
+                  AssertThrow(false, ExcMessage("particle property advection method not found: \"" + temp_advection_method + "\""));
+                }
             }
-
-            const std::string temp_olivine_deformation_type_selector = prm.get("Olivine fabric"); // todo trim?
-            if (temp_olivine_deformation_type_selector == "Karato 2008")
-              {
-                olivine_deformation_type_selector = OlivineDeformationTypeSelector::Karato2008;
-              }
-            else if (temp_olivine_deformation_type_selector ==  "A-fabric")
-              {
-                olivine_deformation_type_selector = OlivineDeformationTypeSelector::A_type;
-              }
-            else if (temp_olivine_deformation_type_selector ==  "B-fabric")
-              {
-                olivine_deformation_type_selector = OlivineDeformationTypeSelector::B_type;
-              }
-            else if (temp_olivine_deformation_type_selector ==  "C-fabric")
-              {
-                olivine_deformation_type_selector = OlivineDeformationTypeSelector::C_type;
-              }
-            else if (temp_olivine_deformation_type_selector ==  "D-fabric")
-              {
-                olivine_deformation_type_selector = OlivineDeformationTypeSelector::D_type;
-              }
-            else if (temp_olivine_deformation_type_selector ==  "E-fabric")
-              {
-                olivine_deformation_type_selector = OlivineDeformationTypeSelector::E_type;
-              }
-            else
-              {
-                AssertThrow(false,
-                            ExcMessage("The Olivine fabric needs to be one of the following: Karato 2008, "
-                                       "A-fabric,B-fabric,C-fabric,D-fabric,E-fabric."))
-              }
-
-            const std::string temp_advection_method = prm.get("Property advection method");
-            if (temp_advection_method == "Forward Euler")
-              {
-                advection_method = AdvectionMethod::ForwardEuler;
-              }
-            if (temp_advection_method == "Backward Euler")
-              {
-                advection_method = AdvectionMethod::BackwardEuler;
-              }
-            else if (temp_advection_method == "RK4 Invalid")
-              {
-                advection_method = AdvectionMethod::RK4Invalid;
-              }
-            else if (temp_advection_method == "RK4 Strain")
-              {
-                advection_method = AdvectionMethod::RK4Strain;
-              }
-            else
-              {
-                AssertThrow(false, ExcMessage("particle property advection method not found."));
-              }
             prm.leave_subsection ();
           }
           prm.leave_subsection ();

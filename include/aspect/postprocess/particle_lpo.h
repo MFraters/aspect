@@ -127,6 +127,8 @@ namespace aspect
         parse_parameters (ParameterHandler &prm);
 
       private:
+
+        double end_time;
         /**
          * todo
          */
