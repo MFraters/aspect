@@ -180,6 +180,7 @@ namespace aspect
         parse_parameters (ParameterHandler &prm) override;
 
       private:
+        double end_time;
         /**
          * Interval between output (in years if appropriate simulation
          * parameter is set, otherwise seconds)
