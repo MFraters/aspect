@@ -162,7 +162,7 @@ namespace aspect
 
       // If it's not time to generate an output file or we do not write output
       // return early.
-      if (this->get_time() < last_output_time + output_interval)
+      if (this->get_time() < last_output_time + output_interval && this->get_time() != end_time)
         return std::make_pair("","");
 
       if (output_file_number == numbers::invalid_unsigned_int)
@@ -322,7 +322,7 @@ namespace aspect
               // write unweighted header
               if (wrote_unweighted_header == false)
                 {
-                  string_stream_content_raw << "id" << " ";
+                  string_stream_content_raw << "id" << " " << std::setprecision(12);
                   for (unsigned int property_i = 0; property_i < write_raw_lpo.size(); ++property_i)
                     {
                       switch (write_raw_lpo[property_i])
@@ -681,7 +681,7 @@ namespace aspect
         for (size_t j = 0; j < 3; j++)
           Assert(abs(rotation_matrix[i][j]) <= 1.0,
                  ExcMessage("rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
-                            "] is larger than one: " + std::to_string(rotation_matrix[i][j]) + ". rotation_matrix = \n"
+                            "] is larger than one: " + std::to_string(rotation_matrix[i][j]) + " (" + std::to_string(rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
                             + std::to_string(rotation_matrix[0][0]) + " " + std::to_string(rotation_matrix[0][1]) + " " + std::to_string(rotation_matrix[0][2]) + "\n"
                             + std::to_string(rotation_matrix[1][0]) + " " + std::to_string(rotation_matrix[1][1]) + " " + std::to_string(rotation_matrix[1][2]) + "\n"
                             + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
@@ -902,6 +902,10 @@ namespace aspect
     void
     LPO<dim>::parse_parameters (ParameterHandler &prm)
     {
+      end_time = prm.get_double ("End time");
+      if (this->convert_output_to_years())
+        end_time *= year_in_seconds;
+
       prm.enter_subsection("Postprocess");
       {
         prm.enter_subsection("Particles");

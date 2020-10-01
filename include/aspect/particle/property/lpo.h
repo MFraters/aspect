@@ -46,7 +46,12 @@ namespace aspect
 
       enum class AdvectionMethod
       {
-        ForwardEuler, BackwardEuler, RK4Invalid, RK4Strain
+        ForwardEuler, BackwardEuler, CrankNicolson, RK4Invalid, RK4Strain
+      };
+
+      enum class LpoDerivativeAlgorithm
+      {
+        SpinTensor, DRex2004
       };
       /**
        * Todo: write what this plugin does.
@@ -179,6 +184,25 @@ namespace aspect
                              std::vector<double> &volume_fractions_enstatite,
                              std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
 
+
+          /**
+           * Loads particle data into variables
+           */
+          void
+          load_particle_data_extended(unsigned int lpo_index,
+                                      const ArrayView<double> &data,
+                                      unsigned int n_grains,
+                                      double &water_content,
+                                      double &volume_fraction_olivine,
+                                      std::vector<double> &volume_fractions_olivine,
+                                      std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                      std::vector<double> &volume_fractions_enstatite,
+                                      std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite,
+                                      std::vector<double> &volume_fractions_olivine_derivatives,
+                                      std::vector<Tensor<2,3> > &a_cosine_matrices_olivine_derivatives,
+                                      std::vector<double> &volume_fractions_enstatite_derivatives,
+                                      std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite_derivatives) const;
+
           /**
            * Stores information in variables into the data array
            */
@@ -193,6 +217,23 @@ namespace aspect
                               std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
                               std::vector<double> &volume_fractions_enstatite,
                               std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
+          /**
+           * Stores information in variables into the data array
+           */
+          void
+          store_particle_data_extended(unsigned int lpo_data_position,
+                                       const ArrayView<double> &data,
+                                       unsigned int n_grains,
+                                       double water_content,
+                                       double volume_fraction_olivine,
+                                       std::vector<double> &volume_fractions_olivine,
+                                       std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
+                                       std::vector<double> &volume_fractions_enstatite,
+                                       std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite,
+                                       std::vector<double> &volume_fractions_olivine_derivatives,
+                                       std::vector<Tensor<2,3> > &a_cosine_matrices_olivine_derivatives,
+                                       std::vector<double> &volume_fractions_enstatite_derivatives,
+                                       std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite_derivatives) const;
 
           /**
            * Find nearest orthogonal matrix using a SVD if the
@@ -225,18 +266,6 @@ namespace aspect
                                        std::vector<Tensor<2,3>> matrices,
                                        unsigned int n_output_grains) const;
 
-          /**
-           * derivatives: Todo
-           */
-          double
-          advect_rk4_strain(std::vector<double> &volume_fractions,
-                            std::vector<Tensor<2,3> > &a_cosine_matrices,
-                            const SymmetricTensor<2,dim> &strain_rate,
-                            const Tensor<2,dim> &velocity_gradient_tensor,
-                            const DeformationType deformation_type,
-                            const std::array<double,4> &ref_resolved_shear_stress,
-                            const double strain_rate_second_invariant,
-                            const double dt) const;
 
           /**
            * derivatives: Todo
@@ -244,10 +273,7 @@ namespace aspect
           double
           advect_forward_euler(std::vector<double> &volume_fractions,
                                std::vector<Tensor<2,3> > &a_cosine_matrices,
-                               const SymmetricTensor<2,dim> &strain_rate,
-                               const Tensor<2,dim> &velocity_gradient_tensor,
-                               const DeformationType deformation_type,
-                               const std::array<double,4> &ref_resolved_shear_stress,
+                               const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
                                const double strain_rate_second_invariant,
                                const double dt) const;
           /**
@@ -256,25 +282,19 @@ namespace aspect
           double
           advect_backward_euler(std::vector<double> &volume_fractions,
                                 std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                const SymmetricTensor<2,dim> &strain_rate,
-                                const Tensor<2,dim> &velocity_gradient_tensor,
-                                const DeformationType deformation_type,
-                                const std::array<double,4> &ref_resolved_shear_stress,
+                                const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
                                 const double strain_rate_second_invariant,
                                 const double dt) const;
 
-          /**
-           * derivatives: Todo
-           */
           double
-          compute_runge_kutta(std::vector<double> &volume_fractions,
-                              std::vector<Tensor<2,3> > &a_cosine_matrices,
-                              const SymmetricTensor<2,dim> &strain_rate,
-                              const Tensor<2,dim> &velocity_gradient_tensor,
-                              const DeformationType deformation_type,
-                              const std::array<double,4> &ref_resolved_shear_stress,
-                              const double strain_rate_second_invariant,
-                              const double dt) const;
+          advect_Crank_Nicolson(std::vector<double> &volume_fractions,
+                                std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                std::vector<double> &previous_volume_fraction_derivatives,
+                                std::vector<Tensor<2,3> > &previous_a_cosine_matrices_derivatives,
+                                const double strain_rate_second_invariant,
+                                const double dt) const;
+
 
           /**
            * derivatives: Todo
@@ -282,10 +302,32 @@ namespace aspect
           std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
           compute_derivatives(const std::vector<double> &volume_fractions,
                               const std::vector<Tensor<2,3> > &a_cosine_matrices,
-                              const SymmetricTensor<2,dim> &strain_rate_nondimensional,
-                              const Tensor<2,dim> &velocity_gradient_tensor_nondimensional,
+                              const SymmetricTensor<2,3> &strain_rate_nondimensional,
+                              const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                               const DeformationType deformation_type,
                               const std::array<double,4> &ref_resolved_shear_stress) const;
+
+          /**
+           * derivatives: Todo
+           */
+          std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+          compute_derivatives_spin_tensor(const std::vector<double> &volume_fractions,
+                                          const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                          const SymmetricTensor<2,3> &strain_rate_nondimensional,
+                                          const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
+                                          const DeformationType deformation_type,
+                                          const std::array<double,4> &ref_resolved_shear_stress) const;
+
+          /**
+           * derivatives: Todo
+           */
+          std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+          compute_derivatives_drex2004(const std::vector<double> &volume_fractions,
+                                       const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                       const SymmetricTensor<2,3> &strain_rate_nondimensional,
+                                       const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
+                                       const DeformationType deformation_type,
+                                       const std::array<double,4> &ref_resolved_shear_stress) const;
 
           std::vector<std::vector<double> >
           volume_weighting(std::vector<double> fv, std::vector<std::vector<double> > angles) const;
@@ -381,6 +423,11 @@ namespace aspect
            * Advection method for particle properties
            */
           AdvectionMethod advection_method;
+
+          /**
+           * What algorithm to use to compute the derivatives
+           */
+          LpoDerivativeAlgorithm lpo_derivative_algorithm;
 
 
 
