@@ -213,6 +213,180 @@ namespace aspect
         return std::array<std::array<double,3>,3>();
       }
 
+
+      template<int dim>
+      std::array<unsigned short int, 3>
+      LpoSWaveAnisotropy<dim>::indexed_permutation(const unsigned short int index) const
+      {
+        switch (index)
+          {
+            case 0 :
+              return {0,1,2};
+            case 1 :
+              return {1,2,0};
+            case 2 :
+              return {2,0,1};
+            default:
+              AssertThrow(false,ExcMessage("Provided index larger then 2 (" + std::to_string(index)+ ")."));
+              return {0,0,0};
+          }
+
+      }
+
+
+
+      template<int dim>
+      Tensor<2,3>
+      LpoSWaveAnisotropy<dim>::compute_unpermutated_SCC(const SymmetricTensor<2,6> &elastic_tensor) const
+      {
+        /**
+         * the Voigt stiffness tensor (see Browaeys and chevrot, 2004)
+         * It defines the stress needed to cause an isotropic strain in the
+         * material
+         */
+        SymmetricTensor<2,3> voigt_stiffness_tensor;
+        voigt_stiffness_tensor[0][0]=elastic_tensor[0][0]+elastic_tensor[5][5]+elastic_tensor[4][4];
+        voigt_stiffness_tensor[1][1]=elastic_tensor[5][5]+elastic_tensor[1][1]+elastic_tensor[3][3];
+        voigt_stiffness_tensor[2][2]=elastic_tensor[4][4]+elastic_tensor[3][3]+elastic_tensor[2][2];
+        voigt_stiffness_tensor[1][0]=elastic_tensor[0][5]+elastic_tensor[1][5]+elastic_tensor[3][4];
+        voigt_stiffness_tensor[2][0]=elastic_tensor[0][4]+elastic_tensor[2][4]+elastic_tensor[3][5];
+        voigt_stiffness_tensor[2][1]=elastic_tensor[1][3]+elastic_tensor[2][4]+elastic_tensor[4][5];
+
+        /**
+         * The dilatational stiffness tensor (see Browaeys and chevrot, 2004)
+         * It defines the stress to cause isotropic dilatation in the material.
+         */
+        SymmetricTensor<2,3> dilatation_stiffness_tensor;
+        for (size_t i = 0; i < 3; i++)
+          {
+            dilatation_stiffness_tensor[0][0]=elastic_tensor[0][i]+dilatation_stiffness_tensor[0][0];
+            dilatation_stiffness_tensor[1][1]=elastic_tensor[1][i]+dilatation_stiffness_tensor[1][1];
+            dilatation_stiffness_tensor[2][2]=elastic_tensor[2][i]+dilatation_stiffness_tensor[2][2];
+            dilatation_stiffness_tensor[1][0]=elastic_tensor[5][i]+dilatation_stiffness_tensor[1][0];
+            dilatation_stiffness_tensor[2][0]=elastic_tensor[4][i]+dilatation_stiffness_tensor[2][0];
+            dilatation_stiffness_tensor[2][1]=elastic_tensor[3][i]+dilatation_stiffness_tensor[2][1];
+          }
+
+        double bulk_modulus = 0; // K
+        double shear_modulus = 0; // G
+
+        for (size_t i = 0; i < 3; i++)
+          {
+            bulk_modulus = bulk_modulus + dilatation_stiffness_tensor[i][i];
+            shear_modulus = shear_modulus + voigt_stiffness_tensor[i][i];
+          }
+        bulk_modulus = bulk_modulus/9.0;
+        shear_modulus = shear_modulus/10.0-(3.0*bulk_modulus/10.0);
+
+        Tensor<1,9> isotropic_approximation;
+        isotropic_approximation[0] = bulk_modulus + 4.*shear_modulus/3.;
+        isotropic_approximation[1] = isotropic_approximation[0];
+        isotropic_approximation[2] = isotropic_approximation[0];
+        isotropic_approximation[3] = std::sqrt(2.0) * (bulk_modulus - 2.0*shear_modulus/3.0);
+        isotropic_approximation[4] = isotropic_approximation[3];
+        isotropic_approximation[5] = isotropic_approximation[3];
+        isotropic_approximation[6] = 2.0*shear_modulus;
+        isotropic_approximation[7] = isotropic_approximation[6];
+        isotropic_approximation[8] = isotropic_approximation[6];
+
+        //DI[0][1]=DI[1][0]
+        //DI[0][2]=DI[2][0]
+        //DI[1][2]=DI[2][1]
+        // computing the eigenvector of this matrix
+        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_a = eigenvectors(voigt_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
+
+        return Tensor<2,3>(
+        {
+          {eigenvectors_a[0].second[0],eigenvectors_a[0].second[1],eigenvectors_a[0].second[2]},
+          {eigenvectors_a[1].second[1],eigenvectors_a[1].second[1],eigenvectors_a[1].second[2]},
+          {eigenvectors_a[2].second[2],eigenvectors_a[2].second[1],eigenvectors_a[2].second[2]}
+        });
+      }
+
+
+      template<int dim>
+      std::pair<SymmetricTensor<2,6>,Tensor<2,3> >
+      LpoSWaveAnisotropy<dim>::compute_minimum_hexagonal_projection(
+        const Tensor<2,3> &unpermutated_SCC,
+        const SymmetricTensor<2,6> &elastic_tensor,
+        const double elastic_vector_norm) const
+      {
+        Tensor<1,21> elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_tensor);
+        double lowest_norm = elastic_vector_norm;
+        unsigned short int lowest_norm_permutation = 99;
+
+
+        /**
+         * Try the different permutations to determine what is the best hexagonal projection.
+         * This is based on Browaeys and Chevrot (2004), GJI (doi: 10.1111/j.1365-246X.2004.024115.x),
+         * which states at the end of paragraph 3.3 that "... an important property of an orthogonal projection
+         * is that the distance between a vector $X$ and its orthogonal projection $X_H = p(X)$ on a given
+         * subspace is minimum. These two features ensure that the decomposition is optimal once a 3-D Cartesian
+         * coordiante systeem is chosen.". The other property they talk about is that "The space of elastic
+         * vectors has a finite dimension [...], i.e. using a differnt norm from eq. (2.3 will change disstances
+         * but not the resulting decomposition.".
+         */
+        Tensor<2,3> projected_SCC[3];
+        SymmetricTensor<2,6> projected_elastic_matrix[3];
+        for (unsigned short int i = 0; i < 3; i++)
+          {
+            std::array<unsigned short int, 3> perumation = indexed_permutation(i);
+
+
+            for (size_t j = 0; j < 3; j++)
+              {
+                projected_SCC[i][j] = unpermutated_SCC[perumation[j]];
+              }
+
+            projected_elastic_matrix[i] = LpoElasticTensor<dim>::rotate_6x6_matrix(elastic_tensor,(projected_SCC[i]));
+
+            const Tensor<1,21> projected_elatic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(projected_elastic_matrix[i]);
+
+            const Tensor<1,9> hexagonal_elastic_vector = project_onto_hexagonal_symmetry(projected_elatic_vector);
+
+            Tensor<1,21> elastic_vector_tmp = elastic_vector;
+
+            // now compute how much is left over in the origional elastic vector
+            for (size_t i = 0; i < 9; i++)
+              {
+                elastic_vector_tmp[i] - hexagonal_elastic_vector[i];
+              }
+
+            const double current_norm = elastic_vector_tmp.norm();
+
+            if (current_norm < lowest_norm)
+              {
+                lowest_norm = current_norm;
+                lowest_norm_permutation = i;
+              }
+          }
+
+        AssertThrow(lowest_norm_permutation < 3,
+                    ExcMessage("LPO Hexagonal axes plugin could not find a good hexagonal projection."));
+
+
+        return std::make_pair(projected_elastic_matrix[lowest_norm_permutation],projected_SCC[lowest_norm_permutation]);
+      }
+
+
+      template<int dim>
+      Tensor<1,9>
+      LpoSWaveAnisotropy<dim>::project_onto_hexagonal_symmetry(const Tensor<1,21> &elastic_vector) const
+      {
+        return Tensor<1,9>(
+        {
+          0.375 * (elastic_vector[0] + elastic_vector[1]) + std::sqrt(2) * 0.25 * elastic_vector[5] + 0.25 * elastic_vector[8],              // 0 // 1
+          0.375 * (elastic_vector[0] + elastic_vector[1]) + std::sqrt(2) * 0.25 * elastic_vector[5] + 0.25 * elastic_vector[8],              // 1 // 2
+          elastic_vector[2],                                                                                                                 // 2 // 3
+          0.5 * (elastic_vector[3] + elastic_vector[4]),                                                                                     // 3 // 4
+          0.5 * (elastic_vector[3] + elastic_vector[4]),                                                                                     // 4 // 5
+          std::sqrt(2) * 0.25 * (elastic_vector[0] + elastic_vector[1]) + 0.75 * elastic_vector[5] - std::sqrt(2) * 0.5 * elastic_vector[8], // 5 // 6
+          0.5 * (elastic_vector[6] + elastic_vector[8]),                                                                                     // 6 // 7
+          0.5 * (elastic_vector[6] + elastic_vector[8]),                                                                                     // 7 // 8
+          0.25 * (elastic_vector[0] + elastic_vector[1]) - std::sqrt(2) * 0.5 * elastic_vector[5] + 0.5 * elastic_vector[8]                  // 8 // 9
+        });
+      }
+
       template<int dim>
       std::vector<Tensor<2,3> >
       LpoSWaveAnisotropy<dim>::random_draw_volume_weighting(std::vector<double> fv,

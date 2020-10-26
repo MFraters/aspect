@@ -73,7 +73,7 @@ namespace aspect
            */
           virtual
           SymmetricTensor<2,6>
-          compute_elastic_tensor (double volume_fraction_olivine,
+          compute_elastic_tensor (const double volume_fraction_olivine,
                                   std::vector<double> &volume_fractions_olivine,
                                   std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
                                   std::vector<double> &volume_fractions_enstatite,
@@ -205,7 +205,7 @@ namespace aspect
            * From a 21D vector from a 6xt matrix
            */
           static
-          inline SymmetricTensor<2,6> transform_21D_to_6x6_matrix_vector(const Tensor<1,21> &input_tensor);
+          inline SymmetricTensor<2,6> transform_21D_vector_to_6x6_matrix(const Tensor<1,21> &input_tensor);
 
           /**
            * Tranform a 4th order tensor directly into a 21D vector.
@@ -263,8 +263,8 @@ namespace aspect
           Tensor<2,3,unsigned int> indices_tensor;
           std::vector<double> indices_vector_1;
           std::vector<double> indices_vector_2;
-          Tensor<2,6> stiffness_matrix_olivine;
-          Tensor<2,6> stiffness_matrix_enstatite;
+          SymmetricTensor<2,6> stiffness_matrix_olivine;
+          SymmetricTensor<2,6> stiffness_matrix_enstatite;
 
           double rad_to_degree = 180.0/M_PI;
           double degree_to_rad = M_PI/180.0;
@@ -282,37 +282,10 @@ namespace aspect
           // when doing the random draw volume weighting, this sets how many samples are taken.
           unsigned int n_samples;
 
-          double x_olivine;
-
-          double stress_exponent;
-
-          /**
-           * efficientcy of nucleation parameter.
-           * lamda_m in equation 8 of Kamisnki et al. (2004, Geophys. J. Int)
-           */
-          double nucleation_efficientcy;
-
-          /**
-           * An exponent described in equation 10 of Kaminsty and Ribe (2001, EPSL)
-           */
-          double exponent_p;
-
-          /**
-           * todo
-           */
-          double threshold_GBS;
-
           /**
            * todo
            */
           Tensor<3,3> permutation_operator_3d;
-
-          /**
-           * grain boundery mobility
-           */
-          double mobility;
-
-
 
       };
     }

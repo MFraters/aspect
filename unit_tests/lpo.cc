@@ -779,7 +779,7 @@ TEST_CASE("LPO elastic tensor transform functions")
       }
   }
   {
-    dealii::SymmetricTensor<2,6> result_down_up = aspect::Particle::Property::LpoElasticTensor<3>::transform_21D_to_6x6_matrix_vector(aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_21D_vector(reference_elastic_tensor));
+    dealii::SymmetricTensor<2,6> result_down_up = aspect::Particle::Property::LpoElasticTensor<3>::transform_21D_vector_to_6x6_matrix(aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_21D_vector(reference_elastic_tensor));
 
     for (size_t i = 0; i < 6; i++)
       {
@@ -790,7 +790,7 @@ TEST_CASE("LPO elastic tensor transform functions")
       }
   }
   {
-    dealii::SymmetricTensor<2,6> result_up_2down_up = aspect::Particle::Property::LpoElasticTensor<3>::transform_21D_to_6x6_matrix_vector(aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_21D_vector(aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor)));
+    dealii::SymmetricTensor<2,6> result_up_2down_up = aspect::Particle::Property::LpoElasticTensor<3>::transform_21D_vector_to_6x6_matrix(aspect::Particle::Property::LpoElasticTensor<3>::transform_4th_order_tensor_to_21D_vector(aspect::Particle::Property::LpoElasticTensor<3>::transform_6x6_matrix_to_4th_order_tensor(reference_elastic_tensor)));
 
     for (size_t i = 0; i < 6; i++)
       {
