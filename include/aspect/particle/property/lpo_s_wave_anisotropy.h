@@ -154,6 +154,21 @@ namespace aspect
            */
           std::array<std::array<double,3>,3> compute_s_wave_anisotropy(Tensor<2,6> &matrices) const;
 
+          std::array<unsigned short int, 3>
+          indexed_permutation(const unsigned short int index) const;
+
+          Tensor<2,3>
+          compute_unpermutated_SCC(const SymmetricTensor<2,6> &elastic_tensor) const;
+
+          std::pair<SymmetricTensor<2,6>,Tensor<2,3> >
+          compute_minimum_hexagonal_projection(
+            const Tensor<2,3> &unpermutated_SCC,
+            const SymmetricTensor<2,6> &elastic_tensor,
+            const double elastic_vector_norm) const;
+
+          Tensor<1,9>
+          project_onto_hexagonal_symmetry(const Tensor<1,21> &elastic_vector) const;
+
           /**
            * todo
            */

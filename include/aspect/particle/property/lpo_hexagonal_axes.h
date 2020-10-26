@@ -141,18 +141,42 @@ namespace aspect
           /**
            * Return a specific permutation based on an index
            */
-          inline std::array<unsigned short int, 3> indexed_permutation(const unsigned short int index) const;
+          inline std::array<unsigned short int, 3> indexed_even_permutation(const unsigned short int index) const;
 
+
+          /**
+           * Computes the voigt stiffness tensor from the elastic tensor
+           */
+          SymmetricTensor<2,3>
+          compute_voigt_stiffness_tensor(const SymmetricTensor<2,6> &elastic_tensor) const;
+
+          /**
+           * Computes the dilatation stiffness tensor from the elastic tensor
+           */
+          SymmetricTensor<2,3>
+          compute_dilatation_stiffness_tensor(const SymmetricTensor<2,6> &elastic_tensor) const;
+
+          /**
+           * computes the bulk and shear moduli from the voigt and dilatation stiffness tensors
+           */
+          std::pair<double,double>
+          compute_bulk_and_shear_moduli(const SymmetricTensor<2,3> &dilatation_stiffness_tensor,
+                                        const SymmetricTensor<2,3> &voigt_stiffness_tensor) const;
+
+          Tensor<1,9>
+          compute_isotropic_approximation(const double bulk_modulus,
+                                          const double shear_modulus) const;
 
           /**
            * todo
            */
-          Tensor<2,3> compute_unprojected_SCC(const SymmetricTensor<2,6> &elastic_tensor) const;
+          Tensor<2,3> compute_unpermutated_SCC(const SymmetricTensor<2,3> &dilatation_stiffness_tensor,
+                                               const SymmetricTensor<2,3> &voigt_stiffness_tensor) const;
 
           /**
            * todo
            */
-          std::pair<SymmetricTensor<2,6>,Tensor<2,3>> compute_minimum_hexagonal_projection(const Tensor<2,3> &unprojected_SCC,
+          std::pair<SymmetricTensor<2,6>,Tensor<2,3>> compute_minimum_hexagonal_projection(const Tensor<2,3> &unpermutated_SCC,
                                                    const SymmetricTensor<2,6> &elastic_tensor,
                                                    const double elastic_vector_norm) const;
 
@@ -261,6 +285,12 @@ namespace aspect
            * grain boundery mobility
            */
           double mobility;
+
+          SymmetricTensor<2,21> projection_matrix_tric_to_mono;
+          SymmetricTensor<2,21> projection_matrix_mono_to_ortho;
+          SymmetricTensor<2,21> projection_matrix_ortho_to_tetra;
+          SymmetricTensor<2,21> projection_matrix_tetra_to_hexa;
+          SymmetricTensor<2,21> projection_matrix_hexa_to_iso;
 
 
 
