@@ -150,6 +150,10 @@ namespace aspect
           UpdateTimeFlags
           need_update () const;
 
+
+          InitializationModeForLateParticles
+          late_initialization_mode () const;
+
           /**
            * Return which data has to be provided to update the property.
            * The integrated strains needs the gradients of the velocity.
@@ -386,12 +390,12 @@ namespace aspect
           static
           unsigned int n_grains;
 
-          // when doing the random draw volume weighting, this sets how many samples are taken.
-          unsigned int n_samples;
-
           double x_olivine;
 
           double stress_exponent;
+
+          double property_advection_tolerance;
+          unsigned int property_advection_max_iterations;
 
           /**
            * efficientcy of nucleation parameter.

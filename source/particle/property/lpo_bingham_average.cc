@@ -376,42 +376,6 @@ namespace aspect
                                  "same amount of MPI processes. It is implemented as final seed = "
                                  "user seed + MPI Rank. ");
 
-
-              prm.declare_entry ("Number of grains per praticle", "50",
-                                 Patterns::Integer (0),
-                                 "The number of grains of olivine and the number of grain of enstatite "
-                                 "each particle contains.");
-
-              prm.declare_entry ("Mobility", "50",
-                                 Patterns::Double(0),
-                                 "The intrinsic grain boundary mobility for both olivine and enstatite. "
-                                 "Todo: split for olivine and enstatite.");
-
-              prm.declare_entry ("Volume fraction olivine", "0.5",
-                                 Patterns::Double(0),
-                                 "The volume fraction of the olivine phase (0 is no olivine, 1 is fully olivine). "
-                                 "The rest of the volume fraction is set to be entstatite. "
-                                 "Todo: if full olivine make not enstite grains and vice-versa.");
-
-              prm.declare_entry ("Stress exponents", "3.5",
-                                 Patterns::Double(0),
-                                 "This is the power law exponent that characterizes the rheology of the "
-                                 "slip systems. It is used in equation 11 of Kaminski et al., 2004. "
-                                 "This is used for both olivine and enstatite. Todo: split?");
-
-              prm.declare_entry ("Exponents p", "1.5",
-                                 Patterns::Double(0),
-                                 "This is exponent p as defined in equation 11 of Kaminski et al., 2004. ");
-
-              prm.declare_entry ("Nucleation efficientcy", "5",
-                                 Patterns::Double(0),
-                                 "This is the dimensionless nucleation rate as defined in equation 8 of "
-                                 "Kaminski et al., 2004. ");
-
-              prm.declare_entry ("Threshold GBS", "0.3",
-                                 Patterns::Double(0),
-                                 "This is the grain-boundary sliding threshold. ");
-
               prm.declare_entry ("Number of samples", "0",
                                  Patterns::Double(0),
                                  "This determines how many samples are taken when using the random "
@@ -440,12 +404,6 @@ namespace aspect
 
               random_number_seed = prm.get_integer ("Random number seed"); // 2
               n_grains = LPO<dim>::get_number_of_grains();
-              mobility = prm.get_double("Mobility"); //50;
-              x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
-              stress_exponent = prm.get_double("Stress exponents"); //3.5;
-              exponent_p = prm.get_double("Exponents p"); //1.5;
-              nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
-              threshold_GBS = prm.get_double("Threshold GBS"); //0.0;
               n_samples = prm.get_integer("Number of samples"); // 0
               if (n_samples == 0)
                 n_samples = n_grains;

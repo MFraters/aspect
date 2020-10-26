@@ -49,25 +49,20 @@ namespace aspect
         stiffness_matrix_olivine[0][0] = 320.71;
         stiffness_matrix_olivine[0][1] = 69.84;
         stiffness_matrix_olivine[0][2] = 71.22;
-        stiffness_matrix_olivine[1][0] = stiffness_matrix_olivine[0][1];
         stiffness_matrix_olivine[1][1] = 197.25;
         stiffness_matrix_olivine[1][2] = 74.8;
-        stiffness_matrix_olivine[2][0] = stiffness_matrix_olivine[0][2];
-        stiffness_matrix_olivine[2][1] = stiffness_matrix_olivine[1][2];
         stiffness_matrix_olivine[2][2] = 234.32;
         stiffness_matrix_olivine[3][3] = 63.77;
         stiffness_matrix_olivine[4][4] = 77.67;
         stiffness_matrix_olivine[5][5] = 78.36;
 
+
         // Stiffness matrix for Enstatite (GPa)
         stiffness_matrix_enstatite[0][0] = 236.9;
         stiffness_matrix_enstatite[0][1] = 79.6;
         stiffness_matrix_enstatite[0][2] = 63.2;
-        stiffness_matrix_enstatite[1][0] = stiffness_matrix_enstatite[0][1];
         stiffness_matrix_enstatite[1][1] = 180.5;
         stiffness_matrix_enstatite[1][2] = 56.8;
-        stiffness_matrix_enstatite[2][0] = stiffness_matrix_enstatite[0][2];
-        stiffness_matrix_enstatite[2][1] = stiffness_matrix_enstatite[1][2];
         stiffness_matrix_enstatite[2][2] = 230.4;
         stiffness_matrix_enstatite[3][3] = 84.3;
         stiffness_matrix_enstatite[4][4] = 79.4;
@@ -133,7 +128,7 @@ namespace aspect
 
       template <int dim>
       SymmetricTensor<2,6>
-      LpoElasticTensor<dim>::compute_elastic_tensor (double volume_fraction_olivine,
+      LpoElasticTensor<dim>::compute_elastic_tensor (const double volume_fraction_olivine,
                                                      std::vector<double> &volume_fractions_olivine,
                                                      std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
                                                      std::vector<double> &volume_fractions_enstatite,
@@ -301,9 +296,44 @@ namespace aspect
                                                                 volume_fractions_enstatite,
                                                                 a_cosine_matrices_enstatite);
 
+        /*for (size_t i = 0; i < 6; i++)
+        {
+          for (size_t i = 0; i < 6; i++)
+          {
+            data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+          }
 
-        for (unsigned int i = 0; i < Tensor<2,dim>::n_independent_components ; ++i)
-          data.push_back(S_average[Tensor<2,dim>::unrolled_to_component_indices(i)]);
+        }*/
+
+        // There is a bug up to dealii 9.3.0, so we have to work around it.
+        for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
+#if DEAL_II_VERSION_GTE(9,3,0)
+          data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+#else
+          {
+            if (i < 6)
+              {
+                data.push_back(S_average[ {i,i}]);
+              }
+            else
+              {
+                [&]
+                {
+                  for (unsigned int d = 0, c = 6; d < 6; ++d)
+                    {
+                      for (unsigned int e = d + 1; e < 6; ++e, ++c)
+                        {
+                          if (c == i)
+                            {
+                              data.push_back(S_average[ {d,e}]);
+                              return;
+                            }
+                        }
+                    }
+                }();
+              }
+          }
+#endif
 
       }
 
@@ -352,8 +382,38 @@ namespace aspect
                                                 const ArrayView<double> &data,
                                                 SymmetricTensor<2,6> &elastic_tensor)
       {
+
+        // There is a bug up to dealii 9.3.0, so we have to work around it.
         for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
-          elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)] = data[lpo_data_position + i];
+#if DEAL_II_VERSION_GTE(9,3,0)
+          data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+#else
+          {
+            if (i < 6)
+              {
+                elastic_tensor[ {i,i}] = data[lpo_data_position + i];
+              }
+            else
+              {
+                [&]
+                {
+                  for (unsigned int d = 0, c = 6; d < 6; ++d)
+                    {
+                      for (unsigned int e = d + 1; e < 6; ++e, ++c)
+                        {
+                          if (c == i)
+                            {
+                              elastic_tensor[ {d,e}] = data[lpo_data_position + i];
+                              return;
+                            }
+                        }
+                    }
+                }();
+              }
+          }
+#endif
+        //for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
+        //elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)] = data[lpo_data_position + i];
       }
 
 
@@ -363,8 +423,37 @@ namespace aspect
                                                  const ArrayView<double> &data,
                                                  SymmetricTensor<2,6> &elastic_tensor)
       {
+        // There is a bug up to dealii 9.3.0, so we have to work around it.
         for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
-          data[lpo_data_position + i] = elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)];
+#if DEAL_II_VERSION_GTE(9,3,0)
+          data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+#else
+          {
+            if (i < 6)
+              {
+                data[lpo_data_position + i] = elastic_tensor[ {i,i}];
+              }
+            else
+              {
+                [&]
+                {
+                  for (unsigned int d = 0, c = 6; d < 6; ++d)
+                    {
+                      for (unsigned int e = d + 1; e < 6; ++e, ++c)
+                        {
+                          if (c == i)
+                            {
+                              data[lpo_data_position + i] = elastic_tensor[ {d,e}];
+                              return;
+                            }
+                        }
+                    }
+                }();
+              }
+          }
+#endif
+        //for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
+        //  data[lpo_data_position + i] = elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)];
       }
 
 
@@ -574,7 +663,7 @@ namespace aspect
 
       template<int dim>
       SymmetricTensor<2,6>
-      LpoElasticTensor<dim>::transform_21D_to_6x6_matrix_vector(const Tensor<1,21> &input)
+      LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(const Tensor<1,21> &input)
       {
         SymmetricTensor<2,6> result;
 
@@ -801,13 +890,8 @@ namespace aspect
       {
         std::vector<std::pair<std::string,unsigned int> > property_information;
 
-        property_information.push_back(std::make_pair("lpo_elastic_tensor average olivine a axis",3));
-        property_information.push_back(std::make_pair("lpo_elastic_tensor average olivine b axis",3));
-        property_information.push_back(std::make_pair("lpo_elastic_tensor average olivine c axis",3));
-
-        property_information.push_back(std::make_pair("lpo_elastic_tensor average enstatite a axis",3));
-        property_information.push_back(std::make_pair("lpo_elastic_tensor average enstatite b axis",3));
-        property_information.push_back(std::make_pair("lpo_elastic_tensor average enstatite c axis",3));
+        //for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
+        property_information.push_back(std::make_pair("lpo_elastic_tensor",SymmetricTensor<2,6>::n_independent_components));
 
         return property_information;
       }
@@ -830,40 +914,11 @@ namespace aspect
                                  "user seed + MPI Rank. ");
 
 
-              prm.declare_entry ("Number of grains per praticle", "50",
-                                 Patterns::Integer (0),
-                                 "The number of grains of olivine and the number of grain of enstatite "
-                                 "each particle contains.");
-
-              prm.declare_entry ("Mobility", "50",
-                                 Patterns::Double(0),
-                                 "The intrinsic grain boundary mobility for both olivine and enstatite. "
-                                 "Todo: split for olivine and enstatite.");
-
               prm.declare_entry ("Volume fraction olivine", "0.5",
                                  Patterns::Double(0),
                                  "The volume fraction of the olivine phase (0 is no olivine, 1 is fully olivine). "
                                  "The rest of the volume fraction is set to be entstatite. "
                                  "Todo: if full olivine make not enstite grains and vice-versa.");
-
-              prm.declare_entry ("Stress exponents", "3.5",
-                                 Patterns::Double(0),
-                                 "This is the power law exponent that characterizes the rheology of the "
-                                 "slip systems. It is used in equation 11 of Kaminski et al., 2004. "
-                                 "This is used for both olivine and enstatite. Todo: split?");
-
-              prm.declare_entry ("Exponents p", "1.5",
-                                 Patterns::Double(0),
-                                 "This is exponent p as defined in equation 11 of Kaminski et al., 2004. ");
-
-              prm.declare_entry ("Nucleation efficientcy", "5",
-                                 Patterns::Double(0),
-                                 "This is the dimensionless nucleation rate as defined in equation 8 of "
-                                 "Kaminski et al., 2004. ");
-
-              prm.declare_entry ("Threshold GBS", "0.3",
-                                 Patterns::Double(0),
-                                 "This is the grain-boundary sliding threshold. ");
 
               prm.declare_entry ("Number of samples", "0",
                                  Patterns::Double(0),
@@ -893,12 +948,6 @@ namespace aspect
 
               random_number_seed = prm.get_integer ("Random number seed"); // 2
               n_grains = LPO<dim>::get_number_of_grains();
-              mobility = prm.get_double("Mobility"); //50;
-              x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
-              stress_exponent = prm.get_double("Stress exponents"); //3.5;
-              exponent_p = prm.get_double("Exponents p"); //1.5;
-              nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
-              threshold_GBS = prm.get_double("Threshold GBS"); //0.0;
               n_samples = prm.get_integer("Number of samples"); // 0
               if (n_samples == 0)
                 n_samples = n_grains;

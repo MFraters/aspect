@@ -152,6 +152,11 @@ namespace aspect
     LPO<dim>::execute (TableHandler &statistics)
     {
 
+      const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
+
+      bool hexagonal_plugin_exists = manager.plugin_name_exists("lpo hexagonal axes");
+
+
       //std::cout << "n_grains = " << n_grains << ", static = " << aspect::Particle::Property::LPO<dim>::get_number_of_grains() << std::endl;
       n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();
       // if this is the first time we get here, set the last output time
@@ -181,6 +186,8 @@ namespace aspect
       std::stringstream string_stream_content_raw;
       std::stringstream string_stream_content_draw_volume_weighting;
 
+      string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " water" << (hexagonal_plugin_exists ? " anis_perc hex_perc" : "") << std::endl;
+
       // get particle data
       bool wrote_weighted_header = false;
       bool wrote_unweighted_header = false;
@@ -207,11 +214,11 @@ namespace aspect
                                                  0
                                                  :
                                                  property_information.get_position_by_field_name("lpo water content");
-          const unsigned int ref_lpo_data_position = property_information.n_fields() == 0
+          /*const unsigned int ref_lpo_data_position = property_information.n_fields() == 0
                                                      ?
                                                      0
                                                      :
-                                                     property_information.get_position_by_field_name("lpo water content");
+                                                     property_information.get_position_by_field_name("lpo water content");*/
           //std::cout << "output data_position = " << lpo_data_position << std::endl;
           Point<dim> position = it->get_location();
 
@@ -230,6 +237,12 @@ namespace aspect
                                                            a_cosine_matrices_olivine,
                                                            volume_fractions_enstatite,
                                                            a_cosine_matrices_enstatite);
+
+          const unsigned int lpo_hex_data_position = property_information.n_fields() == 0 && hexagonal_plugin_exists == false
+                                                     ?
+                                                     0
+                                                     :
+                                                     property_information.get_position_by_field_name("lpo elastic anisotropic percentage");
 
           /*
                     std::vector<double> ref_volume_fractions_olivine(n_grains);
@@ -264,7 +277,13 @@ namespace aspect
 
 
           // write master file
-          string_stream_master << id << " " << position << " " << properties[lpo_data_position] << std::endl;
+          string_stream_master << id << " " << position << " " << properties[lpo_data_position];
+          if (hexagonal_plugin_exists == true)
+            {
+              string_stream_master << " " << properties[lpo_hex_data_position] << " " << properties[lpo_hex_data_position+1];
+            }
+          string_stream_master <<  std::endl;
+
 
           // write content file
 
