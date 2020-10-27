@@ -122,112 +122,112 @@ namespace aspect
 
         // These eigenvectors uniquely define the symmetry cartesian coordiante system (SCCS),
         // but we need to find the order in which
+        /*
+                Tensor<1,21> elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_matrix);
 
-        Tensor<1,21> elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_matrix);
+                double elastic_vector_norm = elastic_vector.norm();
+                //std::cout << "elastic tensor norm = " << elastic_vector_norm << std::endl;
+                const SymmetricTensor<2,3> dilatation_stiffness_tensor = compute_dilatation_stiffness_tensor(elastic_matrix);
+                const SymmetricTensor<2,3> voigt_stiffness_tensor = compute_voigt_stiffness_tensor(elastic_matrix);
 
-        double elastic_vector_norm = elastic_vector.norm();
-        //std::cout << "elastic tensor norm = " << elastic_vector_norm << std::endl;
-        const SymmetricTensor<2,3> dilatation_stiffness_tensor = compute_dilatation_stiffness_tensor(elastic_matrix);
-        const SymmetricTensor<2,3> voigt_stiffness_tensor = compute_voigt_stiffness_tensor(elastic_matrix);
-
-        const std::pair<double,double> bulk_and_shear_moduli = compute_bulk_and_shear_moduli(dilatation_stiffness_tensor, voigt_stiffness_tensor);
-        const double bulk_modulus = bulk_and_shear_moduli.first;
-        const double shear_modulus = bulk_and_shear_moduli.second;
-
-
-        //std::cout << std::endl << "bulk_modulus = " << bulk_modulus << ", shear_modulus = " << shear_modulus << std::endl;
-
-        const Tensor<1,9> elastic_isotropic_approximation = compute_isotropic_approximation(bulk_modulus, shear_modulus);
-
-        //std::cout << "elastic_isotropic_approximation = " << elastic_isotropic_approximation.norm() << std::endl;
-        Tensor<1,21> anisotropic_elastic_vector = elastic_vector;
-        // now compute how much is left over in the origional elastic vector
-        for (size_t i = 0; i < 9; i++)
-          {
-            anisotropic_elastic_vector[i] -= elastic_isotropic_approximation[i];
-          }
-        // ANIS
-        const double elastic_anisotropic_approximation = anisotropic_elastic_vector.norm();
-
-        //std::cout << " -- " << std::endl;
-        Tensor<2,3> unpermutated_SCC = compute_unpermutated_SCC(dilatation_stiffness_tensor, voigt_stiffness_tensor);
-
-        // This return the minimal hexagonal projected elastic matrix as a tensor<2,6> and the corresponding SCC as a Tensor<2,3>
-        std::pair<SymmetricTensor<2,6>,Tensor<2,3> > elastic_minimum_hexagonal_projection = compute_minimum_hexagonal_projection(unpermutated_SCC, elastic_matrix, elastic_vector_norm);
-
-        const Tensor<1,21> elastic_minimum_hexagonal_projection_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_minimum_hexagonal_projection.first);
-
-        const Tensor<1,9> hexagonal_elastic_vector = project_onto_hexagonal_symmetry(elastic_minimum_hexagonal_projection_vector);
-
-        // std::cout << " -- " << std::endl;
-        Tensor<1,21> hexagonal_elastic_vector_residual = elastic_minimum_hexagonal_projection_vector;
-        // now compute how much is left over in the origional elastic vector
-        for (size_t i = 0; i < 9; i++)
-          {
-            hexagonal_elastic_vector_residual[i] -= hexagonal_elastic_vector[i];
-          }
-
-        // DC5
-        const double hexagonal_elastic_residual = hexagonal_elastic_vector_residual.norm();
-
-        //std::cout << "hexagonal_elastic_vector = " << hexagonal_elastic_vector << std::endl;
-        //std::cout << "elastic_minimum_hexagonal_projection_vector = " << elastic_minimum_hexagonal_projection_vector << ", (" << elastic_minimum_hexagonal_projection_vector.norm() << ")" << std::endl;
-        //std::cout << "elastic_minimum_hexagonal_projection.first = " << elastic_minimum_hexagonal_projection.first << std::endl;
+                const std::pair<double,double> bulk_and_shear_moduli = compute_bulk_and_shear_moduli(dilatation_stiffness_tensor, voigt_stiffness_tensor);
+                const double bulk_modulus = bulk_and_shear_moduli.first;
+                const double shear_modulus = bulk_and_shear_moduli.second;
 
 
-        //std::cout << "hexagonal_elastic_residual = " << hexagonal_elastic_residual << std::endl;
+                //std::cout << std::endl << "bulk_modulus = " << bulk_modulus << ", shear_modulus = " << shear_modulus << std::endl;
+
+                const Tensor<1,9> elastic_isotropic_approximation = compute_isotropic_approximation(bulk_modulus, shear_modulus);
+
+                //std::cout << "elastic_isotropic_approximation = " << elastic_isotropic_approximation.norm() << std::endl;
+                Tensor<1,21> anisotropic_elastic_vector = elastic_vector;
+                // now compute how much is left over in the origional elastic vector
+                for (size_t i = 0; i < 9; i++)
+                  {
+                    anisotropic_elastic_vector[i] -= elastic_isotropic_approximation[i];
+                  }
+                // ANIS
+                const double elastic_anisotropic_approximation = anisotropic_elastic_vector.norm();
+
+                //std::cout << " -- " << std::endl;
+                Tensor<2,3> unpermutated_SCC = compute_unpermutated_SCC(dilatation_stiffness_tensor, voigt_stiffness_tensor);
+
+                // This return the minimal hexagonal projected elastic matrix as a tensor<2,6> and the corresponding SCC as a Tensor<2,3>
+                std::pair<SymmetricTensor<2,6>,Tensor<2,3> > elastic_minimum_hexagonal_projection = compute_minimum_hexagonal_projection(unpermutated_SCC, elastic_matrix, elastic_vector_norm);
+
+                const Tensor<1,21> elastic_minimum_hexagonal_projection_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_minimum_hexagonal_projection.first);
+
+                const Tensor<1,9> hexagonal_elastic_vector = project_onto_hexagonal_symmetry(elastic_minimum_hexagonal_projection_vector);
+
+                // std::cout << " -- " << std::endl;
+                Tensor<1,21> hexagonal_elastic_vector_residual = elastic_minimum_hexagonal_projection_vector;
+                // now compute how much is left over in the origional elastic vector
+                for (size_t i = 0; i < 9; i++)
+                  {
+                    hexagonal_elastic_vector_residual[i] -= hexagonal_elastic_vector[i];
+                  }
+
+                // DC5
+                const double hexagonal_elastic_residual = hexagonal_elastic_vector_residual.norm();
+
+                //std::cout << "hexagonal_elastic_vector = " << hexagonal_elastic_vector << std::endl;
+                //std::cout << "elastic_minimum_hexagonal_projection_vector = " << elastic_minimum_hexagonal_projection_vector << ", (" << elastic_minimum_hexagonal_projection_vector.norm() << ")" << std::endl;
+                //std::cout << "elastic_minimum_hexagonal_projection.first = " << elastic_minimum_hexagonal_projection.first << std::endl;
+
+
+                //std::cout << "hexagonal_elastic_residual = " << hexagonal_elastic_residual << std::endl;
 
 
 
 
-        //{
-        const SymmetricTensor<2,3> dilatation_stiffness_tensor_projected = compute_dilatation_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
-        const SymmetricTensor<2,3> voigt_stiffness_tensor_projected = compute_voigt_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
+                //{
+                const SymmetricTensor<2,3> dilatation_stiffness_tensor_projected = compute_dilatation_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
+                const SymmetricTensor<2,3> voigt_stiffness_tensor_projected = compute_voigt_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
 
-        const std::pair<double,double> bulk_and_shear_moduli_projected = compute_bulk_and_shear_moduli(dilatation_stiffness_tensor, voigt_stiffness_tensor);
-        const double bulk_modulus_projected = bulk_and_shear_moduli.first;
-        const double shear_modulus_projected = bulk_and_shear_moduli.second;
-
-
-        //std::cout << std::endl << "bulk_modulus_projected = " << bulk_modulus_projected << ", shear_modulus_projected = " << shear_modulus_projected << std::endl;
-
-        const Tensor<1,9> elastic_isotropic_approximation_projected = compute_isotropic_approximation(bulk_modulus_projected, shear_modulus_projected);
-        //std::cout << "elastic_isotropic_approximation = " << elastic_isotropic_approximation_projected.norm() << std::endl;
-
-        Tensor<1,21> anisotropic_elastic_vector_projected = elastic_minimum_hexagonal_projection_vector;
-        // now compute how much is left over in the origional elastic vector
-        for (size_t i = 0; i < 9; i++)
-          {
-            anisotropic_elastic_vector_projected[i] -= elastic_isotropic_approximation_projected[i];
-          }
-        // ANIS
-        const double elastic_anisotropic_approximation_vector_projected = anisotropic_elastic_vector_projected.norm();
-
-        const double hex_percentage = ((elastic_anisotropic_approximation_vector_projected - hexagonal_elastic_residual)/elastic_minimum_hexagonal_projection_vector.norm())*100.;
-        //data[data_position] = new_percentage;
-        //std::cout << "elastic_anisotropic_approximation_vector_projected = " << elastic_anisotropic_approximation_vector_projected << ", hexagonal_elastic_residual = " << hexagonal_elastic_residual << ", elastic_minimum_hexagonal_projection_vector.norm() = " << elastic_minimum_hexagonal_projection_vector.norm() << std::endl;
-        //}
-
-        // percentage = (ANIS-DC5)/XN*100
-        // This is not the same equation as in Browaeys and Chevrot gfi 2004, but it
-        // does seem to give the same result for hexagonal:
-        // 100percent = N^{-2}(X)[N^2(X_{tric})+N^2(X_{mon})+N^2(X_{ort})+N^2(X_{tet})+N^2(X_{hex})+N^2(X_{iso})],
-        // where N(X) is defined as sqrt(X_i X_i).
-        const double total_anis_percentage = ((elastic_anisotropic_approximation)/elastic_vector_norm)*100.;
-
-        const double percentage = ((elastic_anisotropic_approximation - hexagonal_elastic_residual)/elastic_vector_norm)*100.;
-        //const double percentage = ((elastic_isotropic_approximation.norm() - hexagonal_elastic_residual)/elastic_vector_norm)*100;
-        //const double percentage2 = (elastic_anisotropic_approximation*elastic_anisotropic_approximation - hexagonal_elastic_residual*hexagonal_elastic_residual)/(elastic_vector_norm*elastic_vector_norm)*100;
-        const double percentage2 = (elastic_isotropic_approximation.norm()*elastic_isotropic_approximation.norm())/(elastic_vector_norm*elastic_vector_norm)*100;
-        //std::cout << "--> new_percentage = " << hex_percentage << ", total_anis_percentage = " << total_anis_percentage << ", percentage hex of anis = " << (hex_percentage/total_anis_percentage)*100.0<< ", old percentage = " << percentage << ", percentage2 = " << percentage2 << ", iso/ansi = " << elastic_anisotropic_approximation << ", hexa/DC5 = " << hexagonal_elastic_residual << ", full/XN = " << elastic_vector_norm << std::endl;
-
-        data.push_back(total_anis_percentage);
-        data.push_back(hex_percentage);
+                const std::pair<double,double> bulk_and_shear_moduli_projected = compute_bulk_and_shear_moduli(dilatation_stiffness_tensor, voigt_stiffness_tensor);
+                const double bulk_modulus_projected = bulk_and_shear_moduli.first;
+                const double shear_modulus_projected = bulk_and_shear_moduli.second;
 
 
-        Tensor<2,3> SCC = elastic_minimum_hexagonal_projection.second;
+                //std::cout << std::endl << "bulk_modulus_projected = " << bulk_modulus_projected << ", shear_modulus_projected = " << shear_modulus_projected << std::endl;
 
-        data.push_back(SCC[2][0]);
+                const Tensor<1,9> elastic_isotropic_approximation_projected = compute_isotropic_approximation(bulk_modulus_projected, shear_modulus_projected);
+                //std::cout << "elastic_isotropic_approximation = " << elastic_isotropic_approximation_projected.norm() << std::endl;
+
+                Tensor<1,21> anisotropic_elastic_vector_projected = elastic_minimum_hexagonal_projection_vector;
+                // now compute how much is left over in the origional elastic vector
+                for (size_t i = 0; i < 9; i++)
+                  {
+                    anisotropic_elastic_vector_projected[i] -= elastic_isotropic_approximation_projected[i];
+                  }
+                // ANIS
+                const double elastic_anisotropic_approximation_vector_projected = anisotropic_elastic_vector_projected.norm();
+
+                const double hex_percentage = ((elastic_anisotropic_approximation_vector_projected - hexagonal_elastic_residual)/elastic_minimum_hexagonal_projection_vector.norm())*100.;
+                //data[data_position] = new_percentage;
+                //std::cout << "elastic_anisotropic_approximation_vector_projected = " << elastic_anisotropic_approximation_vector_projected << ", hexagonal_elastic_residual = " << hexagonal_elastic_residual << ", elastic_minimum_hexagonal_projection_vector.norm() = " << elastic_minimum_hexagonal_projection_vector.norm() << std::endl;
+                //}
+
+                // percentage = (ANIS-DC5)/XN*100
+                // This is not the same equation as in Browaeys and Chevrot gfi 2004, but it
+                // does seem to give the same result for hexagonal:
+                // 100percent = N^{-2}(X)[N^2(X_{tric})+N^2(X_{mon})+N^2(X_{ort})+N^2(X_{tet})+N^2(X_{hex})+N^2(X_{iso})],
+                // where N(X) is defined as sqrt(X_i X_i).
+                const double total_anis_percentage = ((elastic_anisotropic_approximation)/elastic_vector_norm)*100.;
+
+                const double percentage = ((elastic_anisotropic_approximation - hexagonal_elastic_residual)/elastic_vector_norm)*100.;
+                //const double percentage = ((elastic_isotropic_approximation.norm() - hexagonal_elastic_residual)/elastic_vector_norm)*100;
+                //const double percentage2 = (elastic_anisotropic_approximation*elastic_anisotropic_approximation - hexagonal_elastic_residual*hexagonal_elastic_residual)/(elastic_vector_norm*elastic_vector_norm)*100;
+                const double percentage2 = (elastic_isotropic_approximation.norm()*elastic_isotropic_approximation.norm())/(elastic_vector_norm*elastic_vector_norm)*100;
+                //std::cout << "--> new_percentage = " << hex_percentage << ", total_anis_percentage = " << total_anis_percentage << ", percentage hex of anis = " << (hex_percentage/total_anis_percentage)*100.0<< ", old percentage = " << percentage << ", percentage2 = " << percentage2 << ", iso/ansi = " << elastic_anisotropic_approximation << ", hexa/DC5 = " << hexagonal_elastic_residual << ", full/XN = " << elastic_vector_norm << std::endl;
+
+                //data.push_back(total_anis_percentage);
+                //data.push_back(hex_percentage);
+
+
+                Tensor<2,3> SCC = elastic_minimum_hexagonal_projection.second;
+        */
+        /*data.push_back(SCC[2][0]);
         data.push_back(SCC[2][1]);
         data.push_back(SCC[2][2]);
         data.push_back(SCC[1][0]);
@@ -235,7 +235,65 @@ namespace aspect
         data.push_back(SCC[1][2]);
         data.push_back(SCC[0][0]);
         data.push_back(SCC[0][1]);
-        data.push_back(SCC[0][2]);
+        data.push_back(SCC[0][2]);*/
+
+
+        const SymmetricTensor<2,3> dilatation_stiffness_tensor_full = compute_dilatation_stiffness_tensor(elastic_matrix);
+        const SymmetricTensor<2,3> voigt_stiffness_tensor_full = compute_voigt_stiffness_tensor(elastic_matrix);
+        Tensor<2,3> SCC_full = compute_unpermutated_SCC(dilatation_stiffness_tensor_full, voigt_stiffness_tensor_full);
+
+        double full_elastic_vector_norm_square = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_matrix).norm_square();
+
+        std::array<std::array<double,3>,6 > norms = compute_elastic_tensor_SCC_decompositions(SCC_full, elastic_matrix);
+
+
+        // get min and max elements
+        std::array<std::array<size_t, 2>,6> min_max_norm_elemtents;
+        for (size_t index = 0; index < 6; ++index)
+          {
+            auto result = std::minmax_element (norms[index].begin(),norms[index].end());
+            min_max_norm_elemtents[index][0] = (result.first-norms[index].begin());
+            min_max_norm_elemtents[index][1] = (result.second-norms[index].begin());
+          }
+
+        std::pair<SymmetricTensor<2,6>,Tensor<2,3> > elastic_minimum_hexagonal_projection = compute_minimum_hexagonal_projection(SCC_full, elastic_matrix, elastic_matrix.norm()*1000);
+
+        std::cout << "init: hexagonal permutation choice = " << min_max_norm_elemtents[4][1] << ", value = "  << norms[4][min_max_norm_elemtents[4][0]] << std::endl << std::endl;
+
+
+        auto projected_SCC = elastic_minimum_hexagonal_projection.second;
+
+        data.push_back(SCC_full[0][0]);
+        data.push_back(SCC_full[0][1]);
+        data.push_back(SCC_full[0][2]);
+        data.push_back(SCC_full[1][0]);
+        data.push_back(SCC_full[1][1]);
+        data.push_back(SCC_full[1][2]);
+        data.push_back(SCC_full[2][0]);
+        data.push_back(SCC_full[2][1]);
+        data.push_back(SCC_full[2][2]);
+        data.push_back(projected_SCC[2][0]);
+        data.push_back(projected_SCC[2][1]);
+        data.push_back(projected_SCC[2][2]);
+        data.push_back(full_elastic_vector_norm_square);
+        data.push_back(norms[0][0]); // triclinic
+        data.push_back(norms[0][1]); // triclinic
+        data.push_back(norms[0][2]); // triclinic
+        data.push_back(norms[1][0]); // monoclinic
+        data.push_back(norms[1][1]); // monoclinic
+        data.push_back(norms[1][2]); // monoclinic
+        data.push_back(norms[2][0]); // orthorhomic
+        data.push_back(norms[2][1]); // orthorhomic
+        data.push_back(norms[2][2]); // orthorhomic
+        data.push_back(norms[3][0]); // tetragonal
+        data.push_back(norms[3][1]); // tetragonal
+        data.push_back(norms[3][2]); // tetragonal
+        data.push_back(norms[4][0]); // hexagonal
+        data.push_back(norms[4][1]); // hexagonal
+        data.push_back(norms[4][2]); // hexagonal
+        data.push_back(norms[5][0]); // isotropic
+
+        /*
 
         SymmetricTensor<2,6> elastic_isotropic_tensor;
 
@@ -288,7 +346,7 @@ namespace aspect
         const Tensor<1,21> reference_O_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(reference_O_matrix);
         //std::cout << "reference_O_vector = " << reference_O_vector << ", reference_O_matrix norm = " << reference_O_matrix.norm() << ", reference_hex_vector.norm = " << reference_O_vector.norm() << ", 1: " << 100.0*reference_O_vector.norm()/(elastic_vector_norm) << ", 2: " << 100.0*reference_O_vector.norm()*reference_O_vector.norm()/(elastic_vector_norm*elastic_vector_norm) << std::endl;
 
-
+        */
 
         //std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine, n_samples);
         //std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite, n_samples);
@@ -359,42 +417,42 @@ namespace aspect
         elastic_matrix[5][5] = 49.;*/
 
 
-        elastic_matrix[0][0] = 1769.50;
-        elastic_matrix[0][1] = 873.50;
-        elastic_matrix[0][2] = 838.22;
-        elastic_matrix[0][3] = -17.68;
-        elastic_matrix[0][4] = -110.32;
-        elastic_matrix[0][5] = 144.92;
-        elastic_matrix[1][0] = 873.50;
-        elastic_matrix[1][1] = 1846.64;
-        elastic_matrix[1][2] = 836.66;
-        elastic_matrix[1][3] = -37.60;
-        elastic_matrix[1][4] = -32.32;
-        elastic_matrix[1][5] = 153.80;
-        elastic_matrix[2][0] = 838.22;
-        elastic_matrix[2][1] = 836.66;
-        elastic_matrix[2][2] = 1603.28;
-        elastic_matrix[2][3] = -29.68;
-        elastic_matrix[2][4] = -93.52;
-        elastic_matrix[2][5] = 22.40;
-        elastic_matrix[3][0] = -17.68;
-        elastic_matrix[3][1] = -37.60;
-        elastic_matrix[3][2] = -29.68;
-        elastic_matrix[3][3] = 438.77;
-        elastic_matrix[3][4] = 57.68;
-        elastic_matrix[3][5] = -50.50;
-        elastic_matrix[4][0] = -110.32;
-        elastic_matrix[4][1] = -32.32;
-        elastic_matrix[4][2] = -93.52;
-        elastic_matrix[4][3] = 57.68;
-        elastic_matrix[4][4] = 439.79;
-        elastic_matrix[4][5] = -34.78;
-        elastic_matrix[5][0] = 144.92;
-        elastic_matrix[5][1] = 153.80;
-        elastic_matrix[5][2] = 22.40;
-        elastic_matrix[5][3] = -50.50;
-        elastic_matrix[5][4] = -34.78;
-        elastic_matrix[5][5] = 501.80;
+        //elastic_matrix[0][0] = 1769.50;
+        //elastic_matrix[0][1] = 873.50;
+        //elastic_matrix[0][2] = 838.22;
+        //elastic_matrix[0][3] = -17.68;
+        //elastic_matrix[0][4] = -110.32;
+        //elastic_matrix[0][5] = 144.92;
+        //elastic_matrix[1][0] = 873.50;
+        //elastic_matrix[1][1] = 1846.64;
+        //elastic_matrix[1][2] = 836.66;
+        //elastic_matrix[1][3] = -37.60;
+        //elastic_matrix[1][4] = -32.32;
+        //elastic_matrix[1][5] = 153.80;
+        //elastic_matrix[2][0] = 838.22;
+        //elastic_matrix[2][1] = 836.66;
+        //elastic_matrix[2][2] = 1603.28;
+        //elastic_matrix[2][3] = -29.68;
+        //elastic_matrix[2][4] = -93.52;
+        //elastic_matrix[2][5] = 22.40;
+        //elastic_matrix[3][0] = -17.68;
+        //elastic_matrix[3][1] = -37.60;
+        //elastic_matrix[3][2] = -29.68;
+        //elastic_matrix[3][3] = 438.77;
+        //elastic_matrix[3][4] = 57.68;
+        //elastic_matrix[3][5] = -50.50;
+        //elastic_matrix[4][0] = -110.32;
+        //elastic_matrix[4][1] = -32.32;
+        //elastic_matrix[4][2] = -93.52;
+        //elastic_matrix[4][3] = 57.68;
+        //elastic_matrix[4][4] = 439.79;
+        //elastic_matrix[4][5] = -34.78;
+        //elastic_matrix[5][0] = 144.92;
+        //elastic_matrix[5][1] = 153.80;
+        //elastic_matrix[5][2] = 22.40;
+        //elastic_matrix[5][3] = -50.50;
+        //elastic_matrix[5][4] = -34.78;
+        //elastic_matrix[5][5] = 501.80;
 
         std::cout << "elastic_matrix = " << std::endl;
         for (size_t i = 0; i < 6; i++)
@@ -408,7 +466,7 @@ namespace aspect
         std::cout << std::endl;
 
 
-        elastic_matrix = elastic_matrix * (1./81.);
+        //elastic_matrix = elastic_matrix * (1./81.);
 
         // These eigenvectors uniquely define the symmetry cartesian coordiante system (SCCS),
         // but we need to find the order in which
@@ -475,20 +533,20 @@ namespace aspect
 
 
         //{
-        const SymmetricTensor<2,3> dilatation_stiffness_tensor_projected = compute_dilatation_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
-        const SymmetricTensor<2,3> voigt_stiffness_tensor_projected = compute_voigt_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
+        //const SymmetricTensor<2,3> dilatation_stiffness_tensor_projected = compute_dilatation_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
+        //const SymmetricTensor<2,3> voigt_stiffness_tensor_projected = compute_voigt_stiffness_tensor(elastic_minimum_hexagonal_projection.first);
 
-        std::cout << "dilatation_stiffness_tensor: " << dilatation_stiffness_tensor << ", " << dilatation_stiffness_tensor_projected << std::endl;
-        std::cout << "voigt_stiffness_tensor: " << voigt_stiffness_tensor << ", " << voigt_stiffness_tensor_projected << std::endl;
+        //std::cout << "dilatation_stiffness_tensor: " << dilatation_stiffness_tensor << ", " << dilatation_stiffness_tensor_projected << std::endl;
+        //std::cout << "voigt_stiffness_tensor: " << voigt_stiffness_tensor << ", " << voigt_stiffness_tensor_projected << std::endl;
 
 
-        Tensor<2,3> hex_projected_SCC = compute_unpermutated_SCC(dilatation_stiffness_tensor_projected, voigt_stiffness_tensor_projected);
+        //Tensor<2,3> hex_projected_SCC = compute_unpermutated_SCC(dilatation_stiffness_tensor_projected, voigt_stiffness_tensor_projected);
 
 
         /**
          * compute hexagonal formed tensor
          */
-        Tensor<1,21> elastic_minimum_hexagonal_projection_vector_2;
+        /*Tensor<1,21> elastic_minimum_hexagonal_projection_vector_2;
 
         const Tensor<1,9> hexagonal_elastic_vector_2 = project_onto_hexagonal_symmetry(elastic_minimum_hexagonal_projection_vector);
 
@@ -502,50 +560,53 @@ namespace aspect
 
 
         std::pair<SymmetricTensor<2,6>,Tensor<2,3> > elastic_minimum_hexagonal_projection_2 = compute_minimum_hexagonal_projection(hex_projected_SCC, elastic_tensor_hexagonal_projection_2, elastic_tensor_hexagonal_projection_2.norm());
+        */
+        /*
+                std::cout << "elastic_minimum_hexagonal_projection 1: " << std::endl;
+                for (size_t i = 0; i < 6; i++)
+                  {
+                    for (size_t j = 0; j < 6; j++)
+                      {
+                        std::cout << elastic_minimum_hexagonal_projection.first[i][j] << " ";
+                      }
+                    std::cout << std::endl;
 
-        std::cout << "elastic_minimum_hexagonal_projection 1: " << std::endl;
-        for (size_t i = 0; i < 6; i++)
-          {
-            for (size_t j = 0; j < 6; j++)
-              {
-                std::cout << elastic_minimum_hexagonal_projection.first[i][j] << " ";
-              }
-            std::cout << std::endl;
+                  }
+                std::cout << std::endl;
+                std::cout << "elastic_minimum_hexagonal_projection 2: "  << std::endl;
+                for (size_t i = 0; i < 6; i++)
+                  {
+                    for (size_t j = 0; j < 6; j++)
+                      {
+                        std::cout << elastic_minimum_hexagonal_projection_2.first[i][j] << " ";
+                      }
+                    std::cout << std::endl;
 
-          }
-        std::cout << std::endl;
-        std::cout << "elastic_minimum_hexagonal_projection 2: "  << std::endl;
-        for (size_t i = 0; i < 6; i++)
-          {
-            for (size_t j = 0; j < 6; j++)
-              {
-                std::cout << elastic_minimum_hexagonal_projection_2.first[i][j] << " ";
-              }
-            std::cout << std::endl;
-
-          }
-        std::cout << std::endl;
-        const std::pair<double,double> bulk_and_shear_moduli_projected = compute_bulk_and_shear_moduli(dilatation_stiffness_tensor, voigt_stiffness_tensor);
-        const double bulk_modulus_projected = bulk_and_shear_moduli.first;
-        const double shear_modulus_projected = bulk_and_shear_moduli.second;
+                  }
+                std::cout << std::endl;
+                */
+        /*
+                const std::pair<double,double> bulk_and_shear_moduli_projected = compute_bulk_and_shear_moduli(dilatation_stiffness_tensor, voigt_stiffness_tensor);
+                const double bulk_modulus_projected = bulk_and_shear_moduli.first;
+                const double shear_modulus_projected = bulk_and_shear_moduli.second;
 
 
-        //std::cout << std::endl << "bulk_modulus_projected = " << bulk_modulus_projected << ", shear_modulus_projected = " << shear_modulus_projected << std::endl;
+                //std::cout << std::endl << "bulk_modulus_projected = " << bulk_modulus_projected << ", shear_modulus_projected = " << shear_modulus_projected << std::endl;
 
-        const Tensor<1,9> elastic_isotropic_approximation_projected = compute_isotropic_approximation(bulk_modulus_projected, shear_modulus_projected);
-        //std::cout << "elastic_isotropic_approximation = " << elastic_isotropic_approximation_projected.norm() << std::endl;
+                const Tensor<1,9> elastic_isotropic_approximation_projected = compute_isotropic_approximation(bulk_modulus_projected, shear_modulus_projected);
+                //std::cout << "elastic_isotropic_approximation = " << elastic_isotropic_approximation_projected.norm() << std::endl;
 
-        Tensor<1,21> anisotropic_elastic_vector_projected = elastic_minimum_hexagonal_projection_vector;
-        // now compute how much is left over in the origional elastic vector
-        for (size_t i = 0; i < 9; i++)
-          {
-            anisotropic_elastic_vector_projected[i] -= elastic_isotropic_approximation_projected[i];
-          }
-        // ANIS
-        const double elastic_anisotropic_approximation_vector_projected = anisotropic_elastic_vector_projected.norm();
+                Tensor<1,21> anisotropic_elastic_vector_projected = elastic_minimum_hexagonal_projection_vector;
+                // now compute how much is left over in the origional elastic vector
+                for (size_t i = 0; i < 9; i++)
+                  {
+                    anisotropic_elastic_vector_projected[i] -= elastic_isotropic_approximation_projected[i];
+                  }
+                // ANIS
+                const double elastic_anisotropic_approximation_vector_projected = anisotropic_elastic_vector_projected.norm();
 
-        const double hex_percentage = ((elastic_anisotropic_approximation_vector_projected - hexagonal_elastic_residual)/elastic_minimum_hexagonal_projection_vector.norm())*100.;
-
+                const double hex_percentage = ((elastic_anisotropic_approximation_vector_projected - hexagonal_elastic_residual)/elastic_minimum_hexagonal_projection_vector.norm())*100.;
+        */
         //std::cout << "elastic_anisotropic_approximation_vector_projected = " << elastic_anisotropic_approximation_vector_projected << ", hexagonal_elastic_residual = " << hexagonal_elastic_residual << ", elastic_minimum_hexagonal_projection_vector.norm() = " << elastic_minimum_hexagonal_projection_vector.norm() << std::endl;
         //}
 
@@ -554,21 +615,21 @@ namespace aspect
         // does seem to give the same result for hexagonal:
         // 100percent = N^{-2}(X)[N^2(X_{tric})+N^2(X_{mon})+N^2(X_{ort})+N^2(X_{tet})+N^2(X_{hex})+N^2(X_{iso})],
         // where N(X) is defined as sqrt(X_i X_i).
-        const double total_anis_percentage = ((elastic_anisotropic_approximation)/elastic_vector_norm)*100.;
+        //const double total_anis_percentage = ((elastic_anisotropic_approximation)/elastic_vector_norm)*100.;
 
-        const double percentage = ((elastic_anisotropic_approximation - hexagonal_elastic_residual)/elastic_vector_norm)*100.;
+        //const double percentage = ((elastic_anisotropic_approximation - hexagonal_elastic_residual)/elastic_vector_norm)*100.;
         //const double percentage = ((elastic_isotropic_approximation.norm() - hexagonal_elastic_residual)/elastic_vector_norm)*100;
         //const double percentage2 = (elastic_anisotropic_approximation*elastic_anisotropic_approximation - hexagonal_elastic_residual*hexagonal_elastic_residual)/(elastic_vector_norm*elastic_vector_norm)*100;
-        const double percentage2 = (elastic_isotropic_approximation.norm()*elastic_isotropic_approximation.norm())/(elastic_vector_norm*elastic_vector_norm)*100;
+        //const double percentage2 = (elastic_isotropic_approximation.norm()*elastic_isotropic_approximation.norm())/(elastic_vector_norm*elastic_vector_norm)*100;
         //std::cout << "--> new_percentage = " << hex_percentage << ", total_anis_percentage = " << total_anis_percentage << ", percentage hex of anis = " << (hex_percentage/total_anis_percentage)*100.0<< ", old percentage = " << percentage << ", percentage2 = " << percentage2 << ", iso/ansi = " << elastic_anisotropic_approximation << ", hexa/DC5 = " << hexagonal_elastic_residual << ", full/XN = " << elastic_vector_norm << std::endl;
-        data[data_position] = total_anis_percentage;
-        data[data_position+1] = hex_percentage;
+        //data[data_position] = total_anis_percentage;
+        //data[data_position+1] = hex_percentage;
 
         Tensor<2,3> projected_SCC = elastic_minimum_hexagonal_projection.second;
 
         std::cout << "unpermutated_SCC = " << unpermutated_SCC << std::endl;
         std::cout << "  projected_SCC = " << projected_SCC << std::endl;
-        std::cout << "hxprojected_SCC = " << hex_projected_SCC << std::endl;
+        //std::cout << "hxprojected_SCC = " << hex_projected_SCC << std::endl;
 
 
         /**
@@ -723,16 +784,16 @@ namespace aspect
         projection_matrix_hexa_to_iso[5][7] = -std::sqrt(2.0)/15.;
         projection_matrix_hexa_to_iso[5][8] = -std::sqrt(2.0)/15.;
         */
-        SymmetricTensor<2,6> full_elastic_matrix; //elastic_matrix
-        full_elastic_matrix[0][0] = 192;//225;//192.;
-        full_elastic_matrix[0][1] = 66;//54;//66.;
-        full_elastic_matrix[0][2] = 60;//72;//60.;
-        full_elastic_matrix[1][1] = 160;//214;//160.;
-        full_elastic_matrix[1][2] = 56;//53;//56.;
-        full_elastic_matrix[2][2] = 272;//178;//272.;
-        full_elastic_matrix[3][3] = 60;//78;//60.;
-        full_elastic_matrix[4][4] = 62;//82;//62.;
-        full_elastic_matrix[5][5] = 49;//76;//49.;
+        SymmetricTensor<2,6> full_elastic_matrix = elastic_matrix;
+        //full_elastic_matrix[0][0] = 192;//225;//192.;
+        //full_elastic_matrix[0][1] = 66;//54;//66.;
+        //full_elastic_matrix[0][2] = 60;//72;//60.;
+        //full_elastic_matrix[1][1] = 160;//214;//160.;
+        //full_elastic_matrix[1][2] = 56;//53;//56.;
+        //full_elastic_matrix[2][2] = 272;//178;//272.;
+        //full_elastic_matrix[3][3] = 60;//78;//60.;
+        //full_elastic_matrix[4][4] = 62;//82;//62.;
+        //full_elastic_matrix[5][5] = 49;//76;//49.;
 
         //full_elastic_matrix[0][0] = 225;//192.;
         //full_elastic_matrix[0][1] = 54;//66.;
@@ -745,18 +806,18 @@ namespace aspect
         //full_elastic_matrix[5][5] = 76;//49.;
 
 
-        full_elastic_matrix[0][0] = 192;//225;//192.;
-        full_elastic_matrix[0][1] = 66;//54;//66.;
-        full_elastic_matrix[0][2] = 56;//72;//60.;
-        full_elastic_matrix[1][1] = 192;//214;//160.;
-        full_elastic_matrix[1][2] = 56;//53;//56.;
-        full_elastic_matrix[2][2] = 272;//178;//272.;
-        full_elastic_matrix[3][3] = 60;//78;//60.;
-        full_elastic_matrix[4][4] = 60;//82;//62.;
-        full_elastic_matrix[5][5] = 0.5*(full_elastic_matrix[0][0] + full_elastic_matrix[0][1]);//76;//49.;
+        //full_elastic_matrix[0][0] = 192;//225;//192.;
+        //full_elastic_matrix[0][1] = 66;//54;//66.;
+        //full_elastic_matrix[0][2] = 56;//72;//60.;
+        //full_elastic_matrix[1][1] = 192;//214;//160.;
+        //full_elastic_matrix[1][2] = 56;//53;//56.;
+        //full_elastic_matrix[2][2] = 272;//178;//272.;
+        //full_elastic_matrix[3][3] = 60;//78;//60.;
+        //full_elastic_matrix[4][4] = 60;//82;//62.;
+        //full_elastic_matrix[5][5] = 0.5*(full_elastic_matrix[0][0] + full_elastic_matrix[0][1]);//76;//49.;
 
         // from solimechanics.org (Be)
-        full_elastic_matrix[0][0] = 192.3;//225;//192.;
+        /*full_elastic_matrix[0][0] = 192.3;//225;//192.;
         full_elastic_matrix[0][1] = 26.7;//54;//66.;
         full_elastic_matrix[0][2] = 14;//72;//60.;
         full_elastic_matrix[1][1] = full_elastic_matrix[0][0];
@@ -764,17 +825,51 @@ namespace aspect
         full_elastic_matrix[2][2] = 336.4;//178;//272.;
         full_elastic_matrix[3][3] = 162.5;//78;//60.;
         full_elastic_matrix[4][4] = full_elastic_matrix[3][3];//82;//62.;
-        full_elastic_matrix[5][5] = 0.5*(full_elastic_matrix[0][0] + full_elastic_matrix[0][1]);//76;//49.;
+        full_elastic_matrix[5][5] = 0.5*(full_elastic_matrix[0][0] + full_elastic_matrix[0][1]);//76;//49.;*/
 
         //full_elastic_matrix = elastic_matrix;
 
-        std::cout << "poging 4: " << std::endl;
+        //std::cout << "poging 4: " << std::endl;
         const SymmetricTensor<2,3> dilatation_stiffness_tensor_full = compute_dilatation_stiffness_tensor(full_elastic_matrix);
         const SymmetricTensor<2,3> voigt_stiffness_tensor_full = compute_voigt_stiffness_tensor(full_elastic_matrix);
         Tensor<2,3> SCC_full = compute_unpermutated_SCC(dilatation_stiffness_tensor_full, voigt_stiffness_tensor_full);
 
+        double full_elastic_vector_norm_square = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(full_elastic_matrix).norm_square();
 
-        std::pair<SymmetricTensor<2,6>,Tensor<2,3> > elastic_minimum_hexagonal_projection_4 = compute_minimum_hexagonal_projection(SCC_full, full_elastic_matrix, full_elastic_matrix.norm());
+        std::array<std::array<double,3>,6 > norms = compute_elastic_tensor_SCC_decompositions(SCC_full, full_elastic_matrix);
+
+        // get min and max elements
+        std::array<std::array<size_t, 2>,6> min_max_norm_elemtents;
+        for (size_t index = 0; index < 6; ++index)
+          {
+            auto result = std::minmax_element (norms[index].begin(),norms[index].end());
+            min_max_norm_elemtents[index][0] = (result.first-norms[index].begin());
+            min_max_norm_elemtents[index][1] = (result.second-norms[index].begin());
+          }
+
+        std::cout << "after: hexagonal permutation choice = " << min_max_norm_elemtents[4][1] << ", value = "  << norms[4][min_max_norm_elemtents[4][1]] << std::endl;
+
+        // todo: assert that norms[5][0], norms[5][1] and norms[5][2] are equal (+- eps)
+        double anistropic_norm = full_elastic_vector_norm_square - norms[5][0];
+
+
+        std::cout << " ------> %percentages (min-norm:perm;max-norm:perm): isotropic = " << (norms[5][0]/full_elastic_vector_norm_square)*100
+                  << ", hexag = (" << (norms[4][min_max_norm_elemtents[4][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[4][0] << ";" << (norms[4][min_max_norm_elemtents[4][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[4][1] <<  ")"
+                  << ", tetra = (" << (norms[3][min_max_norm_elemtents[3][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[3][0] << ";" << (norms[3][min_max_norm_elemtents[3][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[3][1] <<  ")"
+                  << ", ortho = (" << (norms[2][min_max_norm_elemtents[2][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[2][0] << ";" << (norms[2][min_max_norm_elemtents[2][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[2][1] <<  ")"
+                  << ", monoc = (" << (norms[1][min_max_norm_elemtents[1][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[1][0] << ";" << (norms[1][min_max_norm_elemtents[1][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[1][1] <<  ")"
+                  << ", tricl = (" << (norms[0][min_max_norm_elemtents[0][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[0][0] << ";" << (norms[0][min_max_norm_elemtents[0][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[0][1] <<  ")"
+                  << std::endl << std::endl;/*
+
+        std::cout << " ------> %anisotropy = " << (anistropic_norm/full_elastic_vector_norm_square)*100. << ", (min-norm:perm;max-norm:perm):"
+                  << ", hexag = (" << (norms[4][min_max_norm_elemtents[4][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
+                  << ", tetra = (" << (norms[3][min_max_norm_elemtents[3][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
+                  << ", ortho = (" << (norms[2][min_max_norm_elemtents[2][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
+                  << ", monoc = (" << (norms[1][min_max_norm_elemtents[1][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
+                  << ", tricl = (" << (norms[0][min_max_norm_elemtents[0][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
+                  << std::endl;*/
+
+        /*std::pair<SymmetricTensor<2,6>,Tensor<2,3> > elastic_minimum_hexagonal_projection_4 = compute_minimum_hexagonal_projection(SCC_full, full_elastic_matrix, full_elastic_matrix.norm());
 
         auto SCC_full_rot = elastic_minimum_hexagonal_projection_4.second;
         std::cout << "SCC_full = " << SCC_full << ", SCC_full_rot = " << elastic_minimum_hexagonal_projection_4.second << std::endl;
@@ -797,9 +892,6 @@ namespace aspect
         //std::cout << std::endl;
 
         auto full_norm_square = full_elastic_vector_rot.norm_square();
-        //auto full_norm = full_elastic_vector_rot.norm();
-        //auto full_norm_matrix = full_elastic_matrix.norm();
-        //auto full_norm_square_matrix =  full_elastic_matrix.norm()* full_elastic_matrix.norm();
         std::cout << " ===> full = " << full_elastic_matrix << ", norm = " << full_elastic_vector_rot.norm() << ", full_square_norm = " << full_norm_square << std::endl;
         auto mono_and_higher_vector = projection_matrix_tric_to_mono*full_elastic_vector_rot;
         auto tric_vector = full_elastic_vector_rot-mono_and_higher_vector;
@@ -812,22 +904,15 @@ namespace aspect
         std::cout << " ===> mono = " << mono << ", norm = " << mono_vector.norm() << ", perc = " << (mono_vector.norm_square()/full_norm_square)*100 << std::endl;
 
 
-        //std::cout << "ortho_and_higher_vector = " << ortho_and_higher_vector << std::endl;
-        //std::cout << "ortho_and_higher_matrix = " << LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(ortho_and_higher_vector) << std::endl;
         auto tetra_and_higher_vector = projection_matrix_ortho_to_tetra*ortho_and_higher_vector;
         auto ortho_vector = ortho_and_higher_vector-tetra_and_higher_vector;
         auto ortho = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(ortho_vector);
         std::cout << " ===> ortho = " << ortho << ", norm = " << ortho_vector.norm() << ", perc = " << (ortho_vector.norm_square()/full_norm_square)*100 << std::endl;
-        //std::cout << " ===> ortho = " <<  ortho << ", tetra_and_higher_vector = " << tetra_and_higher_vector << ", norm = " << tetra_and_higher_vector.norm() << std::endl;
-
-        //std::cout << ortho_and_higher_vector
-        //std::cout << "projection_matrix_tetra_to_hexa*ortho_and_higher_vector = " << projection_matrix_tetra_to_hexa*ortho_and_higher_vector << ", norm = " << (projection_matrix_tetra_to_hexa*ortho_and_higher_vector).norm() << std::endl;
-        //std::cout << "projection_matrix_tetra_to_hexa*tetra_and_higher_vector -> matrix = " << LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(projection_matrix_tetra_to_hexa*tetra_and_higher_vector) << std::endl;
 
         auto hexa_and_higher_vector = projection_matrix_tetra_to_hexa*tetra_and_higher_vector;
         auto tetra_vector = tetra_and_higher_vector-hexa_and_higher_vector;
         auto tetra = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tetra_vector);
-        std::cout << " hexa_and_higher_vector = " << hexa_and_higher_vector << ", tetra_vector = " << tetra_vector << ", tetra_and_higher_vector = " << tetra_and_higher_vector << std::endl;
+        //std::cout << " hexa_and_higher_vector = " << hexa_and_higher_vector << ", tetra_vector = " << tetra_vector << ", tetra_and_higher_vector = " << tetra_and_higher_vector << std::endl;
         std::cout << " ===> tetra = " << tetra << ", norm = " << tetra_vector.norm() << ", perc = " << (tetra_vector.norm_square()/full_norm_square)*100 << std::endl;//LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tetra_and_higher_vector-projection_matrix_tetra_to_hexa*tetra_and_higher_vector) << std::endl;
 
 
@@ -844,7 +929,7 @@ namespace aspect
         std::cout << "%of anisotropic: hexa =  " << (hexa_vector.norm_square()/total_anisotropic)*100. << ", tetra = " << (tetra_vector.norm_square()/total_anisotropic)*100.
                   << ", ortho = " << (ortho_vector.norm_square()/total_anisotropic)*100 << ", mono = " << (mono_vector.norm_square()/total_anisotropic)*100 << ", tric = " << (tric_vector.norm_square()/total_anisotropic)*100 << std::endl;
 
-
+        */
 
         /*// compute SCC and rotate
         auto tetra_and_higher_matrix = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tetra_and_higher_vector);
@@ -864,15 +949,35 @@ namespace aspect
         */
 
 
-        data[data_position+2]  = hex_projected_SCC[2][0];
-        data[data_position+3]  = hex_projected_SCC[2][1];
-        data[data_position+4]  = hex_projected_SCC[2][2];
-        data[data_position+5]  = hex_projected_SCC[1][0];
-        data[data_position+6]  = hex_projected_SCC[1][1];
-        data[data_position+7]  = hex_projected_SCC[1][2];
-        data[data_position+8]  = hex_projected_SCC[0][0];
-        data[data_position+9]  = hex_projected_SCC[0][1];
-        data[data_position+10] = hex_projected_SCC[0][2];
+        data[data_position]    = unpermutated_SCC[0][0];
+        data[data_position+1]  = unpermutated_SCC[0][1];
+        data[data_position+2]  = unpermutated_SCC[0][2];
+        data[data_position+3]  = unpermutated_SCC[1][0];
+        data[data_position+4]  = unpermutated_SCC[1][1];
+        data[data_position+5]  = unpermutated_SCC[1][2];
+        data[data_position+6]  = unpermutated_SCC[2][0];
+        data[data_position+7]  = unpermutated_SCC[2][1];
+        data[data_position+8]  = unpermutated_SCC[2][2];
+        data[data_position+9]  = projected_SCC[2][0];
+        data[data_position+10] = projected_SCC[2][1];
+        data[data_position+11] = projected_SCC[2][2];
+        data[data_position+12] = full_elastic_vector_norm_square;
+        data[data_position+13] = norms[0][0]; // triclinic
+        data[data_position+14] = norms[0][1]; // triclinic
+        data[data_position+15] = norms[0][2]; // triclinic
+        data[data_position+14] = norms[1][0]; // monoclinic
+        data[data_position+15] = norms[1][1]; // monoclinic
+        data[data_position+16] = norms[1][2]; // monoclinic
+        data[data_position+17] = norms[2][0]; // orthorhomic
+        data[data_position+18] = norms[2][1]; // orthorhomic
+        data[data_position+19] = norms[2][2]; // orthorhomic
+        data[data_position+14] = norms[3][0]; // tetragonal
+        data[data_position+15] = norms[3][1]; // tetragonal
+        data[data_position+16] = norms[3][2]; // tetragonal
+        data[data_position+17] = norms[4][0]; // hexagonal
+        data[data_position+18] = norms[4][1]; // hexagonal
+        data[data_position+19] = norms[4][2]; // hexagonal
+        data[data_position+20] = norms[5][0]; // isotropic
 
         //                Assert(elastic_anisotropic_approximation >= hexagonal_elastic_residual,
         //ExcMessage("the hexagonal part of the anisotropy (" + std::to_string(hexagonal_elastic_residual) +
@@ -959,6 +1064,12 @@ namespace aspect
               return {1,2,0};
             case 2:
               return {2,0,1};
+            /*case 3:
+              return {0,2,1};
+            case 4 :
+              return {1,0,2};
+            case 5:
+              return {2,1,0};*/
             default:
               AssertThrow(false,ExcMessage("Provided index larger then 2 (" + std::to_string(index)+ ")."));
               return {0,0,0};
@@ -1063,6 +1174,7 @@ namespace aspect
 
         std::cout << "voigt_eigenvectors:      " << voigt_eigenvectors_a[0].second << ", " << voigt_eigenvectors_a[1].second << ", " << voigt_eigenvectors_a[2].second << std::endl;
         std::cout << "dilatation_eigenvectors: " << dilatation_eigenvectors_a[0].second << ", " << dilatation_eigenvectors_a[1].second << ", " << dilatation_eigenvectors_a[2].second << std::endl;
+
         std::vector<Tensor<1,3,double> > unpermutated_SCC(3);
         // averaging eigenvectors
         // the next function looks for the smallest angle
@@ -1105,6 +1217,86 @@ namespace aspect
 
 
       template<int dim>
+      std::array<std::array<double,3>,6>
+      LpoHexagonalAxes<dim>::compute_elastic_tensor_SCC_decompositions(
+        const Tensor<2,3> &unpermutated_SCC,
+        const SymmetricTensor<2,6> &elastic_matrix) const
+      {
+        Tensor<1,21> elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_matrix);
+
+        Tensor<2,3> permutated[3];
+        SymmetricTensor<2,6> rotated_elastic_matrix[3];
+        std::array<std::array<double,3>,6> norms;
+
+        for (unsigned short int permutation_i = 0; permutation_i < 3; permutation_i++)
+          {
+            //std::cout << "permutation_i = " << permutation_i << std::endl;
+            std::array<unsigned short int, 3> perumation = indexed_even_permutation(permutation_i);
+
+
+            for (size_t j = 0; j < 3; j++)
+              {
+                permutated[permutation_i][j] = unpermutated_SCC[perumation[j]];
+              }
+
+            rotated_elastic_matrix[permutation_i] = LpoElasticTensor<dim>::rotate_6x6_matrix(elastic_matrix,(permutated[permutation_i]));
+
+            const Tensor<1,21> full_elastic_vector_rotated = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(rotated_elastic_matrix[permutation_i]);
+
+
+            //auto full_norm_square = full_elastic_vector_rotated.norm_square();
+            //std::cout << " ===> full = " << rotated_elastic_matrix[permutation_i] << ", norm = " << full_elastic_vector_rotated.norm() << ", full_square_norm = " << full_norm_square << std::endl;
+            auto mono_and_higher_vector = projection_matrix_tric_to_mono*full_elastic_vector_rotated;
+            auto tric_vector = full_elastic_vector_rotated-mono_and_higher_vector;
+            //auto tric = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tric_vector);
+            norms[0][permutation_i] = tric_vector.norm_square();
+            //std::cout << " ===> tric:  norm = " << tric_vector.norm() << ", perc = " << (tric_vector.norm_square()/full_norm_square)*100 << std::endl;
+
+            auto ortho_and_higher_vector = projection_matrix_mono_to_ortho*mono_and_higher_vector;
+            auto mono_vector = mono_and_higher_vector-ortho_and_higher_vector;
+            //auto mono = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(mono_vector);
+            norms[1][permutation_i] = mono_vector.norm_square();
+            //std::cout << " ===> mono: norm = " << mono_vector.norm() << ", perc = " << (mono_vector.norm_square()/full_norm_square)*100 << std::endl;
+
+
+            auto tetra_and_higher_vector = projection_matrix_ortho_to_tetra*ortho_and_higher_vector;
+            auto ortho_vector = ortho_and_higher_vector-tetra_and_higher_vector;
+            //auto ortho = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(ortho_vector);
+            norms[2][permutation_i] = ortho_vector.norm_square();
+            //std::cout << " ===> ortho: norm = " << ortho_vector.norm() << ", perc = " << (ortho_vector.norm_square()/full_norm_square)*100 << std::endl;
+
+            auto hexa_and_higher_vector = projection_matrix_tetra_to_hexa*tetra_and_higher_vector;
+            auto tetra_vector = tetra_and_higher_vector-hexa_and_higher_vector;
+            //auto tetra = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tetra_vector);
+            norms[3][permutation_i] = tetra_vector.norm_square();
+            //std::cout << " hexa_and_higher_vector = " << hexa_and_higher_vector << ", tetra_vector = " << tetra_vector << ", tetra_and_higher_vector = " << tetra_and_higher_vector << std::endl;
+            //std::cout << " ===> tetra: norm = " << tetra_vector.norm() << ", perc = " << (tetra_vector.norm_square()/full_norm_square)*100 << std::endl;//LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tetra_and_higher_vector-projection_matrix_tetra_to_hexa*tetra_and_higher_vector) << std::endl;
+
+
+            auto iso_vector = projection_matrix_hexa_to_iso*hexa_and_higher_vector;
+            auto hexa_vector = hexa_and_higher_vector-iso_vector;
+            //auto hexa = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(hexa_vector);
+            //auto iso = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(iso_vector);
+            norms[4][permutation_i] = hexa_vector.norm_square();
+            norms[5][permutation_i] = iso_vector.norm_square();
+            //std::cout << " ===> hexa: norm = " << hexa_vector.norm() << ", perc = " << (hexa_vector.norm_square()/full_norm_square)*100  << std::endl;
+            //std::cout << " ===> iso: norm = " << iso_vector.norm() << ", perc = " << (iso_vector.norm_square()/full_norm_square)*100 << std::endl;
+
+            //std::cout << "inv perc ani = " << ((full_elastic_vector_rotated - iso_vector).norm_square()/full_norm_square)*100. << std::endl;//<< ", sqrt prec = " <<  ((full_elastic_vector_rotated - iso_vector).norm()/full_norm)*100.<<std::endl;
+
+            //auto total_anisotropic = hexa_vector.norm_square() + tetra_vector.norm_square() + ortho_vector.norm_square() + mono_vector.norm_square() + tric_vector.norm_square();
+            //std::cout << "%anisotropy = "  <<  ((full_elastic_vector_rotated - iso_vector).norm_square()/full_norm_square)*100.
+            //          << ", %of anisotropic: hexa =  " << (hexa_vector.norm_square()/total_anisotropic)*100. << ", tetra = " << (tetra_vector.norm_square()/total_anisotropic)*100.
+            //          << ", ortho = " << (ortho_vector.norm_square()/total_anisotropic)*100 << ", mono = " << (mono_vector.norm_square()/total_anisotropic)*100 << ", tric = " << (tric_vector.norm_square()/total_anisotropic)*100 << std::endl;
+
+
+          }
+        return norms;
+
+      }
+
+
+      template<int dim>
       std::pair<SymmetricTensor<2,6>,Tensor<2,3> >
       LpoHexagonalAxes<dim>::compute_minimum_hexagonal_projection(
         const Tensor<2,3> &unpermutated_SCC,
@@ -1122,9 +1314,7 @@ namespace aspect
         std::cout << std::endl;*/
 
         Tensor<1,21> elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_matrix);
-        double lowest_norm = elastic_vector_norm;//*1000.;
-        //std::cout << "initial norm = " << lowest_norm << std::endl;
-        unsigned short int lowest_norm_permutation = 99;//99;
+
 
 
         /**
@@ -1137,8 +1327,13 @@ namespace aspect
          * vectors has a finite dimension [...], i.e. using a differnt norm from eq. (2.3 will change disstances
          * but not the resulting decomposition.".
          */
-        Tensor<2,3> projected_SCC[3];
-        SymmetricTensor<2,6> projected_elastic_matrix[3];
+        Tensor<2,3> permutated[3];
+        SymmetricTensor<2,6> rotated_elastic_matrix[3];
+        double lowest_norm[5] = {elastic_vector.norm_square(),elastic_vector.norm_square(),elastic_vector.norm_square(),elastic_vector.norm_square(),elastic_vector.norm_square()};
+        unsigned short int lowest_norm_permutation[5] = {99,99,99,99,99};
+
+        double lowest_norm_classic = elastic_vector.norm_square()*100;
+        unsigned short int lowest_norm_permutation_classic = 99;
         for (unsigned short int permutation_i = 0; permutation_i < 3; permutation_i++)
           {
             std::cout << "permutation_i = " << permutation_i << std::endl;
@@ -1147,17 +1342,136 @@ namespace aspect
 
             for (size_t j = 0; j < 3; j++)
               {
-                projected_SCC[permutation_i][j] = unpermutated_SCC[perumation[j]];
+                permutated[permutation_i][j] = unpermutated_SCC[perumation[j]];
               }
 
-            projected_elastic_matrix[permutation_i] = LpoElasticTensor<dim>::rotate_6x6_matrix(elastic_matrix,(projected_SCC[permutation_i]));
+            rotated_elastic_matrix[permutation_i] = LpoElasticTensor<dim>::rotate_6x6_matrix(elastic_matrix,(permutated[permutation_i]));
 
-            const Tensor<1,21> projected_elastic_vector = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(projected_elastic_matrix[permutation_i]);
+            const Tensor<1,21> full_elastic_vector_rotated = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(rotated_elastic_matrix[permutation_i]);
 
-            const Tensor<1,9> hexagonal_elastic_vector = project_onto_hexagonal_symmetry(projected_elastic_vector);
+            /**
+             * start full decomposition
+             */
+            auto full_norm_square = full_elastic_vector_rotated.norm_square();
+            std::cout << " ===> full: " /*<< rotated_elastic_matrix[permutation_i] << ",*/ << " norm = " << full_elastic_vector_rotated.norm() << ", full_square_norm = " << full_norm_square << std::endl;
+            auto mono_and_higher_vector = projection_matrix_tric_to_mono*full_elastic_vector_rotated;
+            auto tric_vector = full_elastic_vector_rotated-mono_and_higher_vector;
+            auto tric = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tric_vector);
+            {
+              Tensor<1,21> elastic_vector_tmp = full_elastic_vector_rotated;
+              for (size_t substraction_i = 0; substraction_i < 9; substraction_i++)
+                {
+                  elastic_vector_tmp[substraction_i] -= mono_and_higher_vector[substraction_i];
+                }
+              const double current_norm = elastic_vector_tmp.norm_square();
 
-            Tensor<1,21> elastic_vector_tmp = elastic_vector;// projected_elastic_vector;
-            //std::cout << "CE1/elastic tensor = " << std::endl;
+              if (current_norm < lowest_norm[0])
+                {
+                  lowest_norm[0] = current_norm;
+                  lowest_norm_permutation[0] = permutation_i;
+                }
+            }
+            std::cout << " ===> tric:  norm = " << tric_vector.norm_square() << ", perc = " << (tric_vector.norm_square()/full_norm_square)*100 << ", ln = " << lowest_norm[0] << ", lp = " << lowest_norm_permutation[0] << std::endl;
+
+            auto ortho_and_higher_vector = projection_matrix_mono_to_ortho*mono_and_higher_vector;
+            auto mono_vector = mono_and_higher_vector-ortho_and_higher_vector;
+            auto mono = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(mono_vector);
+            {
+              Tensor<1,21> elastic_vector_tmp = full_elastic_vector_rotated;
+              for (size_t substraction_i = 0; substraction_i < 9; substraction_i++)
+                {
+                  elastic_vector_tmp[substraction_i] -= ortho_and_higher_vector[substraction_i];
+                }
+              const double current_norm = elastic_vector_tmp.norm_square();
+
+              if (current_norm < lowest_norm[1])
+                {
+                  lowest_norm[1] = current_norm;
+                  lowest_norm_permutation[1] = permutation_i;
+                }
+            }
+            std::cout << " ===> mono: norm = " << mono_vector.norm_square() << ", perc = " << (mono_vector.norm_square()/full_norm_square)*100 << ", ln = " << lowest_norm[1] << ", lp = " << lowest_norm_permutation[1] << std::endl;
+
+
+            auto tetra_and_higher_vector = projection_matrix_ortho_to_tetra*ortho_and_higher_vector;
+            auto ortho_vector = ortho_and_higher_vector-tetra_and_higher_vector;
+            auto ortho = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(ortho_vector);
+            {
+              Tensor<1,21> elastic_vector_tmp = full_elastic_vector_rotated;
+              for (size_t substraction_i = 0; substraction_i < 9; substraction_i++)
+                {
+                  elastic_vector_tmp[substraction_i] -= tetra_and_higher_vector[substraction_i];
+                }
+              const double current_norm = elastic_vector_tmp.norm_square();
+
+              if (current_norm < lowest_norm[2])
+                {
+                  lowest_norm[2] = current_norm;
+                  lowest_norm_permutation[2] = permutation_i;
+                }
+            }
+            std::cout << " ===> ortho: norm = " << ortho_vector.norm_square() << ", perc = " << (ortho_vector.norm_square()/full_norm_square)*100 << ", ln = " << lowest_norm[2] << ", lp = " << lowest_norm_permutation[2] << std::endl;
+
+            auto hexa_and_higher_vector = projection_matrix_tetra_to_hexa*tetra_and_higher_vector;
+            auto tetra_vector = tetra_and_higher_vector-hexa_and_higher_vector;
+            auto tetra = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tetra_vector);
+            {
+              Tensor<1,21> elastic_vector_tmp = full_elastic_vector_rotated;
+              for (size_t substraction_i = 0; substraction_i < 9; substraction_i++)
+                {
+                  elastic_vector_tmp[substraction_i] -= hexa_and_higher_vector[substraction_i];
+                }
+              const double current_norm = elastic_vector_tmp.norm_square();
+
+              if (current_norm < lowest_norm[3])
+                {
+                  lowest_norm[3] = current_norm;
+                  lowest_norm_permutation[3] = permutation_i;
+                }
+            }
+            std::cout << " ===> tetra: norm = " << tetra_vector.norm_square() << ", perc = " << (tetra_vector.norm_square()/full_norm_square)*100 << ", ln = " << lowest_norm[3] << ", lp = " << lowest_norm_permutation[3] << std::endl;//LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(tetra_and_higher_vector-projection_matrix_tetra_to_hexa*tetra_and_higher_vector) << std::endl;
+
+
+            auto iso_vector = projection_matrix_hexa_to_iso*hexa_and_higher_vector;
+            auto hexa_vector = hexa_and_higher_vector-iso_vector;
+            auto hexa = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(hexa_vector);
+            auto iso = LpoElasticTensor<dim>::transform_21D_vector_to_6x6_matrix(iso_vector);
+
+            {
+              Tensor<1,21> elastic_vector_tmp = full_elastic_vector_rotated;
+              for (size_t substraction_i = 0; substraction_i < 9; substraction_i++)
+                {
+                  elastic_vector_tmp[substraction_i] -= iso_vector[substraction_i];
+                }
+              const double current_norm = elastic_vector_tmp.norm();
+
+              if (current_norm < lowest_norm[4])
+                {
+                  lowest_norm[4] = current_norm;
+                  lowest_norm_permutation[4] = permutation_i;
+                }
+            }
+            std::cout << " ===> hexa: norm = " << hexa_vector.norm_square() << ", perc = " << (hexa_vector.norm_square()/full_norm_square)*100  << ", ln = " << lowest_norm[4] << ", lp = " << lowest_norm_permutation[4] << std::endl;
+            std::cout << " ===> iso: norm = " << iso_vector.norm_square() << ", perc = " << (iso_vector.norm_square()/full_norm_square)*100 << std::endl;
+
+            //std::cout << "inv perc ani = " << ((full_elastic_vector_rotated - iso_vector).norm_square()/full_norm_square)*100. << std::endl;//<< ", sqrt prec = " <<  ((full_elastic_vector_rotated - iso_vector).norm()/full_norm)*100.<<std::endl;
+
+            auto total_anisotropic = hexa_vector.norm_square() + tetra_vector.norm_square() + ortho_vector.norm_square() + mono_vector.norm_square() + tric_vector.norm_square();
+            std::cout << "%anisotropy = "  <<  ((full_elastic_vector_rotated - iso_vector).norm_square()/full_norm_square)*100.
+                      << ", %of anisotropic: hexa =  " << (hexa_vector.norm_square()/total_anisotropic)*100. << ", tetra = " << (tetra_vector.norm_square()/total_anisotropic)*100.
+                      << ", ortho = " << (ortho_vector.norm_square()/total_anisotropic)*100 << ", mono = " << (mono_vector.norm_square()/total_anisotropic)*100 << ", tric = " << (tric_vector.norm_square()/total_anisotropic)*100 << std::endl;
+
+
+
+
+            /**
+             * end full decomposition
+             */
+            const Tensor<1,9> hexagonal_elastic_vector = project_onto_hexagonal_symmetry(full_elastic_vector_rotated);
+
+            Tensor<1,21> elastic_vector_tmp = full_elastic_vector_rotated;//elastic_vector;// full_elastic_vector_rotated;
+            /*
+            std::cout << "CE1/elastic tensor = " << std::endl;
             for (size_t k = 0; k < 6; k++)
               {
                 for (size_t l = 0; l < 6; l++)
@@ -1174,14 +1488,13 @@ namespace aspect
               }
             std::cout << std::endl;
 
-
             std::cout << "XH/hexagonal_elastic_vector = ";
             for (size_t i = 0; i < 9; i++)
               {
                 std::cout << hexagonal_elastic_vector[i] << " ";
               }
             std::cout << std::endl;
-
+            */
 
             // now compute how much is left over in the origional elastic vector
             for (size_t substraction_i = 0; substraction_i < 9; substraction_i++)
@@ -1189,45 +1502,45 @@ namespace aspect
                 elastic_vector_tmp[substraction_i] -= hexagonal_elastic_vector[substraction_i];
               }
 
-            std::cout << "XD/elastic_vector_tmp       = ";
+            //std::cout << "XD/elastic_vector_tmp       = ";
             for (size_t i = 0; i < 21; i++)
               {
-                std::cout << elastic_vector_tmp[i] << " ";
+                //std::cout << elastic_vector_tmp[i] << " ";
               }
-            std::cout << std::endl;
+            //std::cout << std::endl;
 
 
-            const double current_norm = elastic_vector_tmp.norm();
+            const double current_norm = elastic_vector_tmp.norm_square();
 
-            if (current_norm < lowest_norm)
+            if (current_norm < lowest_norm_classic)
               {
-                lowest_norm = current_norm;
-                lowest_norm_permutation = permutation_i;
+                lowest_norm_classic = current_norm;
+                lowest_norm_permutation_classic = permutation_i;
               }
-            std::cout << "  -> projected SCC for " << permutation_i << "= " << projected_SCC[permutation_i] << " , projected_elastic_vector = " << projected_elastic_vector << std::endl;
-            std::cout << "projected_elastic_matrix = " << std::endl;
-            for (size_t i = 0; i < 6; i++)
+            //std::cout << "  -> projected SCC for " << permutation_i << "= " << permutated[permutation_i] << " , full_elastic_vector_rotated = " << full_elastic_vector_rotated << std::endl;
+            //std::cout << "rotated_elastic_matrix = " << std::endl;
+            /*for (size_t i = 0; i < 6; i++)
               {
                 for (size_t j = 0; j < 6; j++)
                   {
-                    std::cout << projected_elastic_matrix[permutation_i][i][j] << " ";
+                    std::cout << rotated_elastic_matrix[permutation_i][i][j] << " ";
                   }
                 std::cout << std::endl;
               }
-            std::cout << std::endl;
+            std::cout << std::endl;*/
 
-            std::cout << "   => " << permutation_i << ": lowest_norm = " << lowest_norm << ", current_norm = " << current_norm << ", lowest_norm_permutation = " << lowest_norm_permutation << std::endl;
+            std::cout << "   => " << permutation_i << ": lowest_norm = " << lowest_norm_classic << ", current_norm = " << current_norm << ", lowest_norm_permutation = " << lowest_norm_permutation_classic << std::endl;
 
           }
 
         //if(lowest_norm_permutation >= 3){
         //  lowest_norm_permutation = 1;
         //}
-        AssertThrow(lowest_norm_permutation < 3,
-                    ExcMessage("LPO Hexagonal axes plugin could not find a good hexagonal projection: " + std::to_string(lowest_norm_permutation) + ", lowest_norm = " + std::to_string(lowest_norm)));
+        AssertThrow(lowest_norm_permutation_classic < 3,
+                    ExcMessage("LPO Hexagonal axes plugin could not find a good hexagonal projection: " + std::to_string(lowest_norm_permutation_classic) + ", lowest_norm = " + std::to_string(lowest_norm_classic)));
 
 
-        return std::make_pair(projected_elastic_matrix[lowest_norm_permutation],projected_SCC[lowest_norm_permutation]);
+        return std::make_pair(rotated_elastic_matrix[lowest_norm_permutation_classic],permutated[lowest_norm_permutation_classic]);
       }
 
 
@@ -1349,17 +1662,17 @@ namespace aspect
       {
         std::vector<std::pair<std::string,unsigned int> > property_information;
 
-        property_information.push_back(std::make_pair("lpo elastic anisotropic percentage",1));
-        property_information.push_back(std::make_pair("lpo elastic hexagonal percentage",1));
-        property_information.push_back(std::make_pair("lpo elastic hexagonal axis a",3));
-        property_information.push_back(std::make_pair("lpo elastic hexagonal axis b",3));
-        property_information.push_back(std::make_pair("lpo elastic hexagonal axis c",3));
-        //property_information.push_back(std::make_pair("lpo_hexagonal_axes average olivine b axis",3));
-        //property_information.push_back(std::make_pair("lpo_hexagonal_axes average olivine c axis",3));
-
-        //property_information.push_back(std::make_pair("lpo_hexagonal_axes average enstatite a axis",3));
-        //property_information.push_back(std::make_pair("lpo_hexagonal_axes average enstatite b axis",3));
-        //property_information.push_back(std::make_pair("lpo_hexagonal_axes average enstatite c axis",3));
+        property_information.push_back(std::make_pair("lpo elastic axis e1",3));
+        property_information.push_back(std::make_pair("lpo elastic axis e2",3));
+        property_information.push_back(std::make_pair("lpo elastic axis e3",3));
+        property_information.push_back(std::make_pair("lpo elastic hexagonal axis",3));
+        property_information.push_back(std::make_pair("lpo elastic vector norm square",1));
+        property_information.push_back(std::make_pair("lpo elastic triclinic vector norm square",3));
+        property_information.push_back(std::make_pair("lpo elastic monoclinic vector norm square",3));
+        property_information.push_back(std::make_pair("lpo elastic orthorhombic vector norm square",3));
+        property_information.push_back(std::make_pair("lpo elastic tetragonal vector norm square",3));
+        property_information.push_back(std::make_pair("lpo elastic hexagonal vector norm square",3));
+        property_information.push_back(std::make_pair("lpo elastic isotropic vector norm square",1));
 
         return property_information;
       }

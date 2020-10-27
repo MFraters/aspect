@@ -186,7 +186,7 @@ namespace aspect
       std::stringstream string_stream_content_raw;
       std::stringstream string_stream_content_draw_volume_weighting;
 
-      string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " water" << (hexagonal_plugin_exists ? " anis_perc hex_perc" : "") << std::endl;
+      string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " water" << (hexagonal_plugin_exists ? " full_norm_square triclinic_norm_square monoclinic_norm_square orthohombic_norm_square tetragonal_norm_square hexagonal_norm_square isotropic_norm_square" : "") << std::endl;
 
       // get particle data
       bool wrote_weighted_header = false;
@@ -242,7 +242,7 @@ namespace aspect
                                                      ?
                                                      0
                                                      :
-                                                     property_information.get_position_by_field_name("lpo elastic anisotropic percentage");
+                                                     property_information.get_position_by_field_name("lpo elastic axis e1");
 
           /*
                     std::vector<double> ref_volume_fractions_olivine(n_grains);
@@ -280,7 +280,11 @@ namespace aspect
           string_stream_master << id << " " << position << " " << properties[lpo_data_position];
           if (hexagonal_plugin_exists == true)
             {
-              string_stream_master << " " << properties[lpo_hex_data_position] << " " << properties[lpo_hex_data_position+1];
+              string_stream_master << " " << properties[lpo_hex_data_position+12] << " " << properties[lpo_hex_data_position+13]
+                                   << " " << properties[lpo_hex_data_position+14] << " " << properties[lpo_hex_data_position+15]
+                                   << " " << properties[lpo_hex_data_position+16] << " " << properties[lpo_hex_data_position+17]
+                                   << " " << properties[lpo_hex_data_position+18] << " " << properties[lpo_hex_data_position+19]
+                                   << " " << properties[lpo_hex_data_position+20];
             }
           string_stream_master <<  std::endl;
 
