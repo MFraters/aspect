@@ -180,6 +180,14 @@ namespace aspect
                                                    const SymmetricTensor<2,6> &elastic_tensor,
                                                    const double elastic_vector_norm) const;
 
+          /**
+           * todo
+           */
+          std::array<std::array<double,3>,6>
+          compute_elastic_tensor_SCC_decompositions(
+            const Tensor<2,3> &unpermutated_SCC,
+            const SymmetricTensor<2,6> &elastic_matrix) const;
+
 
           /**
            * Set up the information about the names and number of components
