@@ -175,6 +175,8 @@ namespace aspect
 
           /**
            * todo
+           *
+           * depricated, use compute_elastic_tensor_SCC_decompositions instead.
            */
           std::pair<SymmetricTensor<2,6>,Tensor<2,3>> compute_minimum_hexagonal_projection(const Tensor<2,3> &unpermutated_SCC,
                                                    const SymmetricTensor<2,6> &elastic_tensor,
@@ -183,7 +185,7 @@ namespace aspect
           /**
            * todo
            */
-          std::array<std::array<double,3>,6>
+          std::array<std::array<double,3>,7>
           compute_elastic_tensor_SCC_decompositions(
             const Tensor<2,3> &unpermutated_SCC,
             const SymmetricTensor<2,6> &elastic_matrix) const;
@@ -203,16 +205,9 @@ namespace aspect
           /**
            * project elastc vector onto hexagonal symmetry as explained in the appendix A4 of
            * Browaeys and Chevrot (2004), GJI (doi: 10.1111/j.1365-246X.2004.024115.x).
+           * depricated, needs update and added for all projections or be removed.
            */
           Tensor<1,9> project_onto_hexagonal_symmetry(const Tensor<1,21> &elastic_vector) const;
-
-          /**
-           * todo
-           */
-          std::vector<Tensor<2,3> >
-          random_draw_volume_weighting(std::vector<double> fv,
-                                       std::vector<Tensor<2,3>> matrices,
-                                       unsigned int n_output_grains) const;
 
 
           /**

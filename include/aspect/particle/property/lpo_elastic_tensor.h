@@ -172,46 +172,45 @@ namespace aspect
            * Rotate a 3D 4th order tensor with an other 3D 4th
            */
           static
-          inline Tensor<4,3> rotate_4th_order_tensor(const Tensor<4,3> &input_tensor, const Tensor<2,3> &rotation_tensor);
+          Tensor<4,3> rotate_4th_order_tensor(const Tensor<4,3> &input_tensor, const Tensor<2,3> &rotation_tensor);
 
 
           /**
            * Rotate a 6x6 voigt matrix with an other 3D 4th
            */
           static
-          inline SymmetricTensor<2,6> rotate_6x6_matrix(const Tensor<2,6> &input_tensor, const Tensor<2,3> &rotation_tensor);
+          SymmetricTensor<2,6> rotate_6x6_matrix(const Tensor<2,6> &input_tensor, const Tensor<2,3> &rotation_tensor);
 
           /**
            * Transform a 4th order tensor into a 6x6 matrix
            */
           static
-          inline SymmetricTensor<2,6> transform_4th_order_tensor_to_6x6_matrix(const Tensor<4,3> &input_tensor);
+          SymmetricTensor<2,6> transform_4th_order_tensor_to_6x6_matrix(const Tensor<4,3> &input_tensor);
 
 
           /**
            * Transform a 6x6 matrix into a 4th order tensor
            */
           static
-          inline Tensor<4,3> transform_6x6_matrix_to_4th_order_tensor(const SymmetricTensor<2,6> &input_tensor);
+          Tensor<4,3> transform_6x6_matrix_to_4th_order_tensor(const SymmetricTensor<2,6> &input_tensor);
 
 
           /**
            * From a 21D vector from a 6xt matrix
            */
           static
-          inline Tensor<1,21> transform_6x6_matrix_to_21D_vector(const SymmetricTensor<2,6> &input_tensor);
+          Tensor<1,21> transform_6x6_matrix_to_21D_vector(const SymmetricTensor<2,6> &input_tensor);
 
           /**
            * From a 21D vector from a 6xt matrix
            */
           static
-          inline SymmetricTensor<2,6> transform_21D_vector_to_6x6_matrix(const Tensor<1,21> &input_tensor);
+          SymmetricTensor<2,6> transform_21D_vector_to_6x6_matrix(const Tensor<1,21> &input_tensor);
 
           /**
            * Tranform a 4th order tensor directly into a 21D vector.
            */
           static
-          inline
           Tensor<1,21> transform_4th_order_tensor_to_21D_vector(const Tensor<4,3> &input);
 
           /**
