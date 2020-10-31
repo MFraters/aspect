@@ -130,9 +130,9 @@ namespace aspect
       template <int dim>
       void
       LpoBinghamAverage<dim>::update_one_particle_property(const unsigned int data_position,
-                                                           const Point<dim> &position,
-                                                           const Vector<double> &solution,
-                                                           const std::vector<Tensor<1,dim> > &gradients,
+                                                           const Point<dim> &,
+                                                           const Vector<double> &,
+                                                           const std::vector<Tensor<1,dim> > &,
                                                            const ArrayView<double> &data) const
       {
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
