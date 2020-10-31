@@ -46,7 +46,7 @@ namespace aspect
 
       enum class AdvectionMethod
       {
-        ForwardEuler, BackwardEuler, CrankNicolson, RK4Invalid, RK4Strain
+        ForwardEuler, BackwardEuler, CrankNicolson
       };
 
       enum class LpoDerivativeAlgorithm

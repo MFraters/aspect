@@ -26,6 +26,10 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -82,7 +86,8 @@ namespace aspect
     // We need to pass the arguments by value, as this function can be called on a separate thread:
     void LPO<dim>::writer (const std::string filename, //NOLINT(performance-unnecessary-value-param)
                            const std::string temporary_output_location, //NOLINT(performance-unnecessary-value-param)
-                           const std::string *file_contents)
+                           const std::string *file_contents,
+                           const bool compress_contents)
     {
       std::string tmp_filename = filename;
       if (temporary_output_location != "")
@@ -121,7 +126,7 @@ namespace aspect
             close(tmp_file_desc);
         }
 
-      std::ofstream out(tmp_filename.c_str());
+      std::ofstream out(tmp_filename.c_str(), std::ofstream::binary);
 
       AssertThrow (out, ExcMessage(std::string("Trying to write to file <") +
                                    filename +
@@ -129,7 +134,23 @@ namespace aspect
 
       // now write and then move the tmp file to its final destination
       // if necessary
-      out << *file_contents;
+      if (compress_contents)
+        {
+          namespace bio = boost::iostreams;
+
+          std::stringstream compressed;
+          std::stringstream origin(*file_contents);
+
+          bio::filtering_streambuf<bio::input> compress_out;
+          compress_out.push(bio::zlib_compressor());
+          compress_out.push(origin);
+          bio::copy(compress_out, out);
+        }
+      else
+        {
+          out << *file_contents;
+        }
+
       out.close ();
 
       if (tmp_filename != filename)
@@ -186,7 +207,14 @@ namespace aspect
       std::stringstream string_stream_content_raw;
       std::stringstream string_stream_content_draw_volume_weighting;
 
-      string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " water" << (hexagonal_plugin_exists ? " full_norm_square triclinic_norm_square monoclinic_norm_square orthohombic_norm_square tetragonal_norm_square hexagonal_norm_square isotropic_norm_square" : "") << std::endl;
+      string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " water"
+                           << (hexagonal_plugin_exists ? (std::string(" full_norm_square ")
+                                                          + "triclinic_norm_square_p1 triclinic_norm_square_p2 triclinic_norm_square_p3 "
+                                                          + "monoclinic_norm_square_p1 monoclinic_norm_square_p2 monoclinic_norm_square_p3 "
+                                                          + "orthohombic_norm_square_p1 orthohombic_norm_square_p2 orthohombic_norm_square_p3 "
+                                                          + "tetragonal_norm_square_p1 tetragonal_norm_square_p2 tetragonal_norm_square_p3 "
+                                                          + "hexagonal_norm_square_p1 hexagonal_norm_square_p2 hexagonal_norm_square_p3 "
+                                                          + "isotropic_norm_square") : "") << std::endl;
 
       // get particle data
       bool wrote_weighted_header = false;
@@ -284,7 +312,11 @@ namespace aspect
                                    << " " << properties[lpo_hex_data_position+14] << " " << properties[lpo_hex_data_position+15]
                                    << " " << properties[lpo_hex_data_position+16] << " " << properties[lpo_hex_data_position+17]
                                    << " " << properties[lpo_hex_data_position+18] << " " << properties[lpo_hex_data_position+19]
-                                   << " " << properties[lpo_hex_data_position+20];
+                                   << " " << properties[lpo_hex_data_position+20] << " " << properties[lpo_hex_data_position+21]
+                                   << " " << properties[lpo_hex_data_position+22] << " " << properties[lpo_hex_data_position+23]
+                                   << " " << properties[lpo_hex_data_position+24] << " " << properties[lpo_hex_data_position+25]
+                                   << " " << properties[lpo_hex_data_position+26] << " " << properties[lpo_hex_data_position+27]
+                                   << " " << properties[lpo_hex_data_position+28];
             }
           string_stream_master <<  std::endl;
 
@@ -567,7 +599,8 @@ namespace aspect
           background_thread_master = Threads::new_thread (&writer,
                                                           filename_master,
                                                           temporary_output_location,
-                                                          file_contents_master);
+                                                          file_contents_master,
+                                                          false);
 
           if (write_raw_lpo.size() != 0)
             {
@@ -579,7 +612,8 @@ namespace aspect
               background_thread_content_raw = Threads::new_thread (&writer,
                                                                    filename_raw,
                                                                    temporary_output_location,
-                                                                   file_contents_raw);
+                                                                   file_contents_raw,
+                                                                   compress_lpo_data_files);
             }
 
           if (write_draw_volume_weighted_lpo.size() != 0)
@@ -592,16 +626,17 @@ namespace aspect
               background_thread_content_draw_volume_weighting = Threads::new_thread (&writer,
                                                                                      filename_draw_volume_weighting,
                                                                                      temporary_output_location,
-                                                                                     file_contents_draw_volume_weighting);
+                                                                                     file_contents_draw_volume_weighting,
+                                                                                     compress_lpo_data_files);
             }
         }
       else
         {
-          writer(filename_master,temporary_output_location,file_contents_master);
+          writer(filename_master,temporary_output_location,file_contents_master, false);
           if (write_raw_lpo.size() != 0)
-            writer(filename_raw,temporary_output_location,file_contents_raw);
+            writer(filename_raw,temporary_output_location,file_contents_raw, compress_lpo_data_files);
           if (write_draw_volume_weighted_lpo.size() != 0)
-            writer(filename_draw_volume_weighting,temporary_output_location,file_contents_draw_volume_weighting);
+            writer(filename_draw_volume_weighting,temporary_output_location,file_contents_draw_volume_weighting, compress_lpo_data_files);
         }
 
 
@@ -913,6 +948,9 @@ namespace aspect
                              "Furthermore, the entries will be written out in the order given, "
                              "and if entries are entered muliple times, they will be written "
                              "out multiple times.");
+          prm.declare_entry ("Compress lpo data files", "true",
+                             Patterns::Bool(),
+                             "Wether to compress the raw and weighted lpo data output files with zlib.");
         }
         prm.leave_subsection ();
       }
@@ -992,7 +1030,7 @@ namespace aspect
               AssertThrow(write_draw_volume_weighted_lpo[i] != Output::not_found,
                           ExcMessage("Value \""+ write_draw_volume_weighted_lpo_tmp[i] +"\", set in \"Write out raw lpo data\", is not a correct option."));
 
-              if (write_raw_lpo[i] == Output::olivine_A_matrix || write_raw_lpo[i] == Output::enstatite_A_matrix)
+              if (write_draw_volume_weighted_lpo[i] == Output::olivine_A_matrix || write_draw_volume_weighted_lpo[i] == Output::enstatite_A_matrix)
                 found_A_matrix = true;
             }
           if (write_draw_volume_weighted_lpo_tmp.size() != 0 || found_euler_angles == true)
@@ -1004,6 +1042,8 @@ namespace aspect
             compute_weighted_A_matrix = true;
           else
             compute_weighted_A_matrix = false;
+
+          compress_lpo_data_files = prm.get_bool("Compress lpo data files");
         }
         prm.leave_subsection ();
       }

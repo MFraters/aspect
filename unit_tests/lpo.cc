@@ -739,7 +739,7 @@ TEST_CASE("LPO")
     // The correct analytical solution to check against
     double solution[5] = {0.63011275122, -0.157528187805, -0.157528187805, -0.157528187805 ,-0.157528187805};
     for (unsigned int i = 0; i < derivatives.first.size(); ++i)
-      REQUIRE(derivatives.first[i] == Approx(solution[i]));
+      CHECK(derivatives.first[i] == Approx(solution[i]));
   }
   /*
     REQUIRE(out.get_additional_output<AdditionalOutputs1<dim> >() == NULL);
