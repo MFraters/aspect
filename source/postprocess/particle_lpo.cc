@@ -175,7 +175,7 @@ namespace aspect
 
       const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
 
-      bool hexagonal_plugin_exists = manager.plugin_name_exists("lpo hexagonal axes");
+      bool hexagonal_plugin_exists = manager.plugin_name_exists("decompose elastic matrix");
 
 
       //std::cout << "n_grains = " << n_grains << ", static = " << aspect::Particle::Property::LPO<dim>::get_number_of_grains() << std::endl;
@@ -475,6 +475,9 @@ namespace aspect
 
               std::vector<Tensor<2,3> > weighted_a_cosine_matrices_olivine;
               std::vector<Tensor<2,3> > weighted_a_cosine_matrices_enstatite;
+              std::cout << "weighted_euler_angles_olivine[0] = " << weighted_euler_angles_olivine[0][0] << ", "<< weighted_euler_angles_olivine[0][1] << ", "<< weighted_euler_angles_olivine[0][2] << std::endl;
+              std::cout << "weighted_euler_angles_olivine[0] = " << weighted_euler_angles_olivine[1][0] << ", "<< weighted_euler_angles_olivine[1][1] << ", "<< weighted_euler_angles_olivine[1][2] << std::endl;
+              std::cout << "weighted_euler_angles_olivine[0] = " << weighted_euler_angles_olivine[2][0] << ", "<< weighted_euler_angles_olivine[2][1] << ", "<< weighted_euler_angles_olivine[2][2] << std::endl;
               if (compute_weighted_A_matrix == true)
                 {
                   weighted_a_cosine_matrices_olivine.resize(weighted_euler_angles_olivine.size());
@@ -483,6 +486,7 @@ namespace aspect
                       weighted_a_cosine_matrices_olivine[i] = euler_angles_to_rotation_matrix(weighted_euler_angles_olivine[i][0],
                                                                                               weighted_euler_angles_olivine[i][1],
                                                                                               weighted_euler_angles_olivine[i][2]);
+                      std::cout << "weighted_a_cosine_matrices_olivine[" << i << "] = " << weighted_a_cosine_matrices_olivine[i] << std::endl;
                     }
 
                   weighted_a_cosine_matrices_enstatite.resize(weighted_euler_angles_enstatite.size());
@@ -703,7 +707,7 @@ namespace aspect
           unsigned int counter = 0;
           for (unsigned int grain_j = 0; grain_j < n_grains-1; ++grain_j)
             {
-              //std::cout << "grain_i = " << grain_i << ", grain_j = " << grain_j <<  ", counter = " << counter << ", cum_weight[grain_j] = " << cum_weight[grain_j] << ", idgrain = " << idxgrain[grain_i] << std::endl;
+              std::cout << "grain_i = " << grain_i << ", grain_j = " << grain_j <<  ", counter = " << counter << ", cum_weight[grain_j] = " << cum_weight[grain_j] << ", idgrain = " << idxgrain[grain_i] << std::endl;
               if (cum_weight[grain_j] < idxgrain[grain_i])
                 {
                   counter++;
