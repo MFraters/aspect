@@ -134,6 +134,7 @@ namespace aspect
                                                      std::vector<double> &volume_fractions_enstatite,
                                                      std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite) const
       {
+        //std::cout << "volume_fraction_olivine = " << volume_fraction_olivine << std::endl;
         /** This implements the Voigt averaging as described in the equation at the
         * bottom of page 385 in Mainprice (1990):
         * $C^V_{ijkl} = \sum^S_l F_s \sum^{N_s}_l C_{ijkl}/N_s$, where $F_s$ is the
@@ -363,7 +364,8 @@ namespace aspect
                                                          volume_fractions_enstatite,
                                                          a_cosine_matrices_enstatite);
 
-        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,volume_fractions_olivine,
+        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,
+                                                                volume_fractions_olivine,
                                                                 a_cosine_matrices_olivine,
                                                                 volume_fractions_enstatite,
                                                                 a_cosine_matrices_enstatite);
