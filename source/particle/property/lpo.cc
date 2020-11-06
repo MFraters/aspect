@@ -463,7 +463,7 @@ namespace aspect
                 a_cosine_matrix[i_grain][2][1] = Vz * Sy;
                 a_cosine_matrix[i_grain][2][2] = 1.0 - z;   // This equals Vz * Vz - 1.0
 
-                std::cout << "a_cosine_matrix[i_grain] = " << a_cosine_matrix[i_grain] << std::endl;
+                //std::cout << "a_cosine_matrix[i_grain] = " << a_cosine_matrix[i_grain] << std::endl;
 
 
                 for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
@@ -1017,7 +1017,7 @@ namespace aspect
                               + std::to_string(volume_fractions_enstatite[grain_i]) + ", inv_sum_volume_enstatite = "
                               + std::to_string(inv_sum_volume_enstatite) + "."));
 
-            std::cout << "a_cosine_matrix[i_grain] = " << a_cosine_matrices_olivine[grain_i] << std::endl;
+            //std::cout << "a_cosine_matrix[i_grain] = " << a_cosine_matrices_olivine[grain_i] << std::endl;
           }
 
         store_particle_data_extended(data_position,
