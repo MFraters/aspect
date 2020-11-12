@@ -1685,10 +1685,20 @@ namespace aspect
             deriv_a_cosine_matrices[grain_i] = 0;
             if (volume_fractions[grain_i] > threshold_GBS/n_grains)
               {
+                //for (unsigned int i = 0; i < 3; ++i)
+                //  for (unsigned int j = 0; j < 3; ++j)
+                //    for (unsigned int k = 0; k < 3; ++k)
+                //      //for (unsigned int l = 0; l < 3; ++l)
+                //        {
+                //          deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][l] * a_cosine_matrices[grain_i][i][l] * w[k];
+                //          //deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][i] /* a_cosine_matrices[grain_i][i][l]*/*w[k];
+                //          //deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][l] * w[k];
+                //        }
                 // Different than D-Rex. Here we actually only compute the derivative and do not
                 // multiply it with the a_cosine_matrices. We do that when we advect.
-                deriv_a_cosine_matrices[grain_i] = permutation_operator_3d * w;
-
+                //deriv_a_cosine_matrices[grain_i] = a_cosine_matrices[grain_i] * (permutation_operator_3d * w);
+                deriv_a_cosine_matrices[grain_i] =permutation_operator_3d * w;
+                //std::cout << "deriv_a_cosine_matrices[grain_i] = " << deriv_a_cosine_matrices[grain_i] << std::endl << "permutation_operator_3d * w =      " << permutation_operator_3d *w << ", a_cosine_matrices["<< grain_i << "] = " << a_cosine_matrices[grain_i] << ", w = " << w  << std::endl;
 
                 mean_strain_energy += volume_fractions[grain_i] * strain_energy[grain_i];
 
