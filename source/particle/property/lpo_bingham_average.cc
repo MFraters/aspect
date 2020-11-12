@@ -239,13 +239,14 @@ namespace aspect
         const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second * eigenvectors_b[0].first;
         const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second * eigenvectors_a[0].first;
 
-
-        // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
-        std::array a = {averaged_a[0],averaged_a[1],averaged_a[2]};
-        std::array b = {averaged_b[0],averaged_b[1],averaged_b[2]};
-        std::array c = {averaged_c[0],averaged_c[1],averaged_c[2]};
-
-        return {a,b,c};
+        return
+        {
+          {
+            {{averaged_a[0],averaged_a[1],averaged_a[2]}},
+            {{averaged_b[0],averaged_b[1],averaged_b[2]}},
+            {{averaged_c[0],averaged_c[1],averaged_c[2]}}
+          }
+        };
       }
 
       template<int dim>
