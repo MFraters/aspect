@@ -257,8 +257,8 @@ TEST_CASE("Euler angle functions")
 {
   using namespace aspect;
   {
+    // tranforming rotation matrices to euler angles and back
     Postprocess::LPO<3> lpo;
-    std::array<std::array<double,3>,3> array = {{{{0.36,0.48,-0.8}},{{-0.8,0.6,0}}, {{0.48,0.64, 0.6}}}};
     dealii::Tensor<2,3> rot1;
     rot1[0][0] = 0.36;
     rot1[0][1] = 0.48;
@@ -268,13 +268,56 @@ TEST_CASE("Euler angle functions")
     rot1[1][1] = 0.6;
     rot1[1][2] = 0;
 
-    rot1[1][0] = 0.48;
-    rot1[1][1] = 0.64;
-    rot1[1][2] = 0.6;
+    rot1[2][0] = 0.48;
+    rot1[2][1] = 0.64;
+    rot1[2][2] = 0.6;
 
     auto ea1 = lpo.euler_angles_from_rotation_matrix(rot1);
     auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
     compare_rotation_matrices_approx(rot2, rot1);
+    auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
+    compare_3d_arrays_approx(ea2,ea1);
+    auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
+    compare_rotation_matrices_approx(rot3, rot2);
+  }
+
+  {
+    // tranforming rotation matrices to euler angles may be nonunique as this
+    // example shows. The input rot1 will be different from the output rot2, but
+    // rot2 is the same as rot3. This is a case of a rotation matrix which is
+    // incompatible with euler angles since [0][0] is nonzero, but to be consistent
+    // with ZXZ euler angles the bottom row can't be zero. TODO: Maybe find a way to
+    // detect and assert this?
+    Postprocess::LPO<3> lpo;
+    dealii::Tensor<2,3> rot1;
+    rot1[0][0] = 0.36;
+    rot1[0][1] = 0.48;
+    rot1[0][2] = -0.8;
+
+    rot1[1][0] = -0.8;
+    rot1[1][1] = 0.6;
+    rot1[1][2] = 0;
+
+    rot1[2][0] = 0.0;
+    rot1[2][1] = 0.0;
+    rot1[2][2] = 0.0;
+
+    dealii::Tensor<2,3> rot2_expected;
+    rot2_expected[0][0] = 0;
+    rot2_expected[0][1] = 0;
+    rot2_expected[0][2] = -1;
+
+    rot2_expected[1][0] = -1;
+    rot2_expected[1][1] = 0.0;
+    rot2_expected[1][2] = 0.0;
+
+    rot2_expected[2][0] = 0.0;
+    rot2_expected[2][1] = 1.0;
+    rot2_expected[2][2] = 0.0;
+
+    auto ea1 = lpo.euler_angles_from_rotation_matrix(rot1);
+    auto rot2 = lpo.euler_angles_to_rotation_matrix(ea1[0],ea1[1],ea1[2]);
+    compare_rotation_matrices_approx(rot2, rot2_expected);
     auto ea2 = lpo.euler_angles_from_rotation_matrix(rot2);
     compare_3d_arrays_approx(ea2,ea1);
     auto rot3 = lpo.euler_angles_to_rotation_matrix(ea2[0],ea2[1],ea2[2]);
@@ -403,20 +446,15 @@ TEST_CASE("LPO")
   using namespace dealii;
   using namespace aspect;
 
-  std::cout << "test compute derivatives 1" << std::endl;
   {
     // first test initialization 2d.
     const int dim2=2;
 
     Particle::Property::LPO<dim2> lpo_2d;
-    std::cout << "test compute derivatives 1.0.1" << std::endl;
     ParameterHandler prm;
-    std::cout << "test compute derivatives 1.0.2" << std::endl;
     lpo_2d.declare_parameters(prm);
-    std::cout << "test compute derivatives 1.0.3" << std::endl;
     prm.declare_entry("World builder file", "", dealii::Patterns::Anything(), "");
     prm.set("World builder file", "/home/fraters/Documents/post-doc/2019-02-01-magali/code/aspect/aspect-C/build-dg-u-nj/advection_test.wb");
-    std::cout << "test compute derivatives 1.0.4" << std::endl;
     prm.enter_subsection("Postprocess");
     {
       prm.enter_subsection("Particles");
@@ -439,17 +477,13 @@ TEST_CASE("LPO")
     }
     prm.leave_subsection ();
 
-    std::cout << "test compute derivatives 1.0" << std::endl;
     lpo_2d.parse_parameters(prm);
-    std::cout << "test compute derivatives 1.1" << std::endl;
     lpo_2d.initialize();
-    std::cout << "test compute derivatives 1.2" << std::endl;
 
 
     Point<dim2> dummy_point;
     std::vector<double> data;
     lpo_2d.initialize_one_particle_property(dummy_point, data);
-    std::cout << "test compute derivatives 1.3" << std::endl;
 
     // The LPO particles are initialized. With the same seed, the outcome should
     // always be the same, so test that for seed = 1. Forthermore, in the data
@@ -488,7 +522,6 @@ TEST_CASE("LPO")
 
     std::vector<double> volume_fractions(5,0.2);
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
-    std::cout << "test compute derivatives 2.0.0" << std::endl;
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
@@ -539,16 +572,13 @@ TEST_CASE("LPO")
     a_cosine_matrices[4][2][1] = 0.8;
     a_cosine_matrices[4][2][2] = 0.9;
 
-    // init a
     SymmetricTensor<2,3> strain_rate_nondimensional;
     strain_rate_nondimensional[0][1] = 0.5959;
 
-    // init eta
     Tensor<2,3> velocity_gradient_tensor_nondimensional;
     velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
     velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
 
-    // init grad_u
     Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
@@ -557,20 +587,64 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
     std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
-    std::cout << "test compute derivatives 10" << std::endl;
+
     derivatives = lpo_2d.compute_derivatives(volume_fractions, a_cosine_matrices,
                                              strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
                                              deformation_type, ref_resolved_shear_stress);
-    std::cout << "test compute derivatives 11" << std::endl;
+
     // The correct analytical solution to check against
-    double solution[5] = {0.63011275122, -0.157528187805, -0.157528187805, -0.157528187805 ,-0.157528187805};
-    for (unsigned int i = 0; i < derivatives.first.size(); ++i)
-      REQUIRE(derivatives.first[i] == Approx(solution[i]));
+    // Note that this still has to be multiplied with with volume fraction
+    // of each graint to get the same solution as D-Rex would get.
+    double solution[5] = {3.150563756, -0.787640939, -0.787640939, -0.787640939 ,-0.787640939};
+    for (unsigned int iii = 0; iii < derivatives.first.size(); ++iii)
+      CHECK(derivatives.first[iii] == Approx(solution[iii]));
+
+    Tensor<2,3> deriv_direction_solution_2_to_5;
+    deriv_direction_solution_2_to_5[0][0] = 0;
+    deriv_direction_solution_2_to_5[0][1] = 0.00501912;
+    deriv_direction_solution_2_to_5[0][2] = 0.0100382;
+    deriv_direction_solution_2_to_5[1][0] = -0.00501912;
+    deriv_direction_solution_2_to_5[1][1] = 0;
+    deriv_direction_solution_2_to_5[1][2] = 0.00501912;
+    deriv_direction_solution_2_to_5[2][0] = -0.0100382;
+    deriv_direction_solution_2_to_5[2][1] = -0.00501912;
+    deriv_direction_solution_2_to_5[2][2] = 0;
+    Tensor<2,3> deriv_direction_solution[5] = {Tensor<2,3>(),deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5};
+    for (size_t index = 0; index < 5; index++)
+      {
+        for (size_t iii = 0; iii < 3; iii++)
+          {
+            for (size_t jjj = 0; jjj < 3; jjj++)
+              {
+                CHECK(deriv_direction_solution[index][iii][jjj] == Approx(derivatives.second[index][iii][jjj]));
+              }
+          }
+      }
+    // now check if the value is the same as the D-Rex output when contracted with the direction matrix
+    Tensor<2,3> deriv_direction_full_solution_2_to_5;
+    deriv_direction_full_solution_2_to_5[0][0] = -0.004015284 ;
+    deriv_direction_full_solution_2_to_5[0][1] = -0.0010038242;
+    deriv_direction_full_solution_2_to_5[0][2] = 0.0020076485;
+    deriv_direction_full_solution_2_to_5[1][0] = -0.00853248;
+    deriv_direction_full_solution_2_to_5[1][1] = -0.0010038242;
+    deriv_direction_full_solution_2_to_5[1][2] = 0.0065248576;
+    deriv_direction_full_solution_2_to_5[2][0] = -0.0130497151;
+    deriv_direction_full_solution_2_to_5[2][1] = -0.0010038242;
+    deriv_direction_full_solution_2_to_5[2][2] = 0.0110420667;
+    Tensor<2,3> deriv_direction_full_solution[5] = {Tensor<2,3>(),deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5};
+    for (size_t index = 0; index < 5; index++)
+      {
+        auto full_solution = a_cosine_matrices[index] * deriv_direction_solution[index];
+        for (size_t iii = 0; iii < 3; iii++)
+          {
+            for (size_t jjj = 0; jjj < 3; jjj++)
+              {
+                CHECK(full_solution[iii][jjj] == Approx(deriv_direction_full_solution[index][iii][jjj]));
+              }
+          }
+      }
   }
 
-  std::cout << "test compute derivatives 12" << std::endl;
-
-  std::cout << std::endl << std::endl << "test compute derivatives part 2" << std::endl;
   {
     // secondly test initialization 3d.
     // This should be exactly the same as the 2d version
@@ -647,7 +721,6 @@ TEST_CASE("LPO")
 
     std::vector<double> volume_fractions(5,0.2);
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
-    std::cout << "test compute derivatives 1.0.0" << std::endl;
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
@@ -698,31 +771,13 @@ TEST_CASE("LPO")
     a_cosine_matrices[4][2][1] = 0.8;
     a_cosine_matrices[4][2][2] = 0.9;
 
-    // init a
-    SymmetricTensor<2,dim3> strain_rate_nondimensional; // e
-    strain_rate_nondimensional[0][0] = 7.5;
-    strain_rate_nondimensional[0][1] = 8;
-    strain_rate_nondimensional[0][2] = 8.5;
-    //strain_rate_nondimensional[1][0] = 9;
-    strain_rate_nondimensional[1][1] = 9.5;
-    strain_rate_nondimensional[1][2] = 10;
-    //strain_rate_nondimensional[2][0] = 10.5;
-    //strain_rate_nondimensional[2][1] = 11;
-    strain_rate_nondimensional[2][2] = 11.5;
+    SymmetricTensor<2,3> strain_rate_nondimensional;
+    strain_rate_nondimensional[0][1] = 0.5959;
 
-    // init eta
-    Tensor<2,dim3> velocity_gradient_tensor_nondimensional; // l
-    velocity_gradient_tensor_nondimensional[0][0] = 2;
-    velocity_gradient_tensor_nondimensional[0][1] = 2.5;
-    velocity_gradient_tensor_nondimensional[0][2] = 3;
-    velocity_gradient_tensor_nondimensional[1][0] = 3.5;
-    velocity_gradient_tensor_nondimensional[1][1] = 4;
-    velocity_gradient_tensor_nondimensional[1][2] = 4.5;
-    velocity_gradient_tensor_nondimensional[2][0] = 5;
-    velocity_gradient_tensor_nondimensional[2][1] = 5.5;
-    velocity_gradient_tensor_nondimensional[2][2] = 6;
+    Tensor<2,3> velocity_gradient_tensor_nondimensional;
+    velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
+    velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
 
-    // init grad_u
     Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
@@ -735,31 +790,293 @@ TEST_CASE("LPO")
     derivatives = lpo_3d.compute_derivatives(volume_fractions, a_cosine_matrices,
                                              strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
                                              deformation_type, ref_resolved_shear_stress);
-    std::cout << "test compute derivatives 11" << std::endl;
+
     // The correct analytical solution to check against
-    double solution[5] = {0.63011275122, -0.157528187805, -0.157528187805, -0.157528187805 ,-0.157528187805};
+    double solution[5] = {3.150563756, -0.787640939, -0.787640939, -0.787640939 ,-0.787640939};
     for (unsigned int i = 0; i < derivatives.first.size(); ++i)
       CHECK(derivatives.first[i] == Approx(solution[i]));
+
+
+    Tensor<2,3> deriv_direction_solution_2_to_5;
+    deriv_direction_solution_2_to_5[0][0] = 0;
+    deriv_direction_solution_2_to_5[0][1] = 0.00501912;
+    deriv_direction_solution_2_to_5[0][2] = 0.0100382;
+    deriv_direction_solution_2_to_5[1][0] = -0.00501912;
+    deriv_direction_solution_2_to_5[1][1] = 0;
+    deriv_direction_solution_2_to_5[1][2] = 0.00501912;
+    deriv_direction_solution_2_to_5[2][0] = -0.0100382;
+    deriv_direction_solution_2_to_5[2][1] = -0.00501912;
+    deriv_direction_solution_2_to_5[2][2] = 0;
+
+    Tensor<2,3> deriv_direction_solution[5] = {Tensor<2,3>(),deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5};
+    for (size_t index = 0; index < 5; index++)
+      {
+        for (size_t iii = 0; iii < 3; iii++)
+          {
+            for (size_t jjj = 0; jjj < 3; jjj++)
+              {
+                CHECK(deriv_direction_solution[index][iii][jjj] == Approx(derivatives.second[index][iii][jjj]));
+              }
+          }
+      }
+    // now check if the value is the same as the D-Rex output when contracted with the direction matrix
+    Tensor<2,3> deriv_direction_full_solution_2_to_5;
+    deriv_direction_full_solution_2_to_5[0][0] = -0.004015284 ;
+    deriv_direction_full_solution_2_to_5[0][1] = -0.0010038242;
+    deriv_direction_full_solution_2_to_5[0][2] = 0.0020076485;
+    deriv_direction_full_solution_2_to_5[1][0] = -0.00853248;
+    deriv_direction_full_solution_2_to_5[1][1] = -0.0010038242;
+    deriv_direction_full_solution_2_to_5[1][2] = 0.0065248576;
+    deriv_direction_full_solution_2_to_5[2][0] = -0.0130497151;
+    deriv_direction_full_solution_2_to_5[2][1] = -0.0010038242;
+    deriv_direction_full_solution_2_to_5[2][2] = 0.0110420667;
+    Tensor<2,3> deriv_direction_full_solution[5] = {Tensor<2,3>(),deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5};
+    for (size_t index = 0; index < 5; index++)
+      {
+        auto full_solution = a_cosine_matrices[index] * deriv_direction_solution[index];
+        for (size_t iii = 0; iii < 3; iii++)
+          {
+            for (size_t jjj = 0; jjj < 3; jjj++)
+              {
+                CHECK(full_solution[iii][jjj] == Approx(deriv_direction_full_solution[index][iii][jjj]));
+              }
+          }
+      }
   }
-  /*
-    REQUIRE(out.get_additional_output<AdditionalOutputs1<dim> >() == NULL);
 
-    out.additional_outputs.push_back(std::make_shared<AdditionalOutputs1<dim> > (1, 1));
+  {
+    // thirdly test 3d lpo with different strain-rate and velocity gradient tensors.
+    // The solution of this test has not been analytically confirmed.
+    const int dim3=3;
 
-    REQUIRE(out.get_additional_output<AdditionalOutputs1<dim> >() != NULL);
+    Particle::Property::LPO<dim3> lpo_3d;
+    ParameterHandler prm;
+    lpo_3d.declare_parameters(prm);
 
-    Material1<dim> mat;
-    mat.evaluate(in, out);
-
-    REQUIRE(out.get_additional_output<AdditionalOutputs1<dim> >()->additional_material_output1[0] == 42.0);
-
-    // test const version of get_additional_output:
+    prm.enter_subsection("Postprocess");
     {
-  const MaterialModelOutputs<dim> &const_out = out;
-  REQUIRE(const_out.get_additional_output<AdditionalOutputs1<dim> >() != NULL);
-  const AdditionalOutputs1<dim> *a = const_out.get_additional_output<AdditionalOutputs1<dim> >();
-  REQUIRE(a != NULL);
-    }*/
+      prm.enter_subsection("Particles");
+      {
+        //prm.set("Number of particles","1"); // 2
+        prm.enter_subsection("LPO");
+        {
+          prm.set("Random number seed","1"); // 2
+          prm.set("Number of grains per praticle","5"); //10000;
+          /*mobility = prm.get_double("Mobility"); //50;
+          x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
+          stress_exponent = prm.get_double("Stress exponents"); //3.5;
+          exponent_p = prm.get_double("Exponents p"); //1.5;
+          nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
+          threshold_GBS = prm.get_double("Threshold GBS"); //0.0;*/
+        }
+        prm.leave_subsection ();
+      }
+      prm.leave_subsection ();
+    }
+    prm.leave_subsection ();
+
+    lpo_3d.parse_parameters(prm);
+    lpo_3d.initialize();
+
+
+    Point<dim3> dummy_point;
+    std::vector<double> data;
+    lpo_3d.initialize_one_particle_property(dummy_point, data);
+
+    // The LPO particles are initialized. With the same seed, the outcome should
+    // always be the same, so test that for seed = 1. Forthermore, in the data
+    // I can only really test that the first entry is the water content (0) and
+    // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
+    CHECK(data[0] == Approx(0)); // default water value
+    CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
+    CHECK(data[2] == Approx(0.2));
+    CHECK(data[3] == Approx(0.159063));
+    CHECK(data[4] == Approx(-0.11941));
+    CHECK(data[5] == Approx(0.9800204275));
+    CHECK(data[6] == Approx(-0.0888556));
+    CHECK(data[7] == Approx(-0.990362));
+    CHECK(data[8] == Approx(-0.1062486256));
+    CHECK(data[9] == Approx(0.983261702));
+    CHECK(data[10] == Approx(-0.0701800114));
+    CHECK(data[11] == Approx(-0.1681403917));
+    CHECK(data[12] == Approx(0.2));
+    CHECK(data[13] == Approx(0.4095335744));
+    CHECK(data[14] == Approx(-0.3401753011));
+    CHECK(data[15] == Approx(0.8465004524));
+    CHECK(data[16] == Approx(0.7605716382));
+    CHECK(data[17] == Approx(0.639714977));
+    CHECK(data[18] == Approx(-0.1108852174));
+    CHECK(data[19] == Approx(-0.5037986052));
+    CHECK(data[20] == Approx(0.6892354553));
+    CHECK(data[21] == Approx(0.5207124471));
+    CHECK(data[22] == Approx(0.2));
+    CHECK(data[32] == Approx(0.2));
+    CHECK(data[42] == Approx(0.2));
+    CHECK(data[52] == Approx(0.2));
+    CHECK(data[62] == Approx(0.2));
+    CHECK(data[72] == Approx(0.2));
+    CHECK(data[82] == Approx(0.2));
+    CHECK(data[92] == Approx(0.2));
+
+    std::vector<double> volume_fractions(5,0.2);
+    std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
+    a_cosine_matrices[0][0][0] = 0.5;
+    a_cosine_matrices[0][0][1] = 0.5;
+    a_cosine_matrices[0][0][2] = 0.5;
+    a_cosine_matrices[0][1][0] = 0.5;
+    a_cosine_matrices[0][1][1] = 0.5;
+    a_cosine_matrices[0][1][2] = 0.5;
+    a_cosine_matrices[0][2][0] = 0.5;
+    a_cosine_matrices[0][2][1] = 0.5;
+    a_cosine_matrices[0][2][2] = 0.5;
+
+    a_cosine_matrices[1][0][0] = 0.1;
+    a_cosine_matrices[1][0][1] = 0.2;
+    a_cosine_matrices[1][0][2] = 0.3;
+    a_cosine_matrices[1][1][0] = 0.4;
+    a_cosine_matrices[1][1][1] = 0.5;
+    a_cosine_matrices[1][1][2] = 0.6;
+    a_cosine_matrices[1][2][0] = 0.7;
+    a_cosine_matrices[1][2][1] = 0.8;
+    a_cosine_matrices[1][2][2] = 0.9;
+
+    a_cosine_matrices[2][0][0] = 0.1;
+    a_cosine_matrices[2][0][1] = 0.2;
+    a_cosine_matrices[2][0][2] = 0.3;
+    a_cosine_matrices[2][1][0] = 0.4;
+    a_cosine_matrices[2][1][1] = 0.5;
+    a_cosine_matrices[2][1][2] = 0.6;
+    a_cosine_matrices[2][2][0] = 0.7;
+    a_cosine_matrices[2][2][1] = 0.8;
+    a_cosine_matrices[2][2][2] = 0.9;
+
+    a_cosine_matrices[3][0][0] = 0.1;
+    a_cosine_matrices[3][0][1] = 0.2;
+    a_cosine_matrices[3][0][2] = 0.3;
+    a_cosine_matrices[3][1][0] = 0.4;
+    a_cosine_matrices[3][1][1] = 0.5;
+    a_cosine_matrices[3][1][2] = 0.6;
+    a_cosine_matrices[3][2][0] = 0.7;
+    a_cosine_matrices[3][2][1] = 0.8;
+    a_cosine_matrices[3][2][2] = 0.9;
+
+    a_cosine_matrices[4][0][0] = 0.1;
+    a_cosine_matrices[4][0][1] = 0.2;
+    a_cosine_matrices[4][0][2] = 0.3;
+    a_cosine_matrices[4][1][0] = 0.4;
+    a_cosine_matrices[4][1][1] = 0.5;
+    a_cosine_matrices[4][1][2] = 0.6;
+    a_cosine_matrices[4][2][0] = 0.7;
+    a_cosine_matrices[4][2][1] = 0.8;
+    a_cosine_matrices[4][2][2] = 0.9;
+
+    SymmetricTensor<2,dim3> strain_rate_nondimensional; // e
+    strain_rate_nondimensional[0][0] = 7.5;
+    strain_rate_nondimensional[0][1] = 8;
+    strain_rate_nondimensional[0][2] = 8.5;
+    //strain_rate_nondimensional[1][0] = 8; // symmetry
+    strain_rate_nondimensional[1][1] = 9.5;
+    strain_rate_nondimensional[1][2] = 10;
+    //strain_rate_nondimensional[2][0] = 8.5;// symmetry
+    //strain_rate_nondimensional[2][1] = 10; // symmetry
+    strain_rate_nondimensional[2][2] = 11.5;
+
+    Tensor<2,dim3> velocity_gradient_tensor_nondimensional; // l
+    velocity_gradient_tensor_nondimensional[0][0] = 2;
+    velocity_gradient_tensor_nondimensional[0][1] = 2.5;
+    velocity_gradient_tensor_nondimensional[0][2] = 3;
+    velocity_gradient_tensor_nondimensional[1][0] = 3.5;
+    velocity_gradient_tensor_nondimensional[1][1] = 4;
+    velocity_gradient_tensor_nondimensional[1][2] = 4.5;
+    velocity_gradient_tensor_nondimensional[2][0] = 5;
+    velocity_gradient_tensor_nondimensional[2][1] = 5.5;
+    velocity_gradient_tensor_nondimensional[2][2] = 6;
+
+    Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
+    std::array<double,4> ref_resolved_shear_stress;
+    ref_resolved_shear_stress[0] = 1;
+    ref_resolved_shear_stress[1] = 2;
+    ref_resolved_shear_stress[2] = 3;
+    ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
+
+    std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
+
+    derivatives = lpo_3d.compute_derivatives(volume_fractions, a_cosine_matrices,
+                                             strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
+                                             deformation_type, ref_resolved_shear_stress);
+
+    // The correct analytical solution to check against
+    double solution[5] = {2.5350823696, -0.6337705924, -0.6337705924, -0.6337705924 ,-0.6337705924};
+    for (unsigned int i = 0; i < derivatives.first.size(); ++i)
+      CHECK(derivatives.first[i] == Approx(solution[i]));
+
+
+    Tensor<2,3> deriv_direction_solution_1;
+    deriv_direction_solution_1[0][0] = 0;
+    deriv_direction_solution_1[0][1] = 0.5;
+    deriv_direction_solution_1[0][2] = 1.0;
+    deriv_direction_solution_1[1][0] = -0.5;
+    deriv_direction_solution_1[1][1] = 0;
+    deriv_direction_solution_1[1][2] = 0.5;
+    deriv_direction_solution_1[2][0] = -1.0;
+    deriv_direction_solution_1[2][1] = -0.5;
+    deriv_direction_solution_1[2][2] = 0;
+    Tensor<2,3> deriv_direction_solution_2_to_5;
+    deriv_direction_solution_2_to_5[0][0] = 0;
+    deriv_direction_solution_2_to_5[0][1] = 0.5304624591;
+    deriv_direction_solution_2_to_5[0][2] = 1.0609249182;
+    deriv_direction_solution_2_to_5[1][0] = -0.5304624591;
+    deriv_direction_solution_2_to_5[1][1] = 0;
+    deriv_direction_solution_2_to_5[1][2] = 0.5304624591;
+    deriv_direction_solution_2_to_5[2][0] = -1.0609249182;
+    deriv_direction_solution_2_to_5[2][1] = -0.5304624591 ;
+    deriv_direction_solution_2_to_5[2][2] = 0;
+
+    Tensor<2,3> deriv_direction_solution[5] = {deriv_direction_solution_1,deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5,deriv_direction_solution_2_to_5};
+    for (size_t index = 0; index < 5; index++)
+      {
+        for (size_t iii = 0; iii < 3; iii++)
+          {
+            for (size_t jjj = 0; jjj < 3; jjj++)
+              {
+                CHECK(deriv_direction_solution[index][iii][jjj] == Approx(derivatives.second[index][iii][jjj]));
+              }
+          }
+      }
+    // now check if the value is the same as the D-Rex output when contracted with the direction matrix
+    Tensor<2,3> deriv_direction_full_solution_1;
+    deriv_direction_full_solution_1[0][0] = -0.75;
+    deriv_direction_full_solution_1[0][1] = 0.0;
+    deriv_direction_full_solution_1[0][2] = 0.75;
+    deriv_direction_full_solution_1[1][0] = -0.75;
+    deriv_direction_full_solution_1[1][1] = 0;
+    deriv_direction_full_solution_1[1][2] = 0.75;
+    deriv_direction_full_solution_1[2][0] = -0.75;
+    deriv_direction_full_solution_1[2][1] = 0.0;
+    deriv_direction_full_solution_1[2][2] = 0.75;
+    Tensor<2,3> deriv_direction_full_solution_2_to_5;
+    deriv_direction_full_solution_2_to_5[0][0] = -0.4243699673 ;
+    deriv_direction_full_solution_2_to_5[0][1] = -0.1060924918;
+    deriv_direction_full_solution_2_to_5[0][2] = 0.2121849836;
+    deriv_direction_full_solution_2_to_5[1][0] = -0.9017861805;
+    deriv_direction_full_solution_2_to_5[1][1] = -0.1060924918;
+    deriv_direction_full_solution_2_to_5[1][2] = 0.6896011968;
+    deriv_direction_full_solution_2_to_5[2][0] = -1.3792023937;
+    deriv_direction_full_solution_2_to_5[2][1] = -0.1060924918;
+    deriv_direction_full_solution_2_to_5[2][2] = 1.16701741;
+    Tensor<2,3> deriv_direction_full_solution[5] = {deriv_direction_full_solution_1,deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5,deriv_direction_full_solution_2_to_5};
+    for (size_t index = 0; index < 5; index++)
+      {
+        auto full_solution = a_cosine_matrices[index] * deriv_direction_solution[index];
+        for (size_t iii = 0; iii < 3; iii++)
+          {
+            for (size_t jjj = 0; jjj < 3; jjj++)
+              {
+                CHECK(full_solution[iii][jjj] == Approx(deriv_direction_full_solution[index][iii][jjj]));
+              }
+          }
+      }
+  }
 }
 
 TEST_CASE("LPO elastic tensor transform functions")
@@ -801,7 +1118,7 @@ TEST_CASE("LPO elastic tensor transform functions")
       }
   }
 
-// test rotations
+  // test rotations
   // rotation matrix
   dealii::Tensor<2,3> rotation_tensor;
 
@@ -1301,7 +1618,35 @@ TEST_CASE("LPO elastic tensor")
   lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
-    CHECK(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+    {
+#if DEAL_II_VERSION_GTE(9,3,0)
+      CHECK(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+#else
+      {
+        if (i < 6)
+          {
+            CHECK(tensor[ {i,i}] == data[lpo_data_position + i]);
+          }
+        else
+          {
+            [&]
+            {
+              for (unsigned int d = 0, c = 6; d < 6; ++d)
+                {
+                  for (unsigned int e = d + 1; e < 6; ++e, ++c)
+                    {
+                      if (c == i)
+                        {
+                          CHECK(tensor[ {d,e}] == data[lpo_data_position + i]);
+                          return;
+                        }
+                    }
+                }
+            }();
+          }
+      }
+#endif
+    }
 
   lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
 
@@ -1309,7 +1654,35 @@ TEST_CASE("LPO elastic tensor")
     CHECK(data[i] == array_ref[i]);
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
-    tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)] += 100;
+    {
+#if DEAL_II_VERSION_GTE(9,3,0)
+      tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)] += 100;
+#else
+      {
+        if (i < 6)
+          {
+            tensor[ {i,i}] += 100;
+          }
+        else
+          {
+            [&]
+            {
+              for (unsigned int d = 0, c = 6; d < 6; ++d)
+                {
+                  for (unsigned int e = d + 1; e < 6; ++e, ++c)
+                    {
+                      if (c == i)
+                        {
+                          tensor[ {d,e}] += 100;
+                          return;
+                        }
+                    }
+                }
+            }();
+          }
+      }
+#endif
+    }
 
 
   lpo_elastic_tensor.store_particle_data(lpo_data_position,data,tensor);
@@ -1320,10 +1693,66 @@ TEST_CASE("LPO elastic tensor")
   lpo_elastic_tensor.load_particle_data(lpo_data_position,data,tensor);
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
-    CHECK(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+    {
+#if DEAL_II_VERSION_GTE(9,3,0)
+      CHECK(data[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+#else
+      {
+        if (i < 6)
+          {
+            CHECK(tensor[ {i,i}] == data[lpo_data_position + i]);
+          }
+        else
+          {
+            [&]
+            {
+              for (unsigned int d = 0, c = 6; d < 6; ++d)
+                {
+                  for (unsigned int e = d + 1; e < 6; ++e, ++c)
+                    {
+                      if (c == i)
+                        {
+                          CHECK(tensor[ {d,e}] == data[lpo_data_position + i]);
+                          return;
+                        }
+                    }
+                }
+            }();
+          }
+      }
+#endif
+    }
 
   for (unsigned int i = 0; i < dealii::SymmetricTensor<2,6>::n_independent_components ; ++i)
-    CHECK(array_plus_100[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+    {
+#if DEAL_II_VERSION_GTE(9,3,0)
+      CHECK(array_plus_100[lpo_data_position + i] == tensor[dealii::SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+#else
+      {
+        if (i < 6)
+          {
+            CHECK(tensor[ {i,i}] == array_plus_100[lpo_data_position + i]);
+          }
+        else
+          {
+            [&]
+            {
+              for (unsigned int d = 0, c = 6; d < 6; ++d)
+                {
+                  for (unsigned int e = d + 1; e < 6; ++e, ++c)
+                    {
+                      if (c == i)
+                        {
+                          CHECK(tensor[ {d,e}] == array_plus_100[lpo_data_position + i]);
+                          return;
+                        }
+                    }
+                }
+            }();
+          }
+      }
+#endif
+    }
 
   for (unsigned int i = 0; i < array.size() ; ++i)
     REQUIRE(data[i] == array_plus_100[i]);

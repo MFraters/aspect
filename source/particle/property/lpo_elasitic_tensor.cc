@@ -388,7 +388,7 @@ namespace aspect
         // There is a bug up to dealii 9.3.0, so we have to work around it.
         for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
 #if DEAL_II_VERSION_GTE(9,3,0)
-          data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+          elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)] = data[lpo_data_position + i];
 #else
           {
             if (i < 6)
@@ -428,7 +428,7 @@ namespace aspect
         // There is a bug up to dealii 9.3.0, so we have to work around it.
         for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
 #if DEAL_II_VERSION_GTE(9,3,0)
-          data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+          data[lpo_data_position + i] = elastic_tensor[SymmetricTensor<2,6>::unrolled_to_component_indices(i)];
 #else
           {
             if (i < 6)
