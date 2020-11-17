@@ -44,8 +44,8 @@ namespace aspect
       output_interval (0),
       // initialize this to a nonsensical value; set it to the actual time
       // the first time around we get to check it
-      last_output_time (std::numeric_limits<double>::quiet_NaN())
-      ,output_file_number (numbers::invalid_unsigned_int),
+      last_output_time (std::numeric_limits<double>::quiet_NaN()),
+      output_file_number (numbers::invalid_unsigned_int),
       group_files(0),
       write_in_background_thread(false)
     {}
@@ -207,7 +207,7 @@ namespace aspect
       std::stringstream string_stream_content_raw;
       std::stringstream string_stream_content_draw_volume_weighting;
 
-      string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " water"
+      string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " olivine_deformation_type"
                            << (hexagonal_plugin_exists ? (std::string(" full_norm_square ")
                                                           + "triclinic_norm_square_p1 triclinic_norm_square_p2 triclinic_norm_square_p3 "
                                                           + "monoclinic_norm_square_p1 monoclinic_norm_square_p2 monoclinic_norm_square_p3 "
@@ -232,7 +232,7 @@ namespace aspect
 
           const Particle::Property::ParticlePropertyInformation &property_information = this->get_particle_world().get_property_manager().get_data_info();
 
-          AssertThrow(property_information.fieldname_exists("lpo water content") ,
+          AssertThrow(property_information.fieldname_exists("olivine deformation type") ,
                       ExcMessage("No LPO particle properties found. Make sure that the LPO particle property plugin is selected."));
 
 
@@ -241,16 +241,11 @@ namespace aspect
                                                  ?
                                                  0
                                                  :
-                                                 property_information.get_position_by_field_name("lpo water content");
-          /*const unsigned int ref_lpo_data_position = property_information.n_fields() == 0
-                                                     ?
-                                                     0
-                                                     :
-                                                     property_information.get_position_by_field_name("lpo water content");*/
-          //std::cout << "output data_position = " << lpo_data_position << std::endl;
+                                                 property_information.get_position_by_field_name("olivine deformation type");
+
           Point<dim> position = it->get_location();
 
-          double water_content = 0;
+          double olivine_deformation_type = 0;
           double volume_fraction_olivine = 0;
           std::vector<double> volume_fractions_olivine(n_grains);
           std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
@@ -259,7 +254,7 @@ namespace aspect
           Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                            properties,
                                                            n_grains,
-                                                           water_content,
+                                                           olivine_deformation_type,
                                                            volume_fraction_olivine,
                                                            volume_fractions_olivine,
                                                            a_cosine_matrices_olivine,
@@ -282,7 +277,7 @@ namespace aspect
                     Particle::Property::LPO<dim>::load_lpo_particle_data(ref_lpo_data_position,
                                                                          properties,
                                                                          n_grains,
-                                                                       water_content,
+                                                                       olivine_deformation_type,
                                                                        volume_fraction_olivine,
                                                                          ref_volume_fractions_olivine,
                                                                          ref_a_cosine_matrices_olivine,

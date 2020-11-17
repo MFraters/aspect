@@ -54,6 +54,11 @@ namespace aspect
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
 
+        AssertThrow(this->introspection().compositional_name_exists("water"),
+                    ExcMessage("Particle property LPO only works if"
+                               "there is a compositional field called water."));
+
+
         // todo: check wheter this works correctly. Since the get_random_number function takes a reference
         // to the random_number_generator function, changing the function should mean that I have to update the
         // get_random_number function as well. But I will need to test this.
@@ -64,14 +69,14 @@ namespace aspect
       LPO<dim>::load_particle_data(unsigned int lpo_data_position,
                                    const ArrayView<double> &data,
                                    unsigned int n_grains,
-                                   double &water_content,
+                                   double &olivine_deformation_type,
                                    double &volume_fraction_olivine,
                                    std::vector<double> &volume_fractions_olivine,
                                    std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
                                    std::vector<double> &volume_fractions_enstatite,
                                    std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite)
       {
-        water_content = data[lpo_data_position];
+        olivine_deformation_type = data[lpo_data_position];
         volume_fraction_olivine = data[lpo_data_position +1];
         // resize the vectors to fit n_grains
         volume_fractions_olivine.resize(n_grains);
@@ -83,11 +88,11 @@ namespace aspect
         unsigned int data_grain_i = 0;
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
-            // retrieve volume fraction for olvine grains
+            // retrieve volume fraction for olivine grains
             volume_fractions_olivine[grain_i] = data[lpo_data_position + data_grain_i *
                                                      (Tensor<2,3>::n_independent_components + 1) + 2];
 
-            // retrieve a_{ij} for olvine grains
+            // retrieve a_{ij} for olivine grains
             //Tensor<2,dim> a_cosine_matrices_olivine;
             for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
               {
@@ -118,7 +123,7 @@ namespace aspect
       LPO<dim>::load_particle_data_extended(unsigned int lpo_data_position,
                                             const ArrayView<double> &data,
                                             unsigned int n_grains,
-                                            double &water_content,
+                                            double &olivine_deformation_type,
                                             double &volume_fraction_olivine,
                                             std::vector<double> &volume_fractions_olivine,
                                             std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
@@ -132,7 +137,7 @@ namespace aspect
         load_particle_data(lpo_data_position,
                            data,
                            n_grains,
-                           water_content,
+                           olivine_deformation_type,
                            volume_fraction_olivine,
                            volume_fractions_olivine,
                            a_cosine_matrices_olivine,
@@ -147,11 +152,11 @@ namespace aspect
             unsigned int data_grain_i = 0;
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
-                // retrieve volume fraction for olvine grains
+                // retrieve volume fraction for olivine grains
                 volume_fractions_olivine_derivatives[grain_i] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + data_grain_i *
                                                                      (Tensor<2,3>::n_independent_components + 1) + 2];
 
-                // retrieve a_{ij} for olvine grains
+                // retrieve a_{ij} for olivine grains
                 //Tensor<2,dim> a_cosine_matrices_olivine;
                 for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
                   {
@@ -191,7 +196,7 @@ namespace aspect
       LPO<dim>::store_particle_data(unsigned int lpo_data_position,
                                     const ArrayView<double> &data,
                                     unsigned int n_grains,
-                                    double water_content,
+                                    double olivine_deformation_type,
                                     double volume_fraction_olivine,
                                     std::vector<double> &volume_fractions_olivine,
                                     std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
@@ -202,15 +207,15 @@ namespace aspect
         Assert(a_cosine_matrices_olivine.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_olivine is not the same as n_grains."));
         Assert(volume_fractions_enstatite.size() == n_grains, ExcMessage("Internal error: volume_fractions_enstatite is not the same as n_grains."));
         Assert(a_cosine_matrices_enstatite.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite is not the same as n_grains."));
-        data[lpo_data_position] = water_content;
+        data[lpo_data_position] = olivine_deformation_type;
         data[lpo_data_position + 1] = volume_fraction_olivine;
         // loop over grains to store the data of each grain
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
-            // store volume fraction for olvine grains
+            // store volume fraction for olivine grains
             data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 2] = volume_fractions_olivine[grain_i];
 
-            // store a_{ij} for olvine grains
+            // store a_{ij} for olivine grains
             for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
               {
                 const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
@@ -238,7 +243,7 @@ namespace aspect
       LPO<dim>::store_particle_data_extended(unsigned int lpo_data_position,
                                              const ArrayView<double> &data,
                                              unsigned int n_grains,
-                                             double water_content,
+                                             double olivine_deformation_type,
                                              double volume_fraction_olivine,
                                              std::vector<double> &volume_fractions_olivine,
                                              std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
@@ -256,7 +261,7 @@ namespace aspect
         store_particle_data(lpo_data_position,
                             data,
                             n_grains,
-                            water_content,
+                            olivine_deformation_type,
                             volume_fraction_olivine,
                             volume_fractions_olivine,
                             a_cosine_matrices_olivine,
@@ -274,10 +279,10 @@ namespace aspect
             Assert(a_cosine_matrices_enstatite_derivatives.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite_derivatives is not the same as n_grains."));
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
-                // store volume fraction for olvine grains
+                // store volume fraction for olivine grains
                 data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 2] = volume_fractions_olivine_derivatives[grain_i];
 
-                // store a_{ij} for olvine grains
+                // store a_{ij} for olivine grains
                 for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
                   {
                     const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
@@ -313,7 +318,7 @@ namespace aspect
                                                  std::vector<double> &data) const
       {
         // the layout of the data vector per perticle is the following (note that for this plugin the following dim's are always 3):
-        // 1. water content -> 1 double, always at location data_position -> i = 0;
+        // 1. olivine deformation type -> 1 double, always at location data_position -> i = 0;
         // 2. N grains times:
         //    2.1. volume fraction olivine -> 1 double, at location:
         //                                    data_position + i_grain * 20 + 1, or
@@ -335,9 +340,8 @@ namespace aspect
         // per tracer to perform reliable statistics on it. This miminum is the same for both olivine and
         // enstatite.
 
-        // set water content
-        // for now no water. Later it might be composition dependent or set by a function.
-        data.push_back(0.0);
+        // fabric. This is determined in the computations, so set it to NaN for now.
+        data.push_back(std::numeric_limits<double>::quiet_NaN());
         data.push_back(x_olivine);
 
         // world builder or not?
@@ -606,7 +610,13 @@ namespace aspect
 
         double pressure = solution[this->introspection().component_indices.pressure];
         double temperature = solution[this->introspection().component_indices.temperature];
-        double water_content = data[data_position];
+        // Only assert in debug mode, because it should already be checked during initialization.
+        Assert(this->introspection().compositional_name_exists("water"),
+               ExcMessage("Particle property LPO only works if"
+                          "there is a compositional field called water."));
+        const unsigned int water_idx = this->introspection().compositional_index_for_name("water");
+        double water_content = solution[this->introspection().component_indices.compositional_fields[water_idx]];
+
         const double dt = this->get_timestep();
         const double strain_rate_second_invariant = std::sqrt(std::abs(second_invariant(strain_rate)));//1.0;//1e-14;//1.0;//
 
@@ -662,10 +672,16 @@ namespace aspect
               const std::array< double, dim > eigenvalues = dealii::eigenvalues(stress);
               double differential_stress = eigenvalues[0]-eigenvalues[dim-1];
               deformation_type = determine_deformation_type(differential_stress, water_content);
+        //std::cout << "stress = " << stress << ", 2*eta*compressible_strain_rate = " << 2*eta*compressible_strain_rate << ", differential_stress = " << differential_stress << ", water_content = " << water_content << ", olivine_deformation_type_number = " << (int)deformation_type <<std::endl;
+
               break;
           }
 
-        const std::array<double,4> ref_resolved_shear_stress = reference_resolved_shear_stress_from_deformation_type(deformation_type);
+        double olivine_deformation_type_number = (int)deformation_type;
+        
+        const std::array<double,4> ref_resolved_shear_stress_olivine = reference_resolved_shear_stress_from_deformation_type(deformation_type);
+        const std::array<double,4> ref_resolved_shear_stress_enstatite = reference_resolved_shear_stress_from_deformation_type(DeformationType::enstatite);
+        //std::cout << "flag 1: ref_resolved_shear_stress= " << ref_resolved_shear_stress[0] << ":" << ref_resolved_shear_stress[1] << ":" << ref_resolved_shear_stress[2] << ":" << ref_resolved_shear_stress[3]  << std::endl; 
 
         std::vector<double> volume_fractions_olivine(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
@@ -677,11 +693,13 @@ namespace aspect
         std::vector<double> volume_fractions_enstatite_derivatives(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite_derivatives(n_grains);
 
+        double dummy = 0;
+
         double volume_fraction_olivine = 0;
         load_particle_data_extended(data_position,
                                     data,
                                     n_grains,
-                                    water_content,
+                                    dummy,
                                     volume_fraction_olivine,
                                     volume_fractions_olivine,
                                     a_cosine_matrices_olivine,
@@ -787,19 +805,20 @@ namespace aspect
         double sum_volume_olivine = 0;
         double sum_volume_enstatite = 0;
 
+        //std::cout << "flag 2: ref_resolved_shear_stress= " << ref_resolved_shear_stress[0] << ":" << ref_resolved_shear_stress[1] << ":" << ref_resolved_shear_stress[2] << ":" << ref_resolved_shear_stress[3] << std::endl;
         std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_olivine = this->compute_derivatives(volume_fractions_olivine,
             a_cosine_matrices_olivine,
             strain_rate_nondimensional_3d,
             velocity_gradient_nondimensional_3d,
             deformation_type,
-            ref_resolved_shear_stress);
+            ref_resolved_shear_stress_olivine);
 
         std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_enstatite = this->compute_derivatives(volume_fractions_enstatite,
             a_cosine_matrices_enstatite,
             strain_rate_nondimensional_3d,
             velocity_gradient_nondimensional_3d,
             DeformationType::enstatite,
-            ref_resolved_shear_stress);
+            ref_resolved_shear_stress_enstatite);
 
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
@@ -975,7 +994,7 @@ namespace aspect
         store_particle_data_extended(data_position,
                                      data,
                                      n_grains,
-                                     water_content,
+                                     olivine_deformation_type_number,
                                      x_olivine,
                                      volume_fractions_olivine,
                                      a_cosine_matrices_olivine,
@@ -1220,7 +1239,7 @@ namespace aspect
       std::vector<std::pair<std::string, unsigned int> >
       LPO<dim>::get_property_information() const
       {
-        std::vector<std::pair<std::string,unsigned int> > property_information (1,std::make_pair("lpo water content",1));
+        std::vector<std::pair<std::string,unsigned int> > property_information (1,std::make_pair("olivine deformation type",1));
         property_information.push_back(std::make_pair("lpo olivine volume fraction",1));
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
@@ -1489,7 +1508,9 @@ namespace aspect
         // create shorcuts
         const std::array<double, 4> &tau = ref_resolved_shear_stress;
 
-        double Xm = deformation_type == DeformationType::enstatite
+        //std::cout << "flag 3: ref_resolved_shear_stress= " << tau[0] << ":" << tau[1] << ":" << tau[2] << ":" << tau[3] << std::endl;
+
+        double Xm = deformation_type != DeformationType::enstatite
                     ?
                     x_olivine
                     :
