@@ -482,7 +482,6 @@ TEST_CASE("LPO")
     lpo_2d.parse_parameters(prm);
     lpo_2d.initialize();
 
-
     Point<dim2> dummy_point;
     std::vector<double> data;
     lpo_2d.initialize_one_particle_property(dummy_point, data);
@@ -491,7 +490,7 @@ TEST_CASE("LPO")
     // always be the same, so test that for seed = 1. Forthermore, in the data
     // I can only really test that the first entry is the water content (0) and
     // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
-    CHECK(data[0] == Approx(0)); // default water value
+    CHECK(isnan(data[0])); // default fabric type which is only computed on a update
     CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
     CHECK(data[2] == Approx(0.2));
     CHECK(data[3] == Approx(0.159063));
@@ -581,7 +580,7 @@ TEST_CASE("LPO")
     velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
     velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
 
-    Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
+    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
     ref_resolved_shear_stress[1] = 2;
@@ -589,10 +588,9 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
     std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
-
     derivatives = lpo_2d.compute_derivatives(volume_fractions, a_cosine_matrices,
                                              strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
-                                             deformation_type, ref_resolved_shear_stress);
+                                             0.5, ref_resolved_shear_stress);
 
     // The correct analytical solution to check against
     // Note that this still has to be multiplied with with volume fraction
@@ -690,7 +688,7 @@ TEST_CASE("LPO")
     // always be the same, so test that for seed = 1. Forthermore, in the data
     // I can only really test that the first entry is the water content (0) and
     // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
-    CHECK(data[0] == Approx(0)); // default water value
+    CHECK(isnan(data[0])); // default fabric type which is only computed on a update
     CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
     CHECK(data[2] == Approx(0.2));
     CHECK(data[3] == Approx(0.159063));
@@ -780,7 +778,7 @@ TEST_CASE("LPO")
     velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
     velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
 
-    Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
+    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
     ref_resolved_shear_stress[1] = 2;
@@ -791,7 +789,7 @@ TEST_CASE("LPO")
 
     derivatives = lpo_3d.compute_derivatives(volume_fractions, a_cosine_matrices,
                                              strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
-                                             deformation_type, ref_resolved_shear_stress);
+                                             0.5, ref_resolved_shear_stress);
 
     // The correct analytical solution to check against
     double solution[5] = {3.150563756, -0.787640939, -0.787640939, -0.787640939 ,-0.787640939};
@@ -889,7 +887,7 @@ TEST_CASE("LPO")
     // always be the same, so test that for seed = 1. Forthermore, in the data
     // I can only really test that the first entry is the water content (0) and
     // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
-    CHECK(data[0] == Approx(0)); // default water value
+    CHECK(isnan(data[0])); // default fabric type which is only computed on a update
     CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
     CHECK(data[2] == Approx(0.2));
     CHECK(data[3] == Approx(0.159063));
@@ -994,7 +992,7 @@ TEST_CASE("LPO")
     velocity_gradient_tensor_nondimensional[2][1] = 5.5;
     velocity_gradient_tensor_nondimensional[2][2] = 6;
 
-    Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
+    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
     ref_resolved_shear_stress[1] = 2;
@@ -1005,7 +1003,7 @@ TEST_CASE("LPO")
 
     derivatives = lpo_3d.compute_derivatives(volume_fractions, a_cosine_matrices,
                                              strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
-                                             deformation_type, ref_resolved_shear_stress);
+                                             0.5, ref_resolved_shear_stress);
 
     // The correct analytical solution to check against
     double solution[5] = {2.5350823696, -0.6337705924, -0.6337705924, -0.6337705924 ,-0.6337705924};

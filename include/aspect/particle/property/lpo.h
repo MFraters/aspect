@@ -308,7 +308,7 @@ namespace aspect
                               const std::vector<Tensor<2,3> > &a_cosine_matrices,
                               const SymmetricTensor<2,3> &strain_rate_nondimensional,
                               const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
-                              const DeformationType deformation_type,
+                              const double volume_fraction_mineral,
                               const std::array<double,4> &ref_resolved_shear_stress) const;
 
           /**
@@ -319,7 +319,7 @@ namespace aspect
                                           const std::vector<Tensor<2,3> > &a_cosine_matrices,
                                           const SymmetricTensor<2,3> &strain_rate_nondimensional,
                                           const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
-                                          const DeformationType deformation_type,
+                                          const double volume_fraction_mineral,
                                           const std::array<double,4> &ref_resolved_shear_stress) const;
 
           /**
@@ -330,7 +330,7 @@ namespace aspect
                                        const std::vector<Tensor<2,3> > &a_cosine_matrices,
                                        const SymmetricTensor<2,3> &strain_rate_nondimensional,
                                        const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
-                                       const DeformationType deformation_type,
+                                       const double volume_fraction_mineral,
                                        const std::array<double,4> &ref_resolved_shear_stress) const;
 
           std::vector<std::vector<double> >
@@ -390,7 +390,7 @@ namespace aspect
           static
           unsigned int n_grains;
 
-          double x_olivine;
+          double volume_fraction_olivine;
 
           double stress_exponent;
 

@@ -54,9 +54,9 @@ namespace aspect
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
 
-        AssertThrow(this->introspection().compositional_name_exists("water"),
-                    ExcMessage("Particle property LPO only works if"
-                               "there is a compositional field called water."));
+        //AssertThrow(this->introspection().compositional_name_exists("water"),
+        //            ExcMessage("Particle property LPO only works if"
+        //                       "there is a compositional field called water."));
 
 
         // todo: check wheter this works correctly. Since the get_random_number function takes a reference
@@ -342,7 +342,7 @@ namespace aspect
 
         // fabric. This is determined in the computations, so set it to NaN for now.
         data.push_back(std::numeric_limits<double>::quiet_NaN());
-        data.push_back(x_olivine);
+        data.push_back(volume_fraction_olivine);
 
         // world builder or not?
         bool use_world_builder = false;
@@ -358,7 +358,6 @@ namespace aspect
                                                                                      1,
                                                                                      n_grains);
             double sum_volume_fractions = 0;
-            //std::cout << " grain_sizes = ";
             for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
               {
                 sum_volume_fractions += olivine_grains.sizes[grain_i];
@@ -383,7 +382,6 @@ namespace aspect
                       data.push_back(enstatite_grains.rotation_matrices[grain_i][component_i][component_j]);
                     }
               }
-            //std::cout << std::endl;
 
             Assert(sum_volume_fractions != 0, ExcMessage("Sum of volumes is equal to zero, which is not supporsed to happen."));
 #else
@@ -400,7 +398,6 @@ namespace aspect
             //data.push_back(initial_volume_fraction);
 
             boost::random::uniform_real_distribution<double> uniform_distribution(0,1);
-            double two_pi = 2.0 * M_PI;
             std::vector<Tensor<2,3>> a_cosine_matrix(2*n_grains,Tensor<2,3>());
 
             // it is 2 times the amount of grains because we have to compute for olivine and enstatite.
@@ -428,8 +425,8 @@ namespace aspect
                 double two = uniform_distribution(this->random_number_generator);
                 double three = uniform_distribution(this->random_number_generator);
 
-                double theta = two_pi * one; // Rotation about the pole (Z)
-                double phi = two_pi * two; // For direction of pole deflection.
+                double theta = 2.0 * M_PI * one; // Rotation about the pole (Z)
+                double phi = 2.0 * M_PI * two; // For direction of pole deflection.
                 double z = 2.0* three; //For magnitude of pole deflection.
 
                 // Compute a vector V used for distributing points over the sphere
@@ -611,9 +608,9 @@ namespace aspect
         double pressure = solution[this->introspection().component_indices.pressure];
         double temperature = solution[this->introspection().component_indices.temperature];
         // Only assert in debug mode, because it should already be checked during initialization.
-        Assert(this->introspection().compositional_name_exists("water"),
-               ExcMessage("Particle property LPO only works if"
-                          "there is a compositional field called water."));
+        AssertThrow(this->introspection().compositional_name_exists("water"),
+                    ExcMessage("Particle property LPO only works if"
+                               "there is a compositional field called water."));
         const unsigned int water_idx = this->introspection().compositional_index_for_name("water");
         double water_content = solution[this->introspection().component_indices.compositional_fields[water_idx]];
 
@@ -672,16 +669,14 @@ namespace aspect
               const std::array< double, dim > eigenvalues = dealii::eigenvalues(stress);
               double differential_stress = eigenvalues[0]-eigenvalues[dim-1];
               deformation_type = determine_deformation_type(differential_stress, water_content);
-        //std::cout << "stress = " << stress << ", 2*eta*compressible_strain_rate = " << 2*eta*compressible_strain_rate << ", differential_stress = " << differential_stress << ", water_content = " << water_content << ", olivine_deformation_type_number = " << (int)deformation_type <<std::endl;
 
               break;
           }
 
         double olivine_deformation_type_number = (int)deformation_type;
-        
+
         const std::array<double,4> ref_resolved_shear_stress_olivine = reference_resolved_shear_stress_from_deformation_type(deformation_type);
         const std::array<double,4> ref_resolved_shear_stress_enstatite = reference_resolved_shear_stress_from_deformation_type(DeformationType::enstatite);
-        //std::cout << "flag 1: ref_resolved_shear_stress= " << ref_resolved_shear_stress[0] << ":" << ref_resolved_shear_stress[1] << ":" << ref_resolved_shear_stress[2] << ":" << ref_resolved_shear_stress[3]  << std::endl; 
 
         std::vector<double> volume_fractions_olivine(n_grains);
         std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
@@ -694,8 +689,8 @@ namespace aspect
         std::vector<Tensor<2,3> > a_cosine_matrices_enstatite_derivatives(n_grains);
 
         double dummy = 0;
-
         double volume_fraction_olivine = 0;
+
         load_particle_data_extended(data_position,
                                     data,
                                     n_grains,
@@ -801,23 +796,21 @@ namespace aspect
          * the derivatives for the directions and grain sizes. Then those
          * derivatives are used to advect the particle properties.
          */
-
         double sum_volume_olivine = 0;
         double sum_volume_enstatite = 0;
 
-        //std::cout << "flag 2: ref_resolved_shear_stress= " << ref_resolved_shear_stress[0] << ":" << ref_resolved_shear_stress[1] << ":" << ref_resolved_shear_stress[2] << ":" << ref_resolved_shear_stress[3] << std::endl;
         std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_olivine = this->compute_derivatives(volume_fractions_olivine,
             a_cosine_matrices_olivine,
             strain_rate_nondimensional_3d,
             velocity_gradient_nondimensional_3d,
-            deformation_type,
+            volume_fraction_olivine,
             ref_resolved_shear_stress_olivine);
 
         std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_enstatite = this->compute_derivatives(volume_fractions_enstatite,
             a_cosine_matrices_enstatite,
             strain_rate_nondimensional_3d,
             velocity_gradient_nondimensional_3d,
-            DeformationType::enstatite,
+            1.0 - volume_fraction_olivine,
             ref_resolved_shear_stress_enstatite);
 
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
@@ -853,7 +846,7 @@ namespace aspect
 
               sum_volume_enstatite = this->advect_backward_euler(volume_fractions_enstatite,
                                                                  a_cosine_matrices_enstatite,
-                                                                 derivatives_olivine,
+                                                                 derivatives_enstatite,
                                                                  strain_rate_second_invariant, dt);
               break;
 
@@ -907,7 +900,7 @@ namespace aspect
                 for (size_t k = 0; k < 3; k++)
                   {
                     Assert(!std::isnan(a_cosine_matrices_olivine[i][j][k]), ExcMessage(" a_cosine_matrices_olivine is nan before orthoganalization."));
-                    Assert(!std::isnan(a_cosine_matrices_enstatite[i][j][k]), ExcMessage(" a_cosine_matrices_olivine is nan before orthoganalization."));
+                    Assert(!std::isnan(a_cosine_matrices_enstatite[i][j][k]), ExcMessage(" a_cosine_matrices_enstatite is nan before orthoganalization."));
                   }
 
               }
@@ -952,7 +945,7 @@ namespace aspect
                 for (size_t k = 0; k < 3; k++)
                   {
                     Assert(!std::isnan(a_cosine_matrices_olivine[i][j][k]), ExcMessage(" a_cosine_matrices_olivine is nan after orthoganalization: " + std::to_string(a_cosine_matrices_olivine[i][j][k])));
-                    Assert(!std::isnan(a_cosine_matrices_enstatite[i][j][k]), ExcMessage(" a_cosine_matrices_olivine is nan after orthoganalization: " + std::to_string(a_cosine_matrices_olivine[i][j][k])));
+                    Assert(!std::isnan(a_cosine_matrices_enstatite[i][j][k]), ExcMessage(" a_cosine_matrices_enstatite is nan after orthoganalization: " + std::to_string(a_cosine_matrices_olivine[i][j][k])));
                   }
 
               }
@@ -995,7 +988,7 @@ namespace aspect
                                      data,
                                      n_grains,
                                      olivine_deformation_type_number,
-                                     x_olivine,
+                                     volume_fraction_olivine,
                                      volume_fractions_olivine,
                                      a_cosine_matrices_olivine,
                                      volume_fractions_enstatite,
@@ -1440,7 +1433,7 @@ namespace aspect
                                     const std::vector<Tensor<2,3> > &a_cosine_matrices,
                                     const SymmetricTensor<2,3> &strain_rate_nondimensional,
                                     const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
-                                    const DeformationType deformation_type,
+                                    const double volume_fraction_mineral,
                                     const std::array<double,4> &ref_resolved_shear_stress) const
       {
         //
@@ -1455,7 +1448,7 @@ namespace aspect
                                                            a_cosine_matrices_zero,
                                                            strain_rate_nondimensional,
                                                            velocity_gradient_tensor_nondimensional,
-                                                           deformation_type,
+                                                           volume_fraction_mineral,
                                                            ref_resolved_shear_stress);
               break;
             }
@@ -1464,7 +1457,7 @@ namespace aspect
                                                         a_cosine_matrices_zero,
                                                         strain_rate_nondimensional,
                                                         velocity_gradient_tensor_nondimensional,
-                                                        deformation_type,
+                                                        volume_fraction_mineral,
                                                         ref_resolved_shear_stress);
               break;
             default:
@@ -1481,7 +1474,7 @@ namespace aspect
                                                 const std::vector<Tensor<2,3> > &,
                                                 const SymmetricTensor<2,3> &,
                                                 const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
-                                                const DeformationType,
+                                                const double,
                                                 const std::array<double,4> &) const
       {
         // dA/dt = W * A, where W is the spin tensor and A is the rotation matrix
@@ -1497,7 +1490,7 @@ namespace aspect
                                              const std::vector<Tensor<2,3> > &a_cosine_matrices,
                                              const SymmetricTensor<2,3> &strain_rate_nondimensional,
                                              const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
-                                             const DeformationType deformation_type,
+                                             const double volume_fraction_mineral,
                                              const std::array<double,4> &ref_resolved_shear_stress) const
       {
 
@@ -1510,11 +1503,6 @@ namespace aspect
 
         //std::cout << "flag 3: ref_resolved_shear_stress= " << tau[0] << ":" << tau[1] << ":" << tau[2] << ":" << tau[3] << std::endl;
 
-        double Xm = deformation_type != DeformationType::enstatite
-                    ?
-                    x_olivine
-                    :
-                    1 - x_olivine;
 
 
         std::vector<double> strain_energy(n_grains);
@@ -1538,101 +1526,84 @@ namespace aspect
             unsigned int index_min_q = 0;
             unsigned int index_inactive_q = 0;
 
-            // compute G and beta for enstatite or olivine.
-            if (deformation_type == DeformationType::enstatite)
+            // compute G and beta
+            Tensor<1,4> bigI;
+            // this should be equal to a_cosine_matrices[grain_i]*a_cosine_matrices[grain_i]?
+            // todo: check and maybe replace?
+            for (unsigned int i = 0; i < 3; ++i)
               {
-                beta = 1.0;
+                for (unsigned int j = 0; j < 3; ++j)
+                  {
+                    //strain_rate_nondimensional is in 2d not big enough
+                    bigI[0] = bigI[0] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j];
+
+                    bigI[1] = bigI[1] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j];
+
+                    bigI[2] = bigI[2] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j];
+
+                    bigI[3] = bigI[3] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j];
+                  }
+              }
+
+            if (bigI[0] == 0.0 && bigI[1] == 0.0 && bigI[2] == 0.0 && bigI[3] == 0.0)
+              {
+                // In this case there is no shear, only (posibily) a rotation. So \gamma_y and/or G should be zero.
+                // Which is the default value, so do nothing.
+              }
+            else
+              {
+                // compute the element wise absolute value of the element wise
+                // division of BigI by tau (tau = ref_resolved_shear_stress).
+                std::vector<double> q_abs(4);
+                for (unsigned int i = 0; i < 4; i++)
+                  {
+                    q_abs[i] = std::abs(bigI[i] / tau[i]);
+                  }
+
+                // here we find the indices starting at the largest value and ending at the smallest value
+                // and assign them to special variables. Because all the variables are absolute values,
+                // we can set them to a negative value to ignore them. This should be faster then deleting
+                // the element, which would require allocation. (not tested)
+                index_max_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                q_abs[index_max_q] = -1;
+
+                index_intermediate_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                q_abs[index_intermediate_q] = -1;
+
+                index_min_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                q_abs[index_min_q] = -1;
+
+                index_inactive_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
+
+                // todo: explain
+                Assert(bigI[index_max_q] != 0.0, ExcMessage("Internal error: bigI is zero."));
+                double ratio = tau[index_max_q]/bigI[index_max_q];
+
+                double q_intermediate = ratio * (bigI[index_intermediate_q]/tau[index_intermediate_q]);
+
+                double q_min = ratio * (bigI[index_min_q]/tau[index_min_q]);
+
+                // todo: explain
+                beta[index_max_q] = 1.0; // max q_abs, weak system (most deformation) "s=1"
+                beta[index_intermediate_q] = q_intermediate * std::pow(std::abs(q_intermediate), stress_exponent-1);
+                beta[index_min_q] = q_min * std::pow(std::abs(q_min), stress_exponent-1);
+                beta[index_inactive_q] = 0.0;
+
+                // todo: explain
                 for (unsigned int i = 0; i < 3; i++)
                   {
                     for (unsigned int j = 0; j < 3; j++)
                       {
-                        G[i][j] = G[i][j] + 2.0 * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j];
+                        G[i][j] = 2.0 * (beta[0] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j]
+                                         + beta[1] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j]
+                                         + beta[2] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j]
+                                         + beta[3] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j]);
                       }
                   }
               }
-            else
-              {
-                Tensor<1,4> bigI;
-                // this should be equal to a_cosine_matrices[grain_i]*a_cosine_matrices[grain_i]?
-                // todo: check and maybe replace?
-                for (unsigned int i = 0; i < 3; ++i)
-                  {
-                    for (unsigned int j = 0; j < 3; ++j)
-                      {
-                        //strain_rate_nondimensional is in 2d not big enough
-                        bigI[0] = bigI[0] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j];
-
-                        bigI[1] = bigI[1] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j];
-
-                        bigI[2] = bigI[2] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j];
-
-                        bigI[3] = bigI[3] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j];
-                      }
-                  }
-
-                if (bigI[0] == 0.0 && bigI[1] == 0.0 && bigI[2] == 0.0 && bigI[3] == 0.0)
-                  {
-                    // In this case there is no shear, only (posibily) a rotation. So \gamma_y and/or G should be zero.
-                    // Which is the default value, so do nothing.
-                  }
-                else
-                  {
-
-                    // compute the element wise absolute value of the element wise
-                    // division of BigI by tau (tau = ref_resolved_shear_stress).
-                    std::vector<double> q_abs(4);
-                    for (unsigned int i = 0; i < 4; i++)
-                      {
-                        q_abs[i] = std::abs(bigI[i] / tau[i]);
-                      }
-
-                    // here we find the indices starting at the largest value and ending at the smallest value
-                    // and assign them to special variables. Because all the variables are absolute values,
-                    // we can set them to a negative value to ignore them. This should be faster then deleting
-                    // the element, which would require allocation. (not tested)
-                    index_max_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                    q_abs[index_max_q] = -1;
-
-                    index_intermediate_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                    q_abs[index_intermediate_q] = -1;
-
-                    index_min_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                    q_abs[index_min_q] = -1;
-
-                    index_inactive_q = std::distance(q_abs.begin(),max_element(q_abs.begin(), q_abs.end()));
-
-                    // todo: explain
-                    Assert(bigI[index_max_q] != 0.0, ExcMessage("Internal error: bigI is zero."));
-                    double ratio = tau[index_max_q]/bigI[index_max_q];
-
-                    double q_intermediate = ratio * (bigI[index_intermediate_q]/tau[index_intermediate_q]);
-
-                    double q_min = ratio * (bigI[index_min_q]/tau[index_min_q]);
-
-                    // todo: explain
-                    beta[index_max_q] = 1.0; // max q_abs, weak system (most deformation) "s=1"
-                    beta[index_intermediate_q] = q_intermediate * std::pow(std::abs(q_intermediate), stress_exponent-1);
-                    beta[index_min_q] = q_min * std::pow(std::abs(q_min), stress_exponent-1);
-                    beta[index_inactive_q] = 0.0;
-
-
-                    // todo: explain
-                    for (unsigned int i = 0; i < 3; i++)
-                      {
-                        for (unsigned int j = 0; j < 3; j++)
-                          {
-                            G[i][j] = 2.0 * (beta[0] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j]
-                                             + beta[1] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j]
-                                             + beta[2] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][1][j]
-                                             + beta[3] * a_cosine_matrices[grain_i][2][i] * a_cosine_matrices[grain_i][0][j]);
-                          }
-                      }
-                  }
-              }
-
 
             // Now calculate the analytic solution to the deformation minimization problem
             // compute gamma (equation 7, Kaminiski & Ribe, 2001)
@@ -1670,36 +1641,27 @@ namespace aspect
             // For olivine: DREX only sums over 1-3. But Thissen's matlab code corrected
             // this and writes each term using the indices created when calculating bigI.
             // Note tau = RRSS = (tau_m^s/tau_o), this why we get tau^(p-n)
-            if (deformation_type == DeformationType::enstatite)
-              {
-                // todo: check beta is alright
-                const double rhos = std::pow(tau[3],(exponent_p-stress_exponent)) *
-                                    std::pow(std::abs(gamma*beta[0]),exponent_p/stress_exponent);
-                strain_energy[grain_i] = rhos * std::exp(-nucleation_efficientcy*rhos*rhos);
-              }
-            else
-              {
-                const double rhos1 = std::pow(tau[index_max_q],exponent_p-stress_exponent) *
-                                     std::pow(std::abs(gamma*beta[index_max_q]),exponent_p/stress_exponent);
+            const double rhos1 = std::pow(tau[index_max_q],exponent_p-stress_exponent) *
+                                 std::pow(std::abs(gamma*beta[index_max_q]),exponent_p/stress_exponent);
 
-                const double rhos2 = std::pow(tau[index_intermediate_q],exponent_p-stress_exponent) *
-                                     std::pow(std::abs(gamma*beta[index_intermediate_q]),exponent_p/stress_exponent);
+            const double rhos2 = std::pow(tau[index_intermediate_q],exponent_p-stress_exponent) *
+                                 std::pow(std::abs(gamma*beta[index_intermediate_q]),exponent_p/stress_exponent);
 
-                const double rhos3 = std::pow(tau[index_min_q],exponent_p-stress_exponent) *
-                                     std::pow(std::abs(gamma*beta[index_min_q]),exponent_p/stress_exponent);
+            const double rhos3 = std::pow(tau[index_min_q],exponent_p-stress_exponent) *
+                                 std::pow(std::abs(gamma*beta[index_min_q]),exponent_p/stress_exponent);
 
-                const double rhos4 = std::pow(tau[index_inactive_q],exponent_p-stress_exponent) *
-                                     std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent);
+            const double rhos4 = std::pow(tau[index_inactive_q],exponent_p-stress_exponent) *
+                                 std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent);
 
-                strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficientcy * rhos1 * rhos1)
-                                          + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
-                                          + rhos3 * exp(-nucleation_efficientcy * rhos3 * rhos3)
-                                          + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
-                //std::cout << "strain_energy[" << grain_i << "] = " << strain_energy[grain_i] << std::endl;
+            strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficientcy * rhos1 * rhos1)
+                                      + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
+                                      + rhos3 * exp(-nucleation_efficientcy * rhos3 * rhos3)
+                                      + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
+            //std::cout << "strain_energy[" << grain_i << "] = " << strain_energy[grain_i] << std::endl;
 
-                Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
-                                                                    + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3) + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficientcy = " + std::to_string(nucleation_efficientcy) + "."));
-              }
+            Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
+                                                                + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3)
+                                                                + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficientcy = " + std::to_string(nucleation_efficientcy) + "."));
 
             // compute the derivative of the cosine matrix a: \frac{\partial a_{ij}}{\partial t}
             // (Eq. 9, Kaminski & Ribe 2001)
@@ -1731,18 +1693,18 @@ namespace aspect
               {
                 strain_energy[grain_i] = 0;
               }
-
           }
 
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
-
             // Different than D-Rex. Here we actually only compute the derivative and do not multiply it with the volume_fractions. We do that when we advect.
-            deriv_volume_fractions[grain_i] = Xm * mobility * (mean_strain_energy - strain_energy[grain_i]);
+            deriv_volume_fractions[grain_i] = volume_fraction_mineral * mobility * (mean_strain_energy - strain_energy[grain_i]);
             //std::cout << "deriv_volume_fractions[grain_i] = " << deriv_volume_fractions[grain_i]<< " = Xm (" << Xm << ") * mobility (" << mobility << ")  * volume_fractions[grain_i] ("
             //<< volume_fractions[grain_i] << ") * (" << mean_strain_energy << " - " << strain_energy[grain_i] << ")" << std::endl;
 
-            Assert(isfinite(deriv_volume_fractions[grain_i]), ExcMessage("deriv_volume_fractions[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(deriv_volume_fractions[grain_i])));
+            Assert(isfinite(deriv_volume_fractions[grain_i]),
+                   ExcMessage("deriv_volume_fractions[" + std::to_string(grain_i) + "] is not finite: "
+                              + std::to_string(deriv_volume_fractions[grain_i])));
           }
 
         return std::pair<std::vector<double>, std::vector<Tensor<2,3> > >(deriv_volume_fractions, deriv_a_cosine_matrices);
@@ -1864,7 +1826,7 @@ namespace aspect
               random_number_seed = prm.get_integer ("Random number seed"); // 2
               n_grains = prm.get_integer("Number of grains per praticle"); //10000;
               mobility = prm.get_double("Mobility"); //50;
-              x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
+              volume_fraction_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
               stress_exponent = prm.get_double("Stress exponents"); //3.5;
               exponent_p = prm.get_double("Exponents p"); //1.5;
               nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
