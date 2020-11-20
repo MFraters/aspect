@@ -798,6 +798,7 @@ namespace aspect
          */
         double sum_volume_olivine = 0;
         double sum_volume_enstatite = 0;
+        const double volume_fraction_enstatite = 1.0 - volume_fraction_olivine;
 
         std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_olivine = this->compute_derivatives(volume_fractions_olivine,
             a_cosine_matrices_olivine,
@@ -810,7 +811,7 @@ namespace aspect
             a_cosine_matrices_enstatite,
             strain_rate_nondimensional_3d,
             velocity_gradient_nondimensional_3d,
-            1.0 - volume_fraction_olivine,
+            volume_fraction_enstatite,
             ref_resolved_shear_stress_enstatite);
 
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
@@ -1666,7 +1667,7 @@ namespace aspect
             // compute the derivative of the cosine matrix a: \frac{\partial a_{ij}}{\partial t}
             // (Eq. 9, Kaminski & Ribe 2001)
             deriv_a_cosine_matrices[grain_i] = 0;
-            if (volume_fractions[grain_i] > threshold_GBS/n_grains)
+            if (volume_fractions[grain_i] >= threshold_GBS/n_grains)
               {
                 //for (unsigned int i = 0; i < 3; ++i)
                 //  for (unsigned int j = 0; j < 3; ++j)
@@ -1683,6 +1684,7 @@ namespace aspect
                 deriv_a_cosine_matrices[grain_i] =permutation_operator_3d * w;
                 //std::cout << "deriv_a_cosine_matrices[grain_i] = " << deriv_a_cosine_matrices[grain_i] << std::endl << "permutation_operator_3d * w =      " << permutation_operator_3d *w << ", a_cosine_matrices["<< grain_i << "] = " << a_cosine_matrices[grain_i] << ", w = " << w  << std::endl;
 
+                // volume averaged strain energy
                 mean_strain_energy += volume_fractions[grain_i] * strain_energy[grain_i];
 
 
@@ -1695,9 +1697,11 @@ namespace aspect
               }
           }
 
+        // Change of volume fraction of grains by grain boundary migration
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
             // Different than D-Rex. Here we actually only compute the derivative and do not multiply it with the volume_fractions. We do that when we advect.
+            //deriv_volume_fractions[grain_i] = volume_fraction_mineral * mobility * (mean_strain_energy - strain_energy[grain_i]);
             deriv_volume_fractions[grain_i] = volume_fraction_mineral * mobility * (mean_strain_energy - strain_energy[grain_i]);
             //std::cout << "deriv_volume_fractions[grain_i] = " << deriv_volume_fractions[grain_i]<< " = Xm (" << Xm << ") * mobility (" << mobility << ")  * volume_fractions[grain_i] ("
             //<< volume_fractions[grain_i] << ") * (" << mean_strain_energy << " - " << strain_energy[grain_i] << ")" << std::endl;
