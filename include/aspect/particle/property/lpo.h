@@ -37,11 +37,11 @@ namespace aspect
     {
       enum class DeformationType
       {
-        A_type, B_type, C_type, D_type, E_type, enstatite
+        OlivineAFabric, OlivineBFabric, OlivineCFabric, OlivineDFabric, OlivineEFabric, Enstatite
       };
-      enum class OlivineDeformationTypeSelector
+      enum class DeformationTypeSelector
       {
-        A_type, B_type, C_type, D_type, E_type, Karato2008
+        OlivineAFabric, OlivineBFabric, OlivineCFabric, OlivineDFabric, OlivineEFabric, Enstatite, OlivineKarato2008
       };
 
       enum class AdvectionMethod
@@ -180,13 +180,10 @@ namespace aspect
           void
           load_particle_data(unsigned int lpo_index,
                              const ArrayView<double> &data,
-                             unsigned int n_grains,
-                             double &water_content,
-                             double &volume_fraction_olivine,
-                             std::vector<double> &volume_fractions_olivine,
-                             std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                             std::vector<double> &volume_fractions_enstatite,
-                             std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
+                             std::vector<unsigned int> &deformation_type,
+                             std::vector<double> &volume_fraction_mineral,
+                             std::vector<std::vector<double>> &volume_fractions_mineral,
+                             std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral);
 
 
           /**
@@ -195,17 +192,12 @@ namespace aspect
           void
           load_particle_data_extended(unsigned int lpo_index,
                                       const ArrayView<double> &data,
-                                      unsigned int n_grains,
-                                      double &water_content,
-                                      double &volume_fraction_olivine,
-                                      std::vector<double> &volume_fractions_olivine,
-                                      std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                      std::vector<double> &volume_fractions_enstatite,
-                                      std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite,
-                                      std::vector<double> &volume_fractions_olivine_derivatives,
-                                      std::vector<Tensor<2,3> > &a_cosine_matrices_olivine_derivatives,
-                                      std::vector<double> &volume_fractions_enstatite_derivatives,
-                                      std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite_derivatives) const;
+                                      std::vector<unsigned int> &deformation_type,
+                                      std::vector<double> &volume_fraction_mineral,
+                                      std::vector<std::vector<double>> &volume_fractions_mineral,
+                                      std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
+                                      std::vector<std::vector<double> > &volume_fractions_mineral_derivatives,
+                                      std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives) const;
 
           /**
            * Stores information in variables into the data array
@@ -214,30 +206,22 @@ namespace aspect
           void
           store_particle_data(unsigned int lpo_data_position,
                               const ArrayView<double> &data,
-                              unsigned int n_grains,
-                              double water_content,
-                              double volume_fraction_olivine,
-                              std::vector<double> &volume_fractions_olivine,
-                              std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                              std::vector<double> &volume_fractions_enstatite,
-                              std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite);
+                              std::vector<unsigned int> &deformation_type,
+                              std::vector<double> &volume_fraction_mineral,
+                              std::vector<std::vector<double>> &volume_fractions_mineral,
+                              std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral);
           /**
            * Stores information in variables into the data array
            */
           void
           store_particle_data_extended(unsigned int lpo_data_position,
                                        const ArrayView<double> &data,
-                                       unsigned int n_grains,
-                                       double water_content,
-                                       double volume_fraction_olivine,
-                                       std::vector<double> &volume_fractions_olivine,
-                                       std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                       std::vector<double> &volume_fractions_enstatite,
-                                       std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite,
-                                       std::vector<double> &volume_fractions_olivine_derivatives,
-                                       std::vector<Tensor<2,3> > &a_cosine_matrices_olivine_derivatives,
-                                       std::vector<double> &volume_fractions_enstatite_derivatives,
-                                       std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite_derivatives) const;
+                                       std::vector<unsigned int> &deformation_type,
+                                       std::vector<double> &volume_fraction_mineral,
+                                       std::vector<std::vector<double>> &volume_fractions_mineral,
+                                       std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
+                                       std::vector<std::vector<double> > &volume_fractions_mineral_derivatives,
+                                       std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives) const;
 
           /**
            * Find nearest orthogonal matrix using a SVD if the
@@ -344,6 +328,13 @@ namespace aspect
           get_number_of_grains();
 
           /**
+           * Return the number of minerals per particle
+           */
+          static
+          unsigned int
+          get_number_of_minerals();
+
+          /**
            * Todo, rewrite.
            * Declare the parameters this class takes through input files.
            * Derived classes should overload this function if they actually do
@@ -374,7 +365,7 @@ namespace aspect
 
         private:
 
-          OlivineDeformationTypeSelector olivine_deformation_type_selector;
+          std::vector<DeformationTypeSelector> deformation_type_selector;
 
           double rad_to_degree = 180.0/M_PI;
           double degree_to_rad = M_PI/180.0;
@@ -390,7 +381,10 @@ namespace aspect
           static
           unsigned int n_grains;
 
-          double volume_fraction_olivine;
+          static
+          unsigned int n_minerals;
+
+          std::vector<double> volume_fractions_minerals;
 
           double stress_exponent;
 
