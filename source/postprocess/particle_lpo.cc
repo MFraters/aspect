@@ -232,7 +232,7 @@ namespace aspect
 
           const Particle::Property::ParticlePropertyInformation &property_information = this->get_particle_world().get_property_manager().get_data_info();
 
-          AssertThrow(property_information.fieldname_exists("olivine deformation type") ,
+          AssertThrow(property_information.fieldname_exists("cpo mineral 0 type") ,
                       ExcMessage("No LPO particle properties found. Make sure that the LPO particle property plugin is selected."));
 
 
@@ -241,25 +241,21 @@ namespace aspect
                                                  ?
                                                  0
                                                  :
-                                                 property_information.get_position_by_field_name("olivine deformation type");
+                                                 property_information.get_position_by_field_name("cpo mineral 0 type");
 
           Point<dim> position = it->get_location();
 
-          double olivine_deformation_type = 0;
-          double volume_fraction_olivine = 0;
-          std::vector<double> volume_fractions_olivine(n_grains);
-          std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
-          std::vector<double> volume_fractions_enstatite(n_grains);
-          std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
+          std::vector<unsigned int> deformation_type;
+          std::vector<double> volume_fraction_mineral;
+          std::vector<std::vector<double>> volume_fractions_grains;
+          std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+
           Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                            properties,
-                                                           n_grains,
-                                                           olivine_deformation_type,
-                                                           volume_fraction_olivine,
-                                                           volume_fractions_olivine,
-                                                           a_cosine_matrices_olivine,
-                                                           volume_fractions_enstatite,
-                                                           a_cosine_matrices_enstatite);
+                                                           deformation_type,
+                                                           volume_fraction_mineral,
+                                                           volume_fractions_grains,
+                                                           a_cosine_matrices_grains);
 
           const unsigned int lpo_hex_data_position = property_information.n_fields() == 0 && hexagonal_plugin_exists == false
                                                      ?
@@ -357,13 +353,13 @@ namespace aspect
               euler_angles_olivine.resize(n_grains);
               for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
                 {
-                  euler_angles_olivine[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_olivine[i_grain]);
+                  euler_angles_olivine[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_grains[0][i_grain]);
                 }
 
               euler_angles_enstatite.resize(n_grains);
               for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
                 {
-                  euler_angles_enstatite[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_enstatite[i_grain]);
+                  euler_angles_enstatite[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_grains[1][i_grain]);
                 }
             }
 
@@ -423,11 +419,11 @@ namespace aspect
                       switch (write_raw_lpo[property_i])
                         {
                           case Output::olivine_volume_fraction:
-                            string_stream_content_raw << volume_fractions_olivine[grain_i] << " ";
+                            string_stream_content_raw << volume_fractions_grains[0][grain_i] << " ";
                             break;
 
                           case Output::olivine_A_matrix:
-                            string_stream_content_raw << a_cosine_matrices_olivine[grain_i] << " ";
+                            string_stream_content_raw << a_cosine_matrices_grains[0][grain_i] << " ";
                             break;
 
                           case Output::olivine_Euler_angles:
@@ -437,11 +433,11 @@ namespace aspect
                             break;
 
                           case Output::enstatite_volume_fraction:
-                            string_stream_content_raw << volume_fractions_enstatite[grain_i] << " ";
+                            string_stream_content_raw << volume_fractions_grains[1][grain_i] << " ";
                             break;
 
                           case Output::enstatite_A_matrix:
-                            string_stream_content_raw << a_cosine_matrices_enstatite[grain_i] << " ";
+                            string_stream_content_raw << a_cosine_matrices_grains[1][grain_i] << " ";
                             break;
 
                           case Output::enstatite_Euler_angles:
@@ -461,10 +457,10 @@ namespace aspect
             }
           if (write_draw_volume_weighted_lpo.size() != 0)
             {
-              std::vector<std::vector<double> > weighted_euler_angles_olivine = random_draw_volume_weighting(volume_fractions_olivine, euler_angles_olivine);
+              std::vector<std::vector<double> > weighted_euler_angles_olivine = random_draw_volume_weighting(volume_fractions_grains[0], euler_angles_olivine);
               Assert(weighted_euler_angles_olivine.size() == euler_angles_olivine.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_euler_angles_olivine.size()) +
                      ") has different size from input angles (size = " + std::to_string(euler_angles_olivine.size()) + ")."));
-              std::vector<std::vector<double> > weighted_euler_angles_enstatite = random_draw_volume_weighting(volume_fractions_enstatite, euler_angles_enstatite);
+              std::vector<std::vector<double> > weighted_euler_angles_enstatite = random_draw_volume_weighting(volume_fractions_grains[1], euler_angles_enstatite);
               Assert(weighted_euler_angles_enstatite.size() == euler_angles_enstatite.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_euler_angles_enstatite.size()) +
                      ") has different size from input angles (size = " + std::to_string(euler_angles_enstatite.size()) + ")."));
 
@@ -481,7 +477,7 @@ namespace aspect
                       weighted_a_cosine_matrices_olivine[i] = euler_angles_to_rotation_matrix(weighted_euler_angles_olivine[i][0],
                                                                                               weighted_euler_angles_olivine[i][1],
                                                                                               weighted_euler_angles_olivine[i][2]);
-                      std::cout << "weighted_a_cosine_matrices_olivine[" << i << "] = " << weighted_a_cosine_matrices_olivine[i] << std::endl;
+                      // std::cout << "weighted_a_cosine_matrices_olivine[" << i << "] = " << weighted_a_cosine_matrices_olivine[i] << std::endl;
                     }
 
                   weighted_a_cosine_matrices_enstatite.resize(weighted_euler_angles_enstatite.size());
@@ -547,11 +543,11 @@ namespace aspect
                       switch (write_draw_volume_weighted_lpo[property_i])
                         {
                           case Output::olivine_volume_fraction:
-                            string_stream_content_draw_volume_weighting << volume_fractions_olivine[grain_i] << " ";
+                            string_stream_content_draw_volume_weighting << volume_fractions_grains[0][grain_i] << " ";
                             break;
 
                           case Output::olivine_A_matrix:
-                            string_stream_content_draw_volume_weighting << a_cosine_matrices_olivine[grain_i] << " ";
+                            string_stream_content_draw_volume_weighting << a_cosine_matrices_grains[0][grain_i] << " ";
                             break;
 
                           case Output::olivine_Euler_angles:
@@ -559,11 +555,11 @@ namespace aspect
                             break;
 
                           case Output::enstatite_volume_fraction:
-                            string_stream_content_draw_volume_weighting << volume_fractions_enstatite[grain_i] << " ";
+                            string_stream_content_draw_volume_weighting << volume_fractions_grains[1][grain_i] << " ";
                             break;
 
                           case Output::enstatite_A_matrix:
-                            string_stream_content_draw_volume_weighting << a_cosine_matrices_enstatite[grain_i] << " ";
+                            string_stream_content_draw_volume_weighting << a_cosine_matrices_grains[1][grain_i] << " ";
                             break;
 
                           case Output::enstatite_Euler_angles:
@@ -772,8 +768,8 @@ namespace aspect
 
         }
 
-      if (rotation_matrix[2][2] > 1.0)
-        std::cout << "rotation_matrix[2][2] -1 = " << rotation_matrix[2][2] - 1.0 << std::endl;
+      //if (rotation_matrix[2][2] > 1.0)
+      //  std::cout << "rotation_matrix[2][2] -1 = " << rotation_matrix[2][2] - 1.0 << std::endl;
       AssertThrow(!std::isnan(phi1), ExcMessage(" phi1 is nan. theta = " + std::to_string(theta) + ", rotation_matrix[2][2]= " + std::to_string(rotation_matrix[2][2])
                                                 + ", acos(rotation_matrix[2][2]) = " + std::to_string(std::acos(rotation_matrix[2][2])) + ", acos(1.0) = " + std::to_string(std::acos(1.0))));
       AssertThrow(!std::isnan(theta), ExcMessage(" theta is nan."));

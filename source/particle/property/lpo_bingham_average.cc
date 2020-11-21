@@ -78,53 +78,34 @@ namespace aspect
 
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
-        double water_content = 0;
-        double volume_fraction_olivine = 0;
-        std::vector<double> volume_fractions_olivine(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
-        std::vector<double> volume_fractions_enstatite(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
 
-        //std::cout << "lpo_data_position = " << lpo_data_position << ", n_grains = " << n_grains << std::endl;
+        std::vector<unsigned int> deformation_type;
+        std::vector<double> volume_fraction_mineral;
+        std::vector<std::vector<double>> volume_fractions_grains;
+        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
-                                                         n_grains,
-                                                         water_content,
-                                                         volume_fraction_olivine,
-                                                         volume_fractions_olivine,
-                                                         a_cosine_matrices_olivine,
-                                                         volume_fractions_enstatite,
-                                                         a_cosine_matrices_enstatite);
+                                                         deformation_type,
+                                                         volume_fraction_mineral,
+                                                         volume_fractions_grains,
+                                                         a_cosine_matrices_grains);
 
 
+        //std::cout << "bingham n_minerals = " << n_minerals << ", n_grains = " << n_grains << std::endl;
+        //size_t counter = 0;
+        for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
+          {
+            const std::vector<Tensor<2,3> > weighted_a_matrices = random_draw_volume_weighting(volume_fractions_grains[mineral_i], a_cosine_matrices_grains[mineral_i], n_samples);
+            std::array<std::array<double,3>,3> bingham_average = compute_bingham_average(weighted_a_matrices);
 
-        //std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine, n_samples);
-        //std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite, n_samples);
-        /*std::cout << "new weighted_olivine_a_matrices:" << std::endl;
-        for (size_t grain_i = 0; grain_i < weighted_enstatite_a_matrices.size(); grain_i++)
-        {std::cout << "grain = " << grain_i << std::endl;
-        for (size_t i = 0; i < 3; i++)
-        {
-            for (size_t j = 0; j < 3; j++)
-            {
-                std::cout << weighted_olivine_a_matrices[grain_i][i][j] << " ";
-            }
-            std::cout << std::endl;
-        }
-        }*/
-
-        std::array<std::array<double,3>,3> bingham_average_olivine = compute_bingham_average(a_cosine_matrices_olivine);
-        std::array<std::array<double,3>,3> bingham_average_enstatite = compute_bingham_average(a_cosine_matrices_enstatite);
-
-        // olivine
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            data.push_back(bingham_average_olivine[i][j]);
-
-        // enstatite
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            data.push_back(bingham_average_enstatite[i][j]);
+            for (unsigned int i = 0; i < 3; i++)
+              for (unsigned int j = 0; j < 3; j++)
+                {
+                  data.emplace_back(bingham_average[i][j]);
+                  //std::cout << counter << ": " << bingham_average[i][j] << std::endl; counter++;
+                }
+          }
       }
 
       template <int dim>
@@ -137,60 +118,32 @@ namespace aspect
       {
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
-        double water_content = 0;
-        double volume_fraction_olivine = 0;
-        std::vector<double> volume_fractions_olivine(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
-        std::vector<double> volume_fractions_enstatite(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
+
+        std::vector<unsigned int> deformation_type;
+        std::vector<double> volume_fraction_mineral;
+        std::vector<std::vector<double>> volume_fractions_grains;
+        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
-                                                         n_grains,
-                                                         water_content,
-                                                         volume_fraction_olivine,
-                                                         volume_fractions_olivine,
-                                                         a_cosine_matrices_olivine,
-                                                         volume_fractions_enstatite,
-                                                         a_cosine_matrices_enstatite);
+                                                         deformation_type,
+                                                         volume_fraction_mineral,
+                                                         volume_fractions_grains,
+                                                         a_cosine_matrices_grains);
 
 
-        //std::cout << "new: n_grains = " << n_grains << ", n_samples = " << n_samples << std::endl;
-        std::vector<Tensor<2,3> > weighted_olivine_a_matrices = random_draw_volume_weighting(volume_fractions_olivine, a_cosine_matrices_olivine, n_samples);
-        std::vector<Tensor<2,3> > weighted_enstatite_a_matrices = random_draw_volume_weighting(volume_fractions_enstatite, a_cosine_matrices_enstatite, n_samples);
+        for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
+          {
+            const std::vector<Tensor<2,3> > weighted_a_matrices = random_draw_volume_weighting(volume_fractions_grains[mineral_i], a_cosine_matrices_grains[mineral_i], n_samples);
+            std::array<std::array<double,3>,3> bingham_average = compute_bingham_average(weighted_a_matrices);
 
-        /*std::cout << "    new weighted_olivine_a_matrices:" << std::endl;
-        for (size_t grain_i = 0; grain_i < weighted_enstatite_a_matrices.size(); grain_i++)
-        {std::cout << "grain = " << grain_i << std::endl;
-        for (size_t i = 0; i < 3; i++)
-        {
-            for (size_t j = 0; j < 3; j++)
-            {
-                std::cout << weighted_olivine_a_matrices[grain_i][i][j] << " ";
-            }
-            std::cout << std::endl;
-        }
-        }*/
-        std::array<std::array<double,3>,3> bingham_average_olivine = compute_bingham_average(weighted_olivine_a_matrices);
-        std::array<std::array<double,3>,3> bingham_average_enstatite = compute_bingham_average(weighted_enstatite_a_matrices);
-
-        unsigned int counter = 0;
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              //std::cout << ">>> bingham: " << i << ":" << j << " old = " << data[data_position + counter] << ", new = "<< bingham_average_olivine[i][j] << std::endl;
-              data[data_position + counter] = bingham_average_olivine[i][j];
-              counter++;
-            }
-
-        for (unsigned int i = 0; i < 3; i++)
-          for (unsigned int j = 0; j < 3; j++)
-            {
-              data[data_position + counter] = bingham_average_enstatite[i][j];
-              counter++;
-            }
-
-
+            for (unsigned int i = 0; i < 3; i++)
+              for (unsigned int j = 0; j < 3; j++)
+                {
+                  //std::cout << ">>> bingham: " << i << ":" << j << " old = " << data[data_position + counter] << ", new = "<< bingham_average_olivine[i][j] << std::endl;
+                  data[data_position + mineral_i*9] = bingham_average[i][j];
+                }
+          }
       }
 
 
@@ -357,6 +310,8 @@ namespace aspect
         property_information.push_back(std::make_pair("lpo_bingham_average average enstatite b axis",3));
         property_information.push_back(std::make_pair("lpo_bingham_average average enstatite c axis",3));
 
+        //std::cout << "bingham property_information.size() = " << property_information.size() << std::endl;
+
         return property_information;
       }
 
@@ -405,6 +360,7 @@ namespace aspect
 
               random_number_seed = prm.get_integer ("Random number seed"); // 2
               n_grains = LPO<dim>::get_number_of_grains();
+              n_minerals = LPO<dim>::get_number_of_minerals();
               n_samples = prm.get_integer("Number of samples"); // 0
               if (n_samples == 0)
                 n_samples = n_grains;

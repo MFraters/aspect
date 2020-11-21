@@ -388,9 +388,9 @@ namespace aspect
           }
 
         Assert(particle_properties.size() == property_information.n_components(),
-               ExcMessage("The reported numbers of particle property components do not sum up "
+               ExcMessage("The reported numbers of particle property components (" + std::to_string(property_information.n_components()) + ")do not sum up "
                           "to the number of particle properties that were initialized by "
-                          "the property plugins. Check the selected property plugins for "
+                          "the property plugins (" + std::to_string(particle_properties.size()) + "). Check the selected property plugins for "
                           "consistency between reported size and actually set properties."));
 
         particle->set_properties(particle_properties);

@@ -73,11 +73,10 @@ namespace aspect
            */
           virtual
           SymmetricTensor<2,6>
-          compute_elastic_tensor (const double volume_fraction_olivine,
-                                  std::vector<double> &volume_fractions_olivine,
-                                  std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                  std::vector<double> &volume_fractions_enstatite,
-                                  std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite) const;
+          compute_elastic_tensor (const std::vector<double> &volume_fraction_minerals,
+                                  const std::vector<std::vector<double> > &volume_fractions_grains,
+                                  const std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
+                                  const std::vector<unsigned int> &deformation_type) const;
 
           /**
            * Initialization function. This function is called once at the
@@ -277,6 +276,7 @@ namespace aspect
           unsigned int random_number_seed;
 
           unsigned int n_grains;
+          unsigned int n_minerals;
 
           // when doing the random draw volume weighting, this sets how many samples are taken.
           unsigned int n_samples;

@@ -179,80 +179,80 @@ TEST_CASE("Fabric determination function")
   LPO<3> lpo;
   double MPa = 1e6;
 
-  CHECK(lpo.determine_deformation_type(379.*MPa, 0.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(381.*MPa, 0.) == DeformationType::D_type);
-  CHECK(lpo.determine_deformation_type(0.*MPa, 100.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 50.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 50.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(379.*MPa, 50.) == DeformationType::D_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 49.) == DeformationType::D_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 75.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 100.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 100.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(379.*MPa, 100.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 100.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(379.*MPa, 0.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(381.*MPa, 0.) == DeformationType::OlivineDFabric);
+  CHECK(lpo.determine_deformation_type(0.*MPa, 100.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 50.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 50.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(379.*MPa, 50.) == DeformationType::OlivineDFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 49.) == DeformationType::OlivineDFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 75.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 100.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 100.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(379.*MPa, 100.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 100.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 200.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 200.) == DeformationType::A_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 200.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 200.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 200.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 200.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 200.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 200.) == DeformationType::OlivineAFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 200.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 200.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 200.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 200.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 300.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 300.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 300.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 300.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 300.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 300.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 300.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 300.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 300.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 300.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 300.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 300.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 380.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 380.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 380.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(340.*MPa, 380.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 380.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 380.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 380.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 380.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 380.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 380.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 380.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 380.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 380.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 380.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 400.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 400.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 400.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(340.*MPa, 400.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 400.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 400.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 400.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 400.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 400.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 400.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 400.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 400.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 400.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 400.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 600.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 600.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 600.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(340.*MPa, 600.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 600.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 600.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 600.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 600.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 600.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 600.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 600.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 600.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 600.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 600.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 800.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 800.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 800.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(340.*MPa, 800.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 800.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 800.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 800.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 800.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 800.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 800.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 800.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 800.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 800.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 800.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 1000.) == DeformationType::E_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 1000.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 1000.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(340.*MPa, 1000.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 1000.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 1000.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 1000.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 1000.) == DeformationType::OlivineEFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 1000.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 1000.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 1000.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 1000.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 1000.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 1000.) == DeformationType::OlivineBFabric);
 
-  CHECK(lpo.determine_deformation_type(20.*MPa, 1200.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(100.*MPa, 1200.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(200.*MPa, 1200.) == DeformationType::C_type);
-  CHECK(lpo.determine_deformation_type(340.*MPa, 1200.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(360.*MPa, 1200.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(380.*MPa, 1200.) == DeformationType::B_type);
-  CHECK(lpo.determine_deformation_type(480.*MPa, 1200.) == DeformationType::B_type);
+  CHECK(lpo.determine_deformation_type(20.*MPa, 1200.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(100.*MPa, 1200.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(200.*MPa, 1200.) == DeformationType::OlivineCFabric);
+  CHECK(lpo.determine_deformation_type(340.*MPa, 1200.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(360.*MPa, 1200.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(380.*MPa, 1200.) == DeformationType::OlivineBFabric);
+  CHECK(lpo.determine_deformation_type(480.*MPa, 1200.) == DeformationType::OlivineBFabric);
 }
 
 TEST_CASE("Euler angle functions")
@@ -490,7 +490,7 @@ TEST_CASE("LPO")
     // always be the same, so test that for seed = 1. Forthermore, in the data
     // I can only really test that the first entry is the water content (0) and
     // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
-    CHECK(isnan(data[0])); // default fabric type which is only computed on a update
+    CHECK(data[0] == Approx(-1.0));//isnan(data[0])); // default fabric type which is only computed on a update
     CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
     CHECK(data[2] == Approx(0.2));
     CHECK(data[3] == Approx(0.159063));
@@ -515,11 +515,14 @@ TEST_CASE("LPO")
     CHECK(data[22] == Approx(0.2));
     CHECK(data[32] == Approx(0.2));
     CHECK(data[42] == Approx(0.2));
-    CHECK(data[52] == Approx(0.2));
-    CHECK(data[62] == Approx(0.2));
-    CHECK(data[72] == Approx(0.2));
-    CHECK(data[82] == Approx(0.2));
-    CHECK(data[92] == Approx(0.2));
+    CHECK(data[52] == Approx(-1.0));//isnan(data[0])); // default fabric type which is only computed on a update
+    CHECK(data[53] == Approx(0.5)); // default volume fraction olivine
+    CHECK(data[54] == Approx(0.2));
+    CHECK(data[64] == Approx(0.2));
+    CHECK(data[74] == Approx(0.2));
+    CHECK(data[84] == Approx(0.2));
+    CHECK(data[94] == Approx(0.2));
+    CHECK(data[103] == Approx(-0.816855));
 
     std::vector<double> volume_fractions(5,0.2);
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
@@ -580,7 +583,7 @@ TEST_CASE("LPO")
     velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
     velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
 
-    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
+    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::OlivineAFabric;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
     ref_resolved_shear_stress[1] = 2;
@@ -688,7 +691,7 @@ TEST_CASE("LPO")
     // always be the same, so test that for seed = 1. Forthermore, in the data
     // I can only really test that the first entry is the water content (0) and
     // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
-    CHECK(isnan(data[0])); // default fabric type which is only computed on a update
+    CHECK(data[0] == Approx(-1.0));//isnan(data[0])); // default fabric type which is only computed on a update
     CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
     CHECK(data[2] == Approx(0.2));
     CHECK(data[3] == Approx(0.159063));
@@ -713,11 +716,14 @@ TEST_CASE("LPO")
     CHECK(data[22] == Approx(0.2));
     CHECK(data[32] == Approx(0.2));
     CHECK(data[42] == Approx(0.2));
-    CHECK(data[52] == Approx(0.2));
-    CHECK(data[62] == Approx(0.2));
-    CHECK(data[72] == Approx(0.2));
-    CHECK(data[82] == Approx(0.2));
-    CHECK(data[92] == Approx(0.2));
+    CHECK(data[52] == Approx(-1.0));//isnan(data[0])); // default fabric type which is only computed on a update
+    CHECK(data[53] == Approx(0.5)); // default volume fraction olivine
+    CHECK(data[54] == Approx(0.2));
+    CHECK(data[64] == Approx(0.2));
+    CHECK(data[74] == Approx(0.2));
+    CHECK(data[84] == Approx(0.2));
+    CHECK(data[94] == Approx(0.2));
+    CHECK(data[103] == Approx(-0.816855));
 
     std::vector<double> volume_fractions(5,0.2);
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
@@ -778,7 +784,7 @@ TEST_CASE("LPO")
     velocity_gradient_tensor_nondimensional[0][1] = 2.0* 0.5959;
     velocity_gradient_tensor_nondimensional[1][0] = 2.0* 0.5959;
 
-    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
+    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::OlivineAFabric;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
     ref_resolved_shear_stress[1] = 2;
@@ -887,7 +893,7 @@ TEST_CASE("LPO")
     // always be the same, so test that for seed = 1. Forthermore, in the data
     // I can only really test that the first entry is the water content (0) and
     // that every first entry of each particle is 1/n_grains = 1/10 = 0.1.
-    CHECK(isnan(data[0])); // default fabric type which is only computed on a update
+    CHECK(data[0] == Approx(-1.0));//isnan(data[0])); // default fabric type which is only computed on a update
     CHECK(data[1] == Approx(0.5)); // default volume fraction olivine
     CHECK(data[2] == Approx(0.2));
     CHECK(data[3] == Approx(0.159063));
@@ -912,11 +918,14 @@ TEST_CASE("LPO")
     CHECK(data[22] == Approx(0.2));
     CHECK(data[32] == Approx(0.2));
     CHECK(data[42] == Approx(0.2));
-    CHECK(data[52] == Approx(0.2));
-    CHECK(data[62] == Approx(0.2));
-    CHECK(data[72] == Approx(0.2));
-    CHECK(data[82] == Approx(0.2));
-    CHECK(data[92] == Approx(0.2));
+    CHECK(data[52] == Approx(-1.0));//isnan(data[0])); // default fabric type which is only computed on a update
+    CHECK(data[53] == Approx(0.5)); // default volume fraction olivine
+    CHECK(data[54] == Approx(0.2));
+    CHECK(data[64] == Approx(0.2));
+    CHECK(data[74] == Approx(0.2));
+    CHECK(data[84] == Approx(0.2));
+    CHECK(data[94] == Approx(0.2));
+    CHECK(data[103] == Approx(-0.816855));
 
     std::vector<double> volume_fractions(5,0.2);
     std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
@@ -992,7 +1001,7 @@ TEST_CASE("LPO")
     velocity_gradient_tensor_nondimensional[2][1] = 5.5;
     velocity_gradient_tensor_nondimensional[2][2] = 6;
 
-    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::A_type;
+    //Particle::Property::DeformationType deformation_type = Particle::Property::DeformationType::OlivineAFabric;
     std::array<double,4> ref_resolved_shear_stress;
     ref_resolved_shear_stress[0] = 1;
     ref_resolved_shear_stress[1] = 2;
@@ -1346,180 +1355,180 @@ TEST_CASE("LPO elastic tensor transform functions")
 
 TEST_CASE("LPO elastic tensor")
 {
-  double volume_fraction_olivine = 0.7;
-  std::vector<double> volume_fractions_olivine(8);
-  std::vector<dealii::Tensor<2,3> > a_cosine_matrices_olivine(8);
-  std::vector<double> volume_fractions_enstatite(8);
-  std::vector<dealii::Tensor<2,3> > a_cosine_matrices_enstatite(8);
+
+  std::vector<double> volume_fraction_mineral = {0.7,0.3};
+  std::vector<std::vector<double> > volume_fractions_grains(2,std::vector<double>(8));
+  std::vector<std::vector<dealii::Tensor<2,3> > > a_cosine_matrices_grains(2,std::vector<dealii::Tensor<2,3> >(8));
+
   dealii::Tensor<2,6> reference_elastic_tensor;
   dealii::Tensor<2,6> computed_elastic_tensor;
 
   // All these numbers are directly from the Fortran D-Rex
   // Had to fix the random seed to get consistent awnsers.
   // Fixed the random set to an array filled with zeros.
-  a_cosine_matrices_olivine[0][0][0] = -0.87492387659370430;
-  a_cosine_matrices_olivine[0][0][1] = -0.47600252255715020;
-  a_cosine_matrices_olivine[0][0][2] = -0.10151800968122601;
-  a_cosine_matrices_olivine[0][1][0] = 0.13036031917262200;
-  a_cosine_matrices_olivine[0][1][1] = -2.6406769698713056E-002;
-  a_cosine_matrices_olivine[0][1][2] = -0.99232315682823224;
-  a_cosine_matrices_olivine[0][2][0] = 0.46957683898444408;
-  a_cosine_matrices_olivine[0][2][1] = -0.87974004016081919;
-  a_cosine_matrices_olivine[0][2][2] = 8.6098835151007691E-002;
-  a_cosine_matrices_olivine[1][0][0] = -0.98046837857873570;
-  a_cosine_matrices_olivine[1][0][1] = 0.19463893778994429;
-  a_cosine_matrices_olivine[1][0][2] = -2.8239743415760400E-002;
-  a_cosine_matrices_olivine[1][1][0] = 6.8942963409018593E-002;
-  a_cosine_matrices_olivine[1][1][1] = 0.20565757913350766;
-  a_cosine_matrices_olivine[1][1][2] = -0.97619251975954824;
-  a_cosine_matrices_olivine[1][2][0] = -0.18419735979776022;
-  a_cosine_matrices_olivine[1][2][1] = -0.95907282258851756;
-  a_cosine_matrices_olivine[1][2][2] = -0.21505972600848655;
-  a_cosine_matrices_olivine[2][0][0] = -0.60475851993637786;
-  a_cosine_matrices_olivine[2][0][1] = 0.70843624030907060;
-  a_cosine_matrices_olivine[2][0][2] = -0.36543256811748415;
-  a_cosine_matrices_olivine[2][1][0] = 0.14301138974031016;
-  a_cosine_matrices_olivine[2][1][1] = -0.35406726088673490;
-  a_cosine_matrices_olivine[2][1][2] = -0.92567249145068109;
-  a_cosine_matrices_olivine[2][2][0] = -0.78533679283378455;
-  a_cosine_matrices_olivine[2][2][1] = -0.61106385979914768;
-  a_cosine_matrices_olivine[2][2][2] = 0.11279851062549377;
-  a_cosine_matrices_olivine[3][0][0] = 0.86791495614143876;
-  a_cosine_matrices_olivine[3][0][1] = 0.11797028562530290;
-  a_cosine_matrices_olivine[3][0][2] = -0.48441508819120616;
-  a_cosine_matrices_olivine[3][1][0] = 0.29623368357270952;
-  a_cosine_matrices_olivine[3][1][1] = 0.66075310029034506;
-  a_cosine_matrices_olivine[3][1][2] = 0.69114249890201696;
-  a_cosine_matrices_olivine[3][2][0] = 0.40054408016972737;
-  a_cosine_matrices_olivine[3][2][1] = -0.74231595966649988;
-  a_cosine_matrices_olivine[3][2][2] = 0.53869116329275069;
-  a_cosine_matrices_olivine[4][0][0] = 6.2142369991145308E-002;
-  a_cosine_matrices_olivine[4][0][1] = 0.99798524450925208;
-  a_cosine_matrices_olivine[4][0][2] = 1.4733749724082583E-002;
-  a_cosine_matrices_olivine[4][1][0] = 0.16313304505497195;
-  a_cosine_matrices_olivine[4][1][1] = 3.9946223138032123E-003;
-  a_cosine_matrices_olivine[4][1][2] = -0.99141604427573704;
-  a_cosine_matrices_olivine[4][2][0] = -0.98947772660983668;
-  a_cosine_matrices_olivine[4][2][1] = 6.3633828841832010E-002;
-  a_cosine_matrices_olivine[4][2][2] = -0.16253511002663851;
-  a_cosine_matrices_olivine[5][0][0] = 0.95811162445076037;
-  a_cosine_matrices_olivine[5][0][1] = -0.24047036409864109;
-  a_cosine_matrices_olivine[5][0][2] = -0.18394917461469307;
-  a_cosine_matrices_olivine[5][1][0] = -0.26945849516984494;
-  a_cosine_matrices_olivine[5][1][1] = -0.95216866624585605;
-  a_cosine_matrices_olivine[5][1][2] = -0.14816174866727450;
-  a_cosine_matrices_olivine[5][2][0] = -0.13948857525086517;
-  a_cosine_matrices_olivine[5][2][1] = 0.18918653693665904;
-  a_cosine_matrices_olivine[5][2][2] = -0.97685775746677384;
-  a_cosine_matrices_olivine[6][0][0] = 0.54599545795872684;
-  a_cosine_matrices_olivine[6][0][1] = -0.79260950430410815;
-  a_cosine_matrices_olivine[6][0][2] = -0.27534584625644454;
-  a_cosine_matrices_olivine[6][1][0] = -0.83567561116582212;
-  a_cosine_matrices_olivine[6][1][1] = -0.55085590166106368;
-  a_cosine_matrices_olivine[6][1][2] = -6.8746495709015629E-002;
-  a_cosine_matrices_olivine[6][2][0] = -9.6081601263635075E-002;
-  a_cosine_matrices_olivine[6][2][1] = 0.26479508638287669;
-  a_cosine_matrices_olivine[6][2][2] = -0.96221681521835400;
-  a_cosine_matrices_olivine[7][0][0] = 0.14540407652501869;
-  a_cosine_matrices_olivine[7][0][1] = -0.61649901222701298;
-  a_cosine_matrices_olivine[7][0][2] = -0.77881206212059828;
-  a_cosine_matrices_olivine[7][1][0] = -0.59216315099851768;
-  a_cosine_matrices_olivine[7][1][1] = -0.68282211925029168;
-  a_cosine_matrices_olivine[7][1][2] = 0.43341920614609419;
-  a_cosine_matrices_olivine[7][2][0] = -0.79819736735552915;
-  a_cosine_matrices_olivine[7][2][1] = 0.39350172081601731;
-  a_cosine_matrices_olivine[7][2][2] = -0.46322016633770996;
+  a_cosine_matrices_grains[0][0][0][0] = -0.87492387659370430;
+  a_cosine_matrices_grains[0][0][0][1] = -0.47600252255715020;
+  a_cosine_matrices_grains[0][0][0][2] = -0.10151800968122601;
+  a_cosine_matrices_grains[0][0][1][0] = 0.13036031917262200;
+  a_cosine_matrices_grains[0][0][1][1] = -2.6406769698713056E-002;
+  a_cosine_matrices_grains[0][0][1][2] = -0.99232315682823224;
+  a_cosine_matrices_grains[0][0][2][0] = 0.46957683898444408;
+  a_cosine_matrices_grains[0][0][2][1] = -0.87974004016081919;
+  a_cosine_matrices_grains[0][0][2][2] = 8.6098835151007691E-002;
+  a_cosine_matrices_grains[0][1][0][0] = -0.98046837857873570;
+  a_cosine_matrices_grains[0][1][0][1] = 0.19463893778994429;
+  a_cosine_matrices_grains[0][1][0][2] = -2.8239743415760400E-002;
+  a_cosine_matrices_grains[0][1][1][0] = 6.8942963409018593E-002;
+  a_cosine_matrices_grains[0][1][1][1] = 0.20565757913350766;
+  a_cosine_matrices_grains[0][1][1][2] = -0.97619251975954824;
+  a_cosine_matrices_grains[0][1][2][0] = -0.18419735979776022;
+  a_cosine_matrices_grains[0][1][2][1] = -0.95907282258851756;
+  a_cosine_matrices_grains[0][1][2][2] = -0.21505972600848655;
+  a_cosine_matrices_grains[0][2][0][0] = -0.60475851993637786;
+  a_cosine_matrices_grains[0][2][0][1] = 0.70843624030907060;
+  a_cosine_matrices_grains[0][2][0][2] = -0.36543256811748415;
+  a_cosine_matrices_grains[0][2][1][0] = 0.14301138974031016;
+  a_cosine_matrices_grains[0][2][1][1] = -0.35406726088673490;
+  a_cosine_matrices_grains[0][2][1][2] = -0.92567249145068109;
+  a_cosine_matrices_grains[0][2][2][0] = -0.78533679283378455;
+  a_cosine_matrices_grains[0][2][2][1] = -0.61106385979914768;
+  a_cosine_matrices_grains[0][2][2][2] = 0.11279851062549377;
+  a_cosine_matrices_grains[0][3][0][0] = 0.86791495614143876;
+  a_cosine_matrices_grains[0][3][0][1] = 0.11797028562530290;
+  a_cosine_matrices_grains[0][3][0][2] = -0.48441508819120616;
+  a_cosine_matrices_grains[0][3][1][0] = 0.29623368357270952;
+  a_cosine_matrices_grains[0][3][1][1] = 0.66075310029034506;
+  a_cosine_matrices_grains[0][3][1][2] = 0.69114249890201696;
+  a_cosine_matrices_grains[0][3][2][0] = 0.40054408016972737;
+  a_cosine_matrices_grains[0][3][2][1] = -0.74231595966649988;
+  a_cosine_matrices_grains[0][3][2][2] = 0.53869116329275069;
+  a_cosine_matrices_grains[0][4][0][0] = 6.2142369991145308E-002;
+  a_cosine_matrices_grains[0][4][0][1] = 0.99798524450925208;
+  a_cosine_matrices_grains[0][4][0][2] = 1.4733749724082583E-002;
+  a_cosine_matrices_grains[0][4][1][0] = 0.16313304505497195;
+  a_cosine_matrices_grains[0][4][1][1] = 3.9946223138032123E-003;
+  a_cosine_matrices_grains[0][4][1][2] = -0.99141604427573704;
+  a_cosine_matrices_grains[0][4][2][0] = -0.98947772660983668;
+  a_cosine_matrices_grains[0][4][2][1] = 6.3633828841832010E-002;
+  a_cosine_matrices_grains[0][4][2][2] = -0.16253511002663851;
+  a_cosine_matrices_grains[0][5][0][0] = 0.95811162445076037;
+  a_cosine_matrices_grains[0][5][0][1] = -0.24047036409864109;
+  a_cosine_matrices_grains[0][5][0][2] = -0.18394917461469307;
+  a_cosine_matrices_grains[0][5][1][0] = -0.26945849516984494;
+  a_cosine_matrices_grains[0][5][1][1] = -0.95216866624585605;
+  a_cosine_matrices_grains[0][5][1][2] = -0.14816174866727450;
+  a_cosine_matrices_grains[0][5][2][0] = -0.13948857525086517;
+  a_cosine_matrices_grains[0][5][2][1] = 0.18918653693665904;
+  a_cosine_matrices_grains[0][5][2][2] = -0.97685775746677384;
+  a_cosine_matrices_grains[0][6][0][0] = 0.54599545795872684;
+  a_cosine_matrices_grains[0][6][0][1] = -0.79260950430410815;
+  a_cosine_matrices_grains[0][6][0][2] = -0.27534584625644454;
+  a_cosine_matrices_grains[0][6][1][0] = -0.83567561116582212;
+  a_cosine_matrices_grains[0][6][1][1] = -0.55085590166106368;
+  a_cosine_matrices_grains[0][6][1][2] = -6.8746495709015629E-002;
+  a_cosine_matrices_grains[0][6][2][0] = -9.6081601263635075E-002;
+  a_cosine_matrices_grains[0][6][2][1] = 0.26479508638287669;
+  a_cosine_matrices_grains[0][6][2][2] = -0.96221681521835400;
+  a_cosine_matrices_grains[0][7][0][0] = 0.14540407652501869;
+  a_cosine_matrices_grains[0][7][0][1] = -0.61649901222701298;
+  a_cosine_matrices_grains[0][7][0][2] = -0.77881206212059828;
+  a_cosine_matrices_grains[0][7][1][0] = -0.59216315099851768;
+  a_cosine_matrices_grains[0][7][1][1] = -0.68282211925029168;
+  a_cosine_matrices_grains[0][7][1][2] = 0.43341920614609419;
+  a_cosine_matrices_grains[0][7][2][0] = -0.79819736735552915;
+  a_cosine_matrices_grains[0][7][2][1] = 0.39350172081601731;
+  a_cosine_matrices_grains[0][7][2][2] = -0.46322016633770996;
 
-  volume_fractions_olivine[0] = 2.5128593570287589E-002;
-  volume_fractions_olivine[1] = 0.83128842847575013;
-  volume_fractions_olivine[2] = 2.4387041141724769E-002;
-  volume_fractions_olivine[3] = 2.4763275182773107E-002;
-  volume_fractions_olivine[4] = 2.4801714431754770E-002;
-  volume_fractions_olivine[5] = 2.3943562805875843E-002;
-  volume_fractions_olivine[6] = 2.1493810045792379E-002;
-  volume_fractions_olivine[7] = 2.4193574346041427E-002;
+  volume_fractions_grains[0][0] = 2.5128593570287589E-002;
+  volume_fractions_grains[0][1] = 0.83128842847575013;
+  volume_fractions_grains[0][2] = 2.4387041141724769E-002;
+  volume_fractions_grains[0][3] = 2.4763275182773107E-002;
+  volume_fractions_grains[0][4] = 2.4801714431754770E-002;
+  volume_fractions_grains[0][5] = 2.3943562805875843E-002;
+  volume_fractions_grains[0][6] = 2.1493810045792379E-002;
+  volume_fractions_grains[0][7] = 2.4193574346041427E-002;
 
-  a_cosine_matrices_enstatite[0][0][0] = -0.66168933252008499;
-  a_cosine_matrices_enstatite[0][0][1] = -0.27722421136423192;
-  a_cosine_matrices_enstatite[0][0][2] = 0.70016104334335305;
-  a_cosine_matrices_enstatite[0][1][0] = -0.45052346117292291;
-  a_cosine_matrices_enstatite[0][1][1] = -0.59946225647123619;
-  a_cosine_matrices_enstatite[0][1][2] = -0.66370395454608444;
-  a_cosine_matrices_enstatite[0][2][0] = 0.60350910238307343;
-  a_cosine_matrices_enstatite[0][2][1] = -0.75116099269655345;
-  a_cosine_matrices_enstatite[0][2][2] = 0.27207473610935284;
-  a_cosine_matrices_enstatite[1][0][0] = 0.70309122563849258;
-  a_cosine_matrices_enstatite[1][0][1] = -0.23393734574397834;
-  a_cosine_matrices_enstatite[1][0][2] = -0.67775637808568567;
-  a_cosine_matrices_enstatite[1][1][0] = 0.68298185906364617;
-  a_cosine_matrices_enstatite[1][1][1] = -6.6406501211459870E-002;
-  a_cosine_matrices_enstatite[1][1][2] = 0.73168002139436472;
-  a_cosine_matrices_enstatite[1][2][0] = -0.21654097292603913;
-  a_cosine_matrices_enstatite[1][2][1] = -0.97001835897279087;
-  a_cosine_matrices_enstatite[1][2][2] = 0.11341644508992850;
-  a_cosine_matrices_enstatite[2][0][0] = -0.37892641930874921;
-  a_cosine_matrices_enstatite[2][0][1] = 0.92610670487847191;
-  a_cosine_matrices_enstatite[2][0][2] = 3.9338024409460159E-002;
-  a_cosine_matrices_enstatite[2][1][0] = -0.10014673867324062;
-  a_cosine_matrices_enstatite[2][1][1] = 2.1922389732184896E-004;
-  a_cosine_matrices_enstatite[2][1][2] = -0.99514251026853373;
-  a_cosine_matrices_enstatite[2][2][0] = -0.92466780075091537;
-  a_cosine_matrices_enstatite[2][2][1] = -0.37833500123197994;
-  a_cosine_matrices_enstatite[2][2][2] = 9.2539397053637271E-002;
-  a_cosine_matrices_enstatite[3][0][0] = 0.73973803569795438;
-  a_cosine_matrices_enstatite[3][0][1] = -0.58084801380447959;
-  a_cosine_matrices_enstatite[3][0][2] = -0.35134329241205425;
-  a_cosine_matrices_enstatite[3][1][0] = 0.30883050284698427;
-  a_cosine_matrices_enstatite[3][1][1] = -0.17349072757172229;
-  a_cosine_matrices_enstatite[3][1][2] = 0.94047567596335968;
-  a_cosine_matrices_enstatite[3][2][0] = -0.60686583881969203;
-  a_cosine_matrices_enstatite[3][2][1] = -0.79564553570809793;
-  a_cosine_matrices_enstatite[3][2][2] = 5.0387432541084881E-002;
-  a_cosine_matrices_enstatite[4][0][0] = 4.2730545437086563E-002;
-  a_cosine_matrices_enstatite[4][0][1] = 0.99790446393350407;
-  a_cosine_matrices_enstatite[4][0][2] = 4.9677348699965519E-002;
-  a_cosine_matrices_enstatite[4][1][0] = 0.24607319829629554;
-  a_cosine_matrices_enstatite[4][1][1] = 3.7594987859276820E-002;
-  a_cosine_matrices_enstatite[4][1][2] = -0.97243353311600111;
-  a_cosine_matrices_enstatite[4][2][0] = -0.97326576151708344;
-  a_cosine_matrices_enstatite[4][2][1] = 5.2990062123162360E-002;
-  a_cosine_matrices_enstatite[4][2][2] = -0.24420040893728351;
-  a_cosine_matrices_enstatite[5][0][0] = -0.92112012021624434;
-  a_cosine_matrices_enstatite[5][0][1] = 0.17590913101287936;
-  a_cosine_matrices_enstatite[5][0][2] = 0.34726602737040008;
-  a_cosine_matrices_enstatite[5][1][0] = -0.27292179963530816;
-  a_cosine_matrices_enstatite[5][1][1] = -0.92793421776529450;
-  a_cosine_matrices_enstatite[5][1][2] = -0.25387354780599874;
-  a_cosine_matrices_enstatite[5][2][0] = 0.27758135269283285;
-  a_cosine_matrices_enstatite[5][2][1] = -0.32862450412044819;
-  a_cosine_matrices_enstatite[5][2][2] = 0.90274831467569783;
-  a_cosine_matrices_enstatite[6][0][0] = -4.6028553384029648E-002;
-  a_cosine_matrices_enstatite[6][0][1] = -0.82828827663204008;
-  a_cosine_matrices_enstatite[6][0][2] = -0.56150509327989218;
-  a_cosine_matrices_enstatite[6][1][0] = -0.62780239844730912;
-  a_cosine_matrices_enstatite[6][1][1] = -0.41264414122407550;
-  a_cosine_matrices_enstatite[6][1][2] = 0.66416683570654200;
-  a_cosine_matrices_enstatite[6][2][0] = -0.78150657001547463;
-  a_cosine_matrices_enstatite[6][2][1] = 0.37975977805647526;
-  a_cosine_matrices_enstatite[6][2][2] = -0.50060220610535922;
-  a_cosine_matrices_enstatite[7][0][0] = -0.69974343277254114;
-  a_cosine_matrices_enstatite[7][0][1] = -0.60514581197791628;
-  a_cosine_matrices_enstatite[7][0][2] = 0.38074455421574593;
-  a_cosine_matrices_enstatite[7][1][0] = 0.27181144918830025;
-  a_cosine_matrices_enstatite[7][1][1] = -0.71756260285634454;
-  a_cosine_matrices_enstatite[7][1][2] = -0.64160793166977359;
-  a_cosine_matrices_enstatite[7][2][0] = 0.66130789657394939;
-  a_cosine_matrices_enstatite[7][2][1] = -0.34496383827187421;
-  a_cosine_matrices_enstatite[7][2][2] = 0.66656470768691123;
+  a_cosine_matrices_grains[1][0][0][0] = -0.66168933252008499;
+  a_cosine_matrices_grains[1][0][0][1] = -0.27722421136423192;
+  a_cosine_matrices_grains[1][0][0][2] = 0.70016104334335305;
+  a_cosine_matrices_grains[1][0][1][0] = -0.45052346117292291;
+  a_cosine_matrices_grains[1][0][1][1] = -0.59946225647123619;
+  a_cosine_matrices_grains[1][0][1][2] = -0.66370395454608444;
+  a_cosine_matrices_grains[1][0][2][0] = 0.60350910238307343;
+  a_cosine_matrices_grains[1][0][2][1] = -0.75116099269655345;
+  a_cosine_matrices_grains[1][0][2][2] = 0.27207473610935284;
+  a_cosine_matrices_grains[1][1][0][0] = 0.70309122563849258;
+  a_cosine_matrices_grains[1][1][0][1] = -0.23393734574397834;
+  a_cosine_matrices_grains[1][1][0][2] = -0.67775637808568567;
+  a_cosine_matrices_grains[1][1][1][0] = 0.68298185906364617;
+  a_cosine_matrices_grains[1][1][1][1] = -6.6406501211459870E-002;
+  a_cosine_matrices_grains[1][1][1][2] = 0.73168002139436472;
+  a_cosine_matrices_grains[1][1][2][0] = -0.21654097292603913;
+  a_cosine_matrices_grains[1][1][2][1] = -0.97001835897279087;
+  a_cosine_matrices_grains[1][1][2][2] = 0.11341644508992850;
+  a_cosine_matrices_grains[1][2][0][0] = -0.37892641930874921;
+  a_cosine_matrices_grains[1][2][0][1] = 0.92610670487847191;
+  a_cosine_matrices_grains[1][2][0][2] = 3.9338024409460159E-002;
+  a_cosine_matrices_grains[1][2][1][0] = -0.10014673867324062;
+  a_cosine_matrices_grains[1][2][1][1] = 2.1922389732184896E-004;
+  a_cosine_matrices_grains[1][2][1][2] = -0.99514251026853373;
+  a_cosine_matrices_grains[1][2][2][0] = -0.92466780075091537;
+  a_cosine_matrices_grains[1][2][2][1] = -0.37833500123197994;
+  a_cosine_matrices_grains[1][2][2][2] = 9.2539397053637271E-002;
+  a_cosine_matrices_grains[1][3][0][0] = 0.73973803569795438;
+  a_cosine_matrices_grains[1][3][0][1] = -0.58084801380447959;
+  a_cosine_matrices_grains[1][3][0][2] = -0.35134329241205425;
+  a_cosine_matrices_grains[1][3][1][0] = 0.30883050284698427;
+  a_cosine_matrices_grains[1][3][1][1] = -0.17349072757172229;
+  a_cosine_matrices_grains[1][3][1][2] = 0.94047567596335968;
+  a_cosine_matrices_grains[1][3][2][0] = -0.60686583881969203;
+  a_cosine_matrices_grains[1][3][2][1] = -0.79564553570809793;
+  a_cosine_matrices_grains[1][3][2][2] = 5.0387432541084881E-002;
+  a_cosine_matrices_grains[1][4][0][0] = 4.2730545437086563E-002;
+  a_cosine_matrices_grains[1][4][0][1] = 0.99790446393350407;
+  a_cosine_matrices_grains[1][4][0][2] = 4.9677348699965519E-002;
+  a_cosine_matrices_grains[1][4][1][0] = 0.24607319829629554;
+  a_cosine_matrices_grains[1][4][1][1] = 3.7594987859276820E-002;
+  a_cosine_matrices_grains[1][4][1][2] = -0.97243353311600111;
+  a_cosine_matrices_grains[1][4][2][0] = -0.97326576151708344;
+  a_cosine_matrices_grains[1][4][2][1] = 5.2990062123162360E-002;
+  a_cosine_matrices_grains[1][4][2][2] = -0.24420040893728351;
+  a_cosine_matrices_grains[1][5][0][0] = -0.92112012021624434;
+  a_cosine_matrices_grains[1][5][0][1] = 0.17590913101287936;
+  a_cosine_matrices_grains[1][5][0][2] = 0.34726602737040008;
+  a_cosine_matrices_grains[1][5][1][0] = -0.27292179963530816;
+  a_cosine_matrices_grains[1][5][1][1] = -0.92793421776529450;
+  a_cosine_matrices_grains[1][5][1][2] = -0.25387354780599874;
+  a_cosine_matrices_grains[1][5][2][0] = 0.27758135269283285;
+  a_cosine_matrices_grains[1][5][2][1] = -0.32862450412044819;
+  a_cosine_matrices_grains[1][5][2][2] = 0.90274831467569783;
+  a_cosine_matrices_grains[1][6][0][0] = -4.6028553384029648E-002;
+  a_cosine_matrices_grains[1][6][0][1] = -0.82828827663204008;
+  a_cosine_matrices_grains[1][6][0][2] = -0.56150509327989218;
+  a_cosine_matrices_grains[1][6][1][0] = -0.62780239844730912;
+  a_cosine_matrices_grains[1][6][1][1] = -0.41264414122407550;
+  a_cosine_matrices_grains[1][6][1][2] = 0.66416683570654200;
+  a_cosine_matrices_grains[1][6][2][0] = -0.78150657001547463;
+  a_cosine_matrices_grains[1][6][2][1] = 0.37975977805647526;
+  a_cosine_matrices_grains[1][6][2][2] = -0.50060220610535922;
+  a_cosine_matrices_grains[1][7][0][0] = -0.69974343277254114;
+  a_cosine_matrices_grains[1][7][0][1] = -0.60514581197791628;
+  a_cosine_matrices_grains[1][7][0][2] = 0.38074455421574593;
+  a_cosine_matrices_grains[1][7][1][0] = 0.27181144918830025;
+  a_cosine_matrices_grains[1][7][1][1] = -0.71756260285634454;
+  a_cosine_matrices_grains[1][7][1][2] = -0.64160793166977359;
+  a_cosine_matrices_grains[1][7][2][0] = 0.66130789657394939;
+  a_cosine_matrices_grains[1][7][2][1] = -0.34496383827187421;
+  a_cosine_matrices_grains[1][7][2][2] = 0.66656470768691123;
 
-  volume_fractions_enstatite[0] = 2.4802805652404735E-002;
-  volume_fractions_enstatite[1] = 2.4917064186342413E-002;
-  volume_fractions_enstatite[2] = 2.4790722064907112E-002;
-  volume_fractions_enstatite[3] = 2.4932751194567736E-002;
-  volume_fractions_enstatite[4] = 2.4896744967217745E-002;
-  volume_fractions_enstatite[5] = 0.79902139535472505;
-  volume_fractions_enstatite[6] = 2.4861121542485400E-002;
-  volume_fractions_enstatite[7] = 5.1777395037349808E-002;
+  volume_fractions_grains[1][0] = 2.4802805652404735E-002;
+  volume_fractions_grains[1][1] = 2.4917064186342413E-002;
+  volume_fractions_grains[1][2] = 2.4790722064907112E-002;
+  volume_fractions_grains[1][3] = 2.4932751194567736E-002;
+  volume_fractions_grains[1][4] = 2.4896744967217745E-002;
+  volume_fractions_grains[1][5] = 0.79902139535472505;
+  volume_fractions_grains[1][6] = 2.4861121542485400E-002;
+  volume_fractions_grains[1][7] = 5.1777395037349808E-002;
 
   reference_elastic_tensor[0][0] = 282.99195951271281;
   reference_elastic_tensor[0][1] = 74.161110997372660;
@@ -1558,14 +1567,15 @@ TEST_CASE("LPO elastic tensor")
   reference_elastic_tensor[5][4] = -0.69890743507815523;
   reference_elastic_tensor[5][5] = 80.599981331604567;
 
+  std::vector<unsigned int> deformation_types = {(unsigned int)aspect::Particle::Property::DeformationType::OlivineAFabric,
+                                                 (unsigned int)aspect::Particle::Property::DeformationType::Enstatite
+                                                };
 
   aspect::Particle::Property::LpoElasticTensor<3> lpo_elastic_tensor;
-  computed_elastic_tensor = lpo_elastic_tensor.compute_elastic_tensor(volume_fraction_olivine,
-                                                                      volume_fractions_olivine,
-                                                                      a_cosine_matrices_olivine,
-                                                                      volume_fractions_enstatite,
-                                                                      a_cosine_matrices_enstatite
-                                                                     );
+  computed_elastic_tensor = lpo_elastic_tensor.compute_elastic_tensor(volume_fraction_mineral,
+                                                                      volume_fractions_grains,
+                                                                      a_cosine_matrices_grains,
+                                                                      deformation_types);
 
 
   for (size_t i = 0; i < 6; i++)

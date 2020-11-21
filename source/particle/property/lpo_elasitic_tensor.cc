@@ -128,12 +128,27 @@ namespace aspect
 
       template <int dim>
       SymmetricTensor<2,6>
-      LpoElasticTensor<dim>::compute_elastic_tensor (const double volume_fraction_olivine,
-                                                     std::vector<double> &volume_fractions_olivine,
-                                                     std::vector<Tensor<2,3> > &a_cosine_matrices_olivine,
-                                                     std::vector<double> &volume_fractions_enstatite,
-                                                     std::vector<Tensor<2,3> > &a_cosine_matrices_enstatite) const
+      LpoElasticTensor<dim>::compute_elastic_tensor (const std::vector<double> &volume_fraction_minerals,
+                                                     const std::vector<std::vector<double> > &volume_fractions_grains,
+                                                     const std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
+                                                     const std::vector<unsigned int> &deformation_type) const
       {
+        const size_t n_minerals_local = volume_fractions_grains.size();
+        const size_t n_grains_local = volume_fractions_grains[0].size();
+        std::vector<SymmetricTensor<2,6> > stiffness_matrices(n_minerals_local);
+        for (size_t mineral_i = 0; mineral_i < n_minerals_local; mineral_i++)
+          {
+            if (deformation_type[mineral_i] == (unsigned int)DeformationTypeSelector::Enstatite)
+              {
+                stiffness_matrices[mineral_i] = stiffness_matrix_enstatite;
+              }
+            else
+              {
+                stiffness_matrices[mineral_i] = stiffness_matrix_olivine;
+              }
+
+          }
+
         //std::cout << "volume_fraction_olivine = " << volume_fraction_olivine << std::endl;
         /** This implements the Voigt averaging as described in the equation at the
         * bottom of page 385 in Mainprice (1990):
@@ -144,32 +159,10 @@ namespace aspect
         * R_{ij} is the lpo orientation matrix.
         */
         Tensor<4,3,double> Cav;
-        Tensor<4,3,double> C0;
-        // add olivine to the matrix
-        // compute C0 for olivine
-        //std::cout << "C0:" << std::endl;
-        // Turn the olivine stiffness matrix into a rank 4 tensor
-        for (size_t i = 0; i < 3; i++)
+        for (size_t mineral_i = 0; mineral_i < n_minerals_local; mineral_i++)
           {
-            for (size_t j = 0; j < 3; j++)
-              {
-                for (size_t k = 0; k < 3; k++)
-                  {
-                    for (size_t l = 0; l < 3; l++)
-                      {
-                        C0[i][j][k][l] = stiffness_matrix_olivine[indices_tensor[i][j]][indices_tensor[k][l]];
-                        //std::cout << "C0["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<C0[i][j][k][l] << std::endl;
-                      }
-                  }
-              }
-          }
-
-        // Do the Voigt average for olvine
-        for (size_t grain_i = 0; grain_i < volume_fractions_olivine.size(); grain_i++)
-          {
-            Tensor<4,3,double> Cav2;
-
-            Tensor<2,3> &acmo = a_cosine_matrices_olivine[grain_i];
+            Tensor<4,3,double> C0;
+            // Turn the olivine stiffness matrix into a rank 4 tensor
             for (size_t i = 0; i < 3; i++)
               {
                 for (size_t j = 0; j < 3; j++)
@@ -178,73 +171,46 @@ namespace aspect
                       {
                         for (size_t l = 0; l < 3; l++)
                           {
-                            for (size_t p = 0; p < 3; p++)
-                              {
-                                for (size_t q = 0; q < 3; q++)
-                                  {
-                                    for (size_t r = 0; r < 3; r++)
-                                      {
-                                        for (size_t s = 0; s < 3; s++)
-                                          {
-                                            Cav2[i][j][k][l] += acmo[p][i]*acmo[q][j]*acmo[r][k]*acmo[s][l]*C0[p][q][r][s];
-                                            //std::cout << "Cav2["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav2[i][j][k][l] <<" = " << acmo[p][i] << "..." << std::endl;
-                                          }
-                                      }
-                                  }
-                              }
-                            Cav[i][j][k][l] += Cav2[i][j][k][l] *  volume_fractions_olivine[grain_i] * volume_fraction_olivine;
-                            //std::cout << "Cav["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav[i][j][k][l] <<":" << Cav2[i][j][k][l] << std::endl;
+                            C0[i][j][k][l] = stiffness_matrices[mineral_i][indices_tensor[i][j]][indices_tensor[k][l]];
+                            //std::cout << "C0["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<C0[i][j][k][l] << std::endl;
                           }
                       }
                   }
               }
-          }
 
-        // add enstatite for the matrix
-        // compute C0 for enstatite
-        // Turn the enstatite stiffness matrix into a rank 4 tensor
-        for (size_t i = 0; i < 3; i++)
-          {
-            for (size_t j = 0; j < 3; j++)
+            // Do the Voigt average for olvine
+            for (size_t grain_i = 0; grain_i < n_grains_local; grain_i++)
               {
-                for (size_t k = 0; k < 3; k++)
-                  {
-                    for (size_t l = 0; l < 3; l++)
-                      {
-                        C0[i][j][k][l] = stiffness_matrix_enstatite[indices_tensor[i][j]][indices_tensor[k][l]];
-                        //std::cout << "C0["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<C0[i][j][k][l] << std::endl;
-                      }
-                  }
-              }
-          }
-        // Add the Voigt average for enstatite
-        for (size_t grain_i = 0; grain_i < volume_fractions_olivine.size(); grain_i++)
-          {
-            Tensor<4,3,double> Cav2;
+                Tensor<4,3,double> Cav2;
 
-            Tensor<2,3> &acme = a_cosine_matrices_enstatite[grain_i];
-            for (size_t i = 0; i < 3; i++)
-              {
-                for (size_t j = 0; j < 3; j++)
+                const Tensor<2,3> &acmg = a_cosine_matrices_grains[mineral_i][grain_i];
+                for (size_t i = 0; i < 3; i++)
                   {
-                    for (size_t k = 0; k < 3; k++)
+                    for (size_t j = 0; j < 3; j++)
                       {
-                        for (size_t l = 0; l < 3; l++)
+                        for (size_t k = 0; k < 3; k++)
                           {
-                            for (size_t p = 0; p < 3; p++)
+                            for (size_t l = 0; l < 3; l++)
                               {
-                                for (size_t q = 0; q < 3; q++)
+                                for (size_t p = 0; p < 3; p++)
                                   {
-                                    for (size_t r = 0; r < 3; r++)
+                                    for (size_t q = 0; q < 3; q++)
                                       {
-                                        for (size_t s = 0; s < 3; s++)
+                                        for (size_t r = 0; r < 3; r++)
                                           {
-                                            Cav2[i][j][k][l] += acme[p][i]*acme[q][j]*acme[r][k]*acme[s][l]*C0[p][q][r][s];
+                                            for (size_t s = 0; s < 3; s++)
+                                              {
+                                                //std::cout << "0" << std::endl;
+                                                //std::cout << "1 Cav2["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav2[i][j][k][l] <<" = " << acmg[p][i] << "..." << std::endl;
+                                                Cav2[i][j][k][l] += acmg[p][i]*acmg[q][j]*acmg[r][k]*acmg[s][l]*C0[p][q][r][s];
+                                                //std::cout << "2 Cav2["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav2[i][j][k][l] <<" = " << acmg[p][i] << "..." << std::endl;
+                                              }
                                           }
                                       }
                                   }
+                                Cav[i][j][k][l] += Cav2[i][j][k][l] *  volume_fractions_grains[mineral_i][grain_i] * volume_fraction_minerals[mineral_i];
+                                //std::cout << "Cav["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav[i][j][k][l] <<":" << Cav2[i][j][k][l] << std::endl;
                               }
-                            Cav[i][j][k][l] += Cav2[i][j][k][l] *  volume_fractions_enstatite[grain_i] * (1-volume_fraction_olivine);
                           }
                       }
                   }
@@ -273,48 +239,40 @@ namespace aspect
       LpoElasticTensor<dim>::initialize_one_particle_property(const Point<dim> &,
                                                               std::vector<double> &data) const
       {
+        std::vector<unsigned int> deformation_type;
+        std::vector<double> volume_fraction_mineral;
+        std::vector<std::vector<double>> volume_fractions_grains;
+        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
 
-        double water_content = 0;
-        double volume_fraction_olivine = 0;
-        std::vector<double> volume_fractions_olivine(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
-        std::vector<double> volume_fractions_enstatite(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
-
-        //std::cout << "lpo_data_position = " << lpo_data_position << ", n_grains = " << n_grains << std::endl;
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
-                                                         n_grains,
-                                                         water_content,
-                                                         volume_fraction_olivine,
-                                                         volume_fractions_olivine,
-                                                         a_cosine_matrices_olivine,
-                                                         volume_fractions_enstatite,
-                                                         a_cosine_matrices_enstatite);
+                                                         deformation_type,
+                                                         volume_fraction_mineral,
+                                                         volume_fractions_grains,
+                                                         a_cosine_matrices_grains);
 
-        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,volume_fractions_olivine,
-                                                                a_cosine_matrices_olivine,
-                                                                volume_fractions_enstatite,
-                                                                a_cosine_matrices_enstatite);
 
-        /*for (size_t i = 0; i < 6; i++)
-        {
-          for (size_t i = 0; i < 6; i++)
-          {
-            data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
-          }
 
-        }*/
-
+        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_mineral,
+                                                                volume_fractions_grains,
+                                                                a_cosine_matrices_grains,
+                                                                deformation_type);
+        //std::cout << "elastic n_minerals = " << n_minerals << ", n_grains = " << n_grains << std::endl;
+        //size_t counter = 0;
         // There is a bug up to dealii 9.3.0, so we have to work around it.
         for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
 #if DEAL_II_VERSION_GTE(9,3,0)
-          data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+          {
+            data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
+            std::cout << counter << ": " << SS_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)] << std::endl;
+            counter++;
+          }
 #else
           {
             if (i < 6)
               {
                 data.push_back(S_average[ {i,i}]);
+                //std::cout << counter << ": " << S_average[ {i,i}] << std::endl; counter++;
               }
             else
               {
@@ -327,6 +285,8 @@ namespace aspect
                           if (c == i)
                             {
                               data.push_back(S_average[ {d,e}]);
+
+                              //std::cout << counter << ": " << S_average[ {d,e}] << std::endl; counter++;
                               return;
                             }
                         }
@@ -346,29 +306,23 @@ namespace aspect
                                                           const std::vector<Tensor<1,dim> > &,
                                                           const ArrayView<double> &data) const
       {
-
-        double water_content = 0;
-        double volume_fraction_olivine = 0;
-        std::vector<double> volume_fractions_olivine(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_olivine(n_grains);
-        std::vector<double> volume_fractions_enstatite(n_grains);
-        std::vector<Tensor<2,3> > a_cosine_matrices_enstatite(n_grains);
+        std::vector<unsigned int> deformation_type;
+        std::vector<double> volume_fraction_mineral;
+        std::vector<std::vector<double>> volume_fractions_grains;
+        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
-                                                         n_grains,
-                                                         water_content,
-                                                         volume_fraction_olivine,
-                                                         volume_fractions_olivine,
-                                                         a_cosine_matrices_olivine,
-                                                         volume_fractions_enstatite,
-                                                         a_cosine_matrices_enstatite);
+                                                         deformation_type,
+                                                         volume_fraction_mineral,
+                                                         volume_fractions_grains,
+                                                         a_cosine_matrices_grains);
 
-        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_olivine,
-                                                                volume_fractions_olivine,
-                                                                a_cosine_matrices_olivine,
-                                                                volume_fractions_enstatite,
-                                                                a_cosine_matrices_enstatite);
+        SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_mineral,
+                                                                volume_fractions_grains,
+                                                                a_cosine_matrices_grains,
+                                                                deformation_type);
+
 
         Particle::Property::LpoElasticTensor<dim>::store_particle_data(data_position,
                                                                        data,
@@ -895,6 +849,7 @@ namespace aspect
         //for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
         property_information.push_back(std::make_pair("lpo_elastic_tensor",SymmetricTensor<2,6>::n_independent_components));
 
+        //std::cout << "elastic property_information.size() = " << property_information.size() << std::endl;
         return property_information;
       }
 
@@ -950,6 +905,7 @@ namespace aspect
 
               random_number_seed = prm.get_integer ("Random number seed"); // 2
               n_grains = LPO<dim>::get_number_of_grains();
+              n_minerals = LPO<dim>::get_number_of_minerals();
               n_samples = prm.get_integer("Number of samples"); // 0
               if (n_samples == 0)
                 n_samples = n_grains;
