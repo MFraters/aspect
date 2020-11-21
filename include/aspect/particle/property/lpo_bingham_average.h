@@ -207,6 +207,7 @@ namespace aspect
           unsigned int random_number_seed;
 
           unsigned int n_grains;
+          unsigned int n_minerals;
 
           // when doing the random draw volume weighting, this sets how many samples are taken.
           unsigned int n_samples;
