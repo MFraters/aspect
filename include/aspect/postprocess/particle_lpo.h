@@ -134,8 +134,7 @@ namespace aspect
          */
         enum class Output
         {
-          olivine_volume_fraction, olivine_A_matrix, olivine_Euler_angles,
-          enstatite_volume_fraction, enstatite_A_matrix, enstatite_Euler_angles,
+          VolumeFraction, RotationMatrix, EulerAngles,
           not_found
         };
 
@@ -151,6 +150,7 @@ namespace aspect
         /**
          * todo
          */
+        unsigned int n_minerals;
         unsigned int n_grains;
 
 
@@ -252,7 +252,7 @@ namespace aspect
         /**
          * What raw lpo data to write out
          */
-        std::vector<Output> write_raw_lpo;
+        std::vector<std::pair<unsigned int,Output> > write_raw_lpo;
 
         /**
          * Whether computing raw Euler angles is needed.
@@ -268,7 +268,7 @@ namespace aspect
         /**
          * What draw volume weighted lpo data to write out
          */
-        std::vector<Output> write_draw_volume_weighted_lpo;
+        std::vector<std::pair<unsigned int,Output> > write_draw_volume_weighted_lpo;
 
         /**
          * Whether computing weighted A matrix is needed.
