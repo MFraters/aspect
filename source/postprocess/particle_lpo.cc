@@ -69,9 +69,6 @@ namespace aspect
       // todo: check wheter this works correctly. Since the get_random_number function takes a reference
       // to the random_number_generator function, changing the function should mean that I have to update the
       // get_random_number function as well. But I will need to test this.
-
-      //std::cout << "n_grains = " << n_grains << ", static = " << aspect::Particle::Property::LPO<dim>::get_number_of_grains() << std::endl;
-      n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();
     }
 
     template <int dim>
@@ -179,7 +176,7 @@ namespace aspect
 
 
       //std::cout << "n_grains = " << n_grains << ", static = " << aspect::Particle::Property::LPO<dim>::get_number_of_grains() << std::endl;
-      n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();
+      //unsigned int n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();
       // if this is the first time we get here, set the last output time
       // to the current time - output_interval. this makes sure we
       // always produce data during the first time step
@@ -346,20 +343,18 @@ namespace aspect
               data_grain_i = data_grain_i + 2;
             }*/
 
-          std::vector<std::vector<double> > euler_angles_olivine;
-          std::vector<std::vector<double> > euler_angles_enstatite;
+          std::vector<std::vector<std::vector<double> > > euler_angles;
           if (compute_raw_euler_angles == true)
             {
-              euler_angles_olivine.resize(n_grains);
-              for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
+              euler_angles.resize(n_minerals);
+              for (unsigned int mineral_i = 0; mineral_i < n_minerals; ++mineral_i)
                 {
-                  euler_angles_olivine[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_grains[0][i_grain]);
-                }
 
-              euler_angles_enstatite.resize(n_grains);
-              for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
-                {
-                  euler_angles_enstatite[i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_grains[1][i_grain]);
+                  euler_angles[mineral_i].resize(n_grains);
+                  for (unsigned int i_grain = 0; i_grain < n_grains; i_grain++)
+                    {
+                      euler_angles[mineral_i][i_grain] = euler_angles_from_rotation_matrix(a_cosine_matrices_grains[mineral_i][i_grain]);
+                    }
                 }
             }
 
@@ -371,34 +366,28 @@ namespace aspect
                   string_stream_content_raw << "id" << " " << std::setprecision(12);
                   for (unsigned int property_i = 0; property_i < write_raw_lpo.size(); ++property_i)
                     {
-                      switch (write_raw_lpo[property_i])
+                      switch (write_raw_lpo[property_i].second)
                         {
-                          case Output::olivine_volume_fraction:
-                            string_stream_content_raw << "olivine_volume_fraction" << " ";
+                          case Output::VolumeFraction:
+                            string_stream_content_raw << "mineral_" << write_raw_lpo[property_i].first << "_volume_fraction" << " ";
                             break;
 
-                          case Output::olivine_A_matrix:
-                            string_stream_content_raw << "olivine_A_matrix_1" << " " << "olivine_A_matrix_2" << " " << "olivine_A_matrix_3" << " "
-                                                      << "olivine_A_matrix_4" << " " << "olivine_A_matrix_5" << " " << "olivine_A_matrix_6" << " "
-                                                      << "olivine_A_matrix_7" << " " << "olivine_A_matrix_8" << " " << "olivine_A_matrix_9" << " ";
+                          case Output::RotationMatrix:
+                            string_stream_content_raw << "mineral_" << write_raw_lpo[property_i].first << "_RM_0" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_1" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_2" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_3" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_4" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_5" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_6" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_7" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_RM_8" << " ";
                             break;
 
-                          case Output::olivine_Euler_angles:
-                            string_stream_content_raw << "olivine_Euler_angles_phi" << " " <<  "olivine_Euler_angles_theta" << " " <<  "olivine_Euler_angles_z" << " ";
-                            break;
-
-                          case Output::enstatite_volume_fraction:
-                            string_stream_content_raw << "enstatite_volume_fraction" << " ";
-                            break;
-
-                          case Output::enstatite_A_matrix:
-                            string_stream_content_raw << "enstatite_A_matrix_1" << " " << "enstatite_A_matrix_2" << " " << "enstatite_A_matrix_3" << " "
-                                                      << "enstatite_A_matrix_4" << " " << "enstatite_A_matrix_5" << " " << "enstatite_A_matrix_6" << " "
-                                                      << "enstatite_A_matrix_7" << " " << "enstatite_A_matrix_8" << " " << "enstatite_A_matrix_9" << " ";
-                            break;
-
-                          case Output::enstatite_Euler_angles:
-                            string_stream_content_raw << "enstatite_Euler_angles_phi" << " " <<  "enstatite_Euler_angles_theta" << " " <<  "enstatite_Euler_angles_z" << " ";
+                          case Output::EulerAngles:
+                            string_stream_content_raw << "mineral_" << write_raw_lpo[property_i].first << "_EA_phi" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_EA_theta" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_EA_z" << " ";
                             break;
 
                           default:
@@ -416,34 +405,22 @@ namespace aspect
                   string_stream_content_raw << id << " ";
                   for (unsigned int property_i = 0; property_i < write_raw_lpo.size(); ++property_i)
                     {
-                      switch (write_raw_lpo[property_i])
+                      switch (write_raw_lpo[property_i].second)
                         {
-                          case Output::olivine_volume_fraction:
-                            string_stream_content_raw << volume_fractions_grains[0][grain_i] << " ";
+                          case Output::VolumeFraction:
+                            string_stream_content_raw << volume_fractions_grains[write_raw_lpo[property_i].first][grain_i] << " ";
                             break;
 
-                          case Output::olivine_A_matrix:
-                            string_stream_content_raw << a_cosine_matrices_grains[0][grain_i] << " ";
+                          case Output::RotationMatrix:
+                            string_stream_content_raw << a_cosine_matrices_grains[write_raw_lpo[property_i].first][grain_i] << " ";
                             break;
 
-                          case Output::olivine_Euler_angles:
+                          case Output::EulerAngles:
                             Assert(compute_raw_euler_angles == true,
                                    ExcMessage("Internal error: writing out raw Euler angles, without them being computed."));
-                            string_stream_content_raw << euler_angles_olivine[grain_i][0] << " " <<  euler_angles_olivine[grain_i][1] << " " <<  euler_angles_olivine[grain_i][2] << " ";
-                            break;
-
-                          case Output::enstatite_volume_fraction:
-                            string_stream_content_raw << volume_fractions_grains[1][grain_i] << " ";
-                            break;
-
-                          case Output::enstatite_A_matrix:
-                            string_stream_content_raw << a_cosine_matrices_grains[1][grain_i] << " ";
-                            break;
-
-                          case Output::enstatite_Euler_angles:
-                            Assert(compute_raw_euler_angles == true,
-                                   ExcMessage("Internal error: writing out raw Euler angles, without them being computed."));
-                            string_stream_content_raw << euler_angles_enstatite[grain_i][0] << " " <<  euler_angles_enstatite[grain_i][1] << " " <<  euler_angles_enstatite[grain_i][2] << " ";
+                            string_stream_content_raw << euler_angles[write_raw_lpo[property_i].first][grain_i][0] << " "
+                                                      <<  euler_angles[write_raw_lpo[property_i].first][grain_i][1] << " "
+                                                      <<  euler_angles[write_raw_lpo[property_i].first][grain_i][2] << " ";
                             break;
 
                           default:
@@ -457,35 +434,35 @@ namespace aspect
             }
           if (write_draw_volume_weighted_lpo.size() != 0)
             {
-              std::vector<std::vector<double> > weighted_euler_angles_olivine = random_draw_volume_weighting(volume_fractions_grains[0], euler_angles_olivine);
-              Assert(weighted_euler_angles_olivine.size() == euler_angles_olivine.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_euler_angles_olivine.size()) +
-                     ") has different size from input angles (size = " + std::to_string(euler_angles_olivine.size()) + ")."));
-              std::vector<std::vector<double> > weighted_euler_angles_enstatite = random_draw_volume_weighting(volume_fractions_grains[1], euler_angles_enstatite);
-              Assert(weighted_euler_angles_enstatite.size() == euler_angles_enstatite.size(), ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_euler_angles_enstatite.size()) +
-                     ") has different size from input angles (size = " + std::to_string(euler_angles_enstatite.size()) + ")."));
+              std::vector<std::vector<std::vector<double> >> weighted_euler_angles;
 
-              std::vector<Tensor<2,3> > weighted_a_cosine_matrices_olivine;
-              std::vector<Tensor<2,3> > weighted_a_cosine_matrices_enstatite;
-              //std::cout << "weighted_euler_angles_olivine[0] = " << weighted_euler_angles_olivine[0][0] << ", "<< weighted_euler_angles_olivine[0][1] << ", "<< weighted_euler_angles_olivine[0][2] << std::endl;
-              //std::cout << "weighted_euler_angles_olivine[0] = " << weighted_euler_angles_olivine[1][0] << ", "<< weighted_euler_angles_olivine[1][1] << ", "<< weighted_euler_angles_olivine[1][2] << std::endl;
-              //std::cout << "weighted_euler_angles_olivine[0] = " << weighted_euler_angles_olivine[2][0] << ", "<< weighted_euler_angles_olivine[2][1] << ", "<< weighted_euler_angles_olivine[2][2] << std::endl;
+              weighted_euler_angles.resize(n_minerals);
+              for (unsigned int mineral_i = 0; mineral_i < n_minerals; ++mineral_i)
+                {
+                  weighted_euler_angles[mineral_i] = random_draw_volume_weighting(volume_fractions_grains[mineral_i], euler_angles[mineral_i]);
+
+                  Assert(weighted_euler_angles[mineral_i].size() == euler_angles[mineral_i].size(),
+                         ExcMessage("Weighted angles vector (size = " + std::to_string(weighted_euler_angles[mineral_i].size()) +
+                                    ") has different size from input angles (size = " + std::to_string(euler_angles[mineral_i].size()) + ")."));
+
+                }
+
+
+              std::vector<std::vector<Tensor<2,3> > > weighted_a_cosine_matrices;
+
               if (compute_weighted_A_matrix == true)
                 {
-                  weighted_a_cosine_matrices_olivine.resize(weighted_euler_angles_olivine.size());
-                  for (unsigned int i = 0; i < weighted_euler_angles_olivine.size(); ++i)
+                  weighted_a_cosine_matrices.resize(n_minerals);
+                  for (unsigned int mineral_i = 0; mineral_i < n_minerals; ++mineral_i)
                     {
-                      weighted_a_cosine_matrices_olivine[i] = euler_angles_to_rotation_matrix(weighted_euler_angles_olivine[i][0],
-                                                                                              weighted_euler_angles_olivine[i][1],
-                                                                                              weighted_euler_angles_olivine[i][2]);
-                      // std::cout << "weighted_a_cosine_matrices_olivine[" << i << "] = " << weighted_a_cosine_matrices_olivine[i] << std::endl;
-                    }
+                      weighted_a_cosine_matrices[mineral_i].resize(weighted_euler_angles[mineral_i].size());
 
-                  weighted_a_cosine_matrices_enstatite.resize(weighted_euler_angles_enstatite.size());
-                  for (unsigned int i = 0; i < weighted_euler_angles_enstatite.size(); ++i)
-                    {
-                      weighted_a_cosine_matrices_enstatite[i] = euler_angles_to_rotation_matrix(weighted_euler_angles_enstatite[i][0],
-                                                                                                weighted_euler_angles_enstatite[i][1],
-                                                                                                weighted_euler_angles_enstatite[i][2]);
+                      for (unsigned int i = 0; i < weighted_euler_angles.size(); ++i)
+                        {
+                          weighted_a_cosine_matrices[mineral_i][i] = euler_angles_to_rotation_matrix(weighted_euler_angles[mineral_i][i][0],
+                                                                                                     weighted_euler_angles[mineral_i][i][1],
+                                                                                                     weighted_euler_angles[mineral_i][i][2]);
+                        }
                     }
                 }
 
@@ -495,34 +472,28 @@ namespace aspect
                   string_stream_content_draw_volume_weighting << "id" << " ";
                   for (unsigned int property_i = 0; property_i < write_draw_volume_weighted_lpo.size(); ++property_i)
                     {
-                      switch (write_draw_volume_weighted_lpo[property_i])
+                      switch (write_draw_volume_weighted_lpo[property_i].second)
                         {
-                          case Output::olivine_volume_fraction:
-                            string_stream_content_draw_volume_weighting << "olivine_volume_fraction" << " ";
+                          case Output::VolumeFraction:
+                            string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_volume_fraction" << " ";
                             break;
 
-                          case Output::olivine_A_matrix:
-                            string_stream_content_draw_volume_weighting << "olivine_A_matrix_1" << " " << "olivine_A_matrix_2" << " " << "olivine_A_matrix_3" << " "
-                                                                        << "olivine_A_matrix_4" << " " << "olivine_A_matrix_5" << " " << "olivine_A_matrix_6" << " "
-                                                                        << "olivine_A_matrix_7" << " " << "olivine_A_matrix_8" << " " << "olivine_A_matrix_9" << " ";
+                          case Output::RotationMatrix:
+                            string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_0" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_1" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_2" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_3" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_4" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_5" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_6" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_7" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_RM_8" << " ";
                             break;
 
-                          case Output::olivine_Euler_angles:
-                            string_stream_content_draw_volume_weighting << "olivine_Euler_angles_phi" << " " <<  "olivine_Euler_angles_theta" << " " <<  "olivine_Euler_angles_z" << " ";
-                            break;
-
-                          case Output::enstatite_volume_fraction:
-                            string_stream_content_draw_volume_weighting << "enstatite_volume_fraction" << " ";
-                            break;
-
-                          case Output::enstatite_A_matrix:
-                            string_stream_content_draw_volume_weighting << "enstatite_A_matrix_1" << " " << "enstatite_A_matrix_2" << " " << "enstatite_A_matrix_3" << " "
-                                                                        << "enstatite_A_matrix_4" << " " << "enstatite_A_matrix_5" << " " << "enstatite_A_matrix_6" << " "
-                                                                        << "enstatite_A_matrix_7" << " " << "enstatite_A_matrix_8" << " " << "enstatite_A_matrix_9" << " ";
-                            break;
-
-                          case Output::enstatite_Euler_angles:
-                            string_stream_content_draw_volume_weighting << "enstatite_Euler_angles_phi" << " " <<  "enstatite_Euler_angles_theta" << " " <<  "enstatite_Euler_angles_z" << " ";
+                          case Output::EulerAngles:
+                            string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_phi" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_theta" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_z" << " ";
                             break;
 
                           default:
@@ -540,32 +511,23 @@ namespace aspect
                   string_stream_content_draw_volume_weighting << id << " ";
                   for (unsigned int property_i = 0; property_i < write_draw_volume_weighted_lpo.size(); ++property_i)
                     {
-                      switch (write_draw_volume_weighted_lpo[property_i])
+                      switch (write_draw_volume_weighted_lpo[property_i].second)
                         {
-                          case Output::olivine_volume_fraction:
-                            string_stream_content_draw_volume_weighting << volume_fractions_grains[0][grain_i] << " ";
+                          case Output::VolumeFraction:
+                            string_stream_content_draw_volume_weighting << volume_fractions_grains[write_raw_lpo[property_i].first][grain_i] << " ";
                             break;
 
-                          case Output::olivine_A_matrix:
-                            string_stream_content_draw_volume_weighting << a_cosine_matrices_grains[0][grain_i] << " ";
+                          case Output::RotationMatrix:
+                            string_stream_content_draw_volume_weighting << weighted_a_cosine_matrices[write_raw_lpo[property_i].first][grain_i] << " ";
                             break;
 
-                          case Output::olivine_Euler_angles:
-                            string_stream_content_draw_volume_weighting << weighted_euler_angles_olivine[grain_i][0] << " " <<  weighted_euler_angles_olivine[grain_i][1] << " " <<  weighted_euler_angles_olivine[grain_i][2] << " ";
+                          case Output::EulerAngles:
+                            Assert(compute_raw_euler_angles == true,
+                                   ExcMessage("Internal error: writing out raw Euler angles, without them being computed."));
+                            string_stream_content_draw_volume_weighting << weighted_euler_angles[write_raw_lpo[property_i].first][grain_i][0] << " "
+                                                                        <<  weighted_euler_angles[write_raw_lpo[property_i].first][grain_i][1] << " "
+                                                                        <<  weighted_euler_angles[write_raw_lpo[property_i].first][grain_i][2] << " ";
                             break;
-
-                          case Output::enstatite_volume_fraction:
-                            string_stream_content_draw_volume_weighting << volume_fractions_grains[1][grain_i] << " ";
-                            break;
-
-                          case Output::enstatite_A_matrix:
-                            string_stream_content_draw_volume_weighting << a_cosine_matrices_grains[1][grain_i] << " ";
-                            break;
-
-                          case Output::enstatite_Euler_angles:
-                            string_stream_content_draw_volume_weighting << weighted_euler_angles_enstatite[grain_i][0] << " " <<  weighted_euler_angles_enstatite[grain_i][1] << " " <<  weighted_euler_angles_enstatite[grain_i][2] << " ";
-                            break;
-
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
                             break;
@@ -840,19 +802,12 @@ namespace aspect
     LPO<dim>::string_to_output_enum(std::string string)
     {
       //olivine volume fraction, olivine A matrix, olivine Euler angles, enstatite volume fraction, enstatite A matrix, enstatite Euler angles
-      if (string == "olivine volume fraction")
-        return Output::olivine_volume_fraction;
-      if (string == "olivine A matrix")
-        return Output::olivine_A_matrix;
-      if (string == "olivine Euler angles")
-        return Output::olivine_Euler_angles;
-      if (string == "enstatite volume fraction")
-        return Output::enstatite_volume_fraction;
-      if (string == "enstatite A matrix")
-        return Output::enstatite_A_matrix;
-      if (string == "enstatite Euler angles")
-        return Output::enstatite_Euler_angles;
-
+      if (string == "volume fraction")
+        return Output::VolumeFraction;
+      if (string == "rotation matrix")
+        return Output::RotationMatrix;
+      if (string == "Euler angles")
+        return Output::EulerAngles;
       return Output::not_found;
     }
 
@@ -871,6 +826,18 @@ namespace aspect
                                Patterns::Integer (0),
                                "The number of grains of olivine and the number of grain of enstatite "
                                "each particle contains.");
+
+            prm.enter_subsection("D-Rex 2004");
+            {
+              prm.declare_entry ("Minerals", "Olivine: Karato 2008, Enstatite",
+                                 Patterns::List(Patterns::Anything()),
+                                 "This determines what minerals and fabrics or fabric selectors are used used for the LPO calculation. "
+                                 "The options are Olivine: A-fabric, Olivine: B-fabric, Olivine: C-fabric, Olivine: D-fabric, "
+                                 "Olivine: E-fabric, Olivine: Karato 2008 or Enstatite. The "
+                                 "Karato 2008 selector selects a fabric based on stress and water content as defined in "
+                                 "figure 4 of the Karato 2008 review paper (doi: 10.1146/annurev.earth.36.031207.124120).");
+            }
+            prm.leave_subsection ();
           }
           prm.leave_subsection ();
         }
@@ -967,7 +934,14 @@ namespace aspect
         {
           prm.enter_subsection("LPO");
           {
-            n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();//prm.get_integer("Number of grains per praticle"); //10000;
+            n_grains = prm.get_integer("Number of grains per praticle");
+            prm.enter_subsection("D-Rex 2004");
+            {
+              // Static variable of LPO has not been initialize yet, so we need to get it directly.
+              const std::vector<std::string> temp_deformation_type_selector = dealii::Utilities::split_string_list(prm.get("Minerals")); // todo trim?
+              n_minerals = temp_deformation_type_selector.size();
+            }
+            prm.leave_subsection();
           }
           prm.leave_subsection ();
         }
@@ -1002,20 +976,91 @@ namespace aspect
                                      "there is a terminal available to move the files to their final location "
                                      "after writing. The system() command did not succeed in finding such a terminal."));
             }
-          std::vector<std::string> write_raw_lpo_tmp = Utilities::split_string_list(prm.get("Write out raw lpo data"));
-          write_raw_lpo.resize(write_raw_lpo_tmp.size());
-          bool found_euler_angles = false;
-          for (unsigned int i = 0; i < write_raw_lpo_tmp.size(); ++i)
-            {
-              write_raw_lpo[i] = string_to_output_enum(write_raw_lpo_tmp[i]);
-              AssertThrow(write_raw_lpo[i] != Output::not_found,
-                          ExcMessage("Value \""+ write_raw_lpo_tmp[i] +"\", set in \"Write out raw lpo data\", is not a correct option."))
 
-              if (write_raw_lpo[i] == Output::enstatite_Euler_angles || write_raw_lpo[i] == Output::olivine_Euler_angles)
+          std::vector<std::string> write_raw_lpo_list = Utilities::split_string_list(prm.get("Write out raw lpo data"));
+          write_raw_lpo.resize(write_raw_lpo_list.size());
+          bool found_euler_angles = false;
+          for (unsigned int i = 0; i < write_raw_lpo_list.size(); ++i)
+            {
+              std::vector<std::string> split_raw_lpo_instructions = Utilities::split_string_list(write_raw_lpo_list[i],':');
+
+              AssertThrow(split_raw_lpo_instructions.size() == 2,
+                          ExcMessage("Value \""+ write_raw_lpo_list[i] +"\", set in \"Write out raw lpo data\", is not a correct option "
+                                     + "because it should contain a mineral identification and a output specifier seprated by a colon (:). This entry "
+                                     + "does not follow those rules."));
+
+              // get mineral number
+              std::vector<std::string> mineral_instructions = Utilities::split_string_list(split_raw_lpo_instructions[0],' ');
+              AssertThrow(mineral_instructions.size() == 2,
+                          ExcMessage("Value \""+ write_raw_lpo_list[i] +"\", set in \"Write out raw lpo data\", is not a correct option "
+                                     + "because the mineral identification part should contain two elements, the word mineral and a number."));
+
+              AssertThrow(mineral_instructions[0] == "mineral",
+                          ExcMessage("Value \""+ write_raw_lpo_list[i] +"\", set in \"Write out raw lpo data\", is not a correct option "
+                                     + "because the mineral identification part should start with the word mineral and it starts with \""
+                                     + mineral_instructions[0] + "\"."));
+
+              int mineral_number = Utilities::string_to_int(mineral_instructions[1]);
+
+              AssertThrow((unsigned int) mineral_number < n_minerals,
+                          ExcMessage("Value \""+ write_raw_lpo_list[i] +"\", set in \"Write out raw lpo data\", is not a correct option "
+                                     + "because the mineral number (" + std::to_string(mineral_number) + ") is larger than the number of minerals "
+                                     + "provided in the LPO subsection (" + std::to_string(n_minerals) + ")."));
+
+              // get mineral fabric/deformation type
+              Output lpo_fabric_instruction = string_to_output_enum(split_raw_lpo_instructions[1]);
+
+              AssertThrow(lpo_fabric_instruction != Output::not_found,
+                          ExcMessage("Value \""+ write_raw_lpo_list[i] +"\", set in \"Write out raw lpo data\", is not a correct option."))
+
+              if (lpo_fabric_instruction == Output::EulerAngles)
                 found_euler_angles = true;
+
+              write_raw_lpo[i] = std::make_pair(mineral_number,lpo_fabric_instruction);
             }
 
-          std::vector<std::string> write_draw_volume_weighted_lpo_tmp = Utilities::split_string_list(prm.get("Write out draw volume weighted lpo data"));
+          std::vector<std::string> write_draw_volume_weighted_lpo_list = Utilities::split_string_list(prm.get("Write out draw volume weighted lpo data"));
+          write_draw_volume_weighted_lpo.resize(write_draw_volume_weighted_lpo_list.size());
+          bool found_A_matrix = false;
+          for (unsigned int i = 0; i < write_draw_volume_weighted_lpo_list.size(); ++i)
+            {
+              std::vector<std::string> split_draw_volume_weighted_lpo_instructions = Utilities::split_string_list(write_draw_volume_weighted_lpo_list[i],':');
+
+              AssertThrow(split_draw_volume_weighted_lpo_instructions.size() == 2,
+                          ExcMessage("Value \""+ write_draw_volume_weighted_lpo_list[i] +"\", set in \"Write out draw volume weighted lpo data\", is not a correct option "
+                                     + "because it should contain a mineral identification and a output specifier seprated by a colon (:). This entry "
+                                     + "does not follow those rules."));
+
+              // get mineral number
+              std::vector<std::string> mineral_instructions = Utilities::split_string_list(split_draw_volume_weighted_lpo_instructions[0],' ');
+              AssertThrow(mineral_instructions.size() == 2,
+                          ExcMessage("Value \""+ write_draw_volume_weighted_lpo_list[i] +"\", set in \"Write out draw volume weighted lpo data\", is not a correct option "
+                                     + "because the mineral identification part should contain two elements, the word mineral and a number."));
+
+              AssertThrow(mineral_instructions[0] == "mineral",
+                          ExcMessage("Value \""+ write_draw_volume_weighted_lpo_list[i] +"\", set in \"Write out draw volume weighted lpo data\", is not a correct option "
+                                     + "because the mineral identification part should start with the word mineral and it starts with \""
+                                     + mineral_instructions[0] + "\"."));
+
+              int mineral_number = Utilities::string_to_int(mineral_instructions[1]);
+              AssertThrow((unsigned int) mineral_number < n_minerals,
+                          ExcMessage("Value \""+ write_raw_lpo_list[i] +"\", set in \"Write out raw lpo data\", is not a correct option "
+                                     + "because the mineral number (" + std::to_string(mineral_number) + ") is larger than the number of minerals "
+                                     + "provided in the LPO subsection (" + std::to_string(n_minerals) + ")."));
+
+              // get mineral fabric/deformation type
+              Output lpo_fabric_instruction = string_to_output_enum(split_draw_volume_weighted_lpo_instructions[1]);
+
+              AssertThrow(lpo_fabric_instruction != Output::not_found,
+                          ExcMessage("Value \""+ write_draw_volume_weighted_lpo_list[i] +"\", set in \"Write out draw volume weighted lpo data\", is not a correct option."))
+
+              if (lpo_fabric_instruction == Output::RotationMatrix)
+                found_A_matrix = true;
+
+              write_draw_volume_weighted_lpo[i] = std::make_pair(mineral_number,lpo_fabric_instruction);
+            }
+
+          /*std::vector<std::string> write_draw_volume_weighted_lpo_tmp = Utilities::split_string_list(prm.get("Write out draw volume weighted lpo data"));
           write_draw_volume_weighted_lpo.resize(write_draw_volume_weighted_lpo_tmp.size());
           bool found_A_matrix = false;
           for (unsigned int i = 0; i < write_draw_volume_weighted_lpo_tmp.size(); ++i)
@@ -1026,13 +1071,17 @@ namespace aspect
 
               if (write_draw_volume_weighted_lpo[i] == Output::olivine_A_matrix || write_draw_volume_weighted_lpo[i] == Output::enstatite_A_matrix)
                 found_A_matrix = true;
-            }
-          if (write_draw_volume_weighted_lpo_tmp.size() != 0 || found_euler_angles == true)
+            }*/
+
+
+
+
+          if (write_draw_volume_weighted_lpo_list.size() != 0 || found_euler_angles == true)
             compute_raw_euler_angles = true;
           else
             compute_raw_euler_angles = false;
 
-          if (write_draw_volume_weighted_lpo_tmp.size() != 0 && found_A_matrix == true)
+          if (write_draw_volume_weighted_lpo_list.size() != 0 && found_A_matrix == true)
             compute_weighted_A_matrix = true;
           else
             compute_weighted_A_matrix = false;
