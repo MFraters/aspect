@@ -116,8 +116,8 @@ namespace aspect
                                                            const std::vector<Tensor<1,dim> > &,
                                                            const ArrayView<double> &data) const
       {
-        const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-        this->random_number_generator.seed(random_number_seed+my_rank);
+        //const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+        //this->random_number_generator.seed(random_number_seed+my_rank);
 
         std::vector<unsigned int> deformation_type;
         std::vector<double> volume_fraction_mineral;
@@ -137,11 +137,13 @@ namespace aspect
             const std::vector<Tensor<2,3> > weighted_a_matrices = random_draw_volume_weighting(volume_fractions_grains[mineral_i], a_cosine_matrices_grains[mineral_i], n_samples);
             std::array<std::array<double,3>,3> bingham_average = compute_bingham_average(weighted_a_matrices);
 
+            unsigned int counter = 0;
             for (unsigned int i = 0; i < 3; i++)
               for (unsigned int j = 0; j < 3; j++)
                 {
                   //std::cout << ">>> bingham: " << i << ":" << j << " old = " << data[data_position + counter] << ", new = "<< bingham_average_olivine[i][j] << std::endl;
-                  data[data_position + mineral_i*9] = bingham_average[i][j];
+                  data[data_position + mineral_i*9 + counter] = bingham_average[i][j];
+                  counter++;
                 }
           }
       }
@@ -188,9 +190,9 @@ namespace aspect
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
 
 
-        const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second * eigenvectors_a[0].first;
-        const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second * eigenvectors_b[0].first;
-        const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second * eigenvectors_a[0].first;
+        const Tensor<1,3,double> averaged_a = eigenvectors_a[0].second * eigenvectors_a[0].first;
+        const Tensor<1,3,double> averaged_b = eigenvectors_b[0].second * eigenvectors_b[0].first;
+        const Tensor<1,3,double> averaged_c = eigenvectors_c[0].second * eigenvectors_a[0].first;
 
         return
         {
@@ -301,14 +303,12 @@ namespace aspect
       LpoBinghamAverage<dim>::get_property_information() const
       {
         std::vector<std::pair<std::string,unsigned int> > property_information;
-
-        property_information.push_back(std::make_pair("lpo_bingham_average average olivine a axis",3));
-        property_information.push_back(std::make_pair("lpo_bingham_average average olivine b axis",3));
-        property_information.push_back(std::make_pair("lpo_bingham_average average olivine c axis",3));
-
-        property_information.push_back(std::make_pair("lpo_bingham_average average enstatite a axis",3));
-        property_information.push_back(std::make_pair("lpo_bingham_average average enstatite b axis",3));
-        property_information.push_back(std::make_pair("lpo_bingham_average average enstatite c axis",3));
+        for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
+          {
+            property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " bingham average a axis",3));
+            property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " bingham average b axis",3));
+            property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " bingham average c axis",3));
+          }
 
         //std::cout << "bingham property_information.size() = " << property_information.size() << std::endl;
 

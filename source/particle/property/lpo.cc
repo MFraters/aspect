@@ -465,6 +465,7 @@ namespace aspect
         //std::vector<double> volume_fraction_mineral(n_minerals);
         std::vector<std::vector<double > >volume_fractions_grains(n_minerals);
         std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains(n_minerals);
+        //std::cout << "paricle:" << std::endl;
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
 
@@ -540,9 +541,11 @@ namespace aspect
                     double two = uniform_distribution(this->random_number_generator);
                     double three = uniform_distribution(this->random_number_generator);
 
+                    //std::cout << one << " " <<  two << " " << three << std::endl;
+
                     double theta = 2.0 * M_PI * one; // Rotation about the pole (Z)
                     double phi = 2.0 * M_PI * two; // For direction of pole deflection.
-                    double z = 2.0* three; //For magnitude of pole deflection.
+                    double z = 2.0 * three; //For magnitude of pole deflection.
 
                     //std::cout << "init mineral " << mineral_i << ", theta:phi:z = " << theta << ":" << phi << ":" << z << std::endl;
 
@@ -555,7 +558,7 @@ namespace aspect
                     double r  = std::sqrt( z );
                     double Vx = std::sin( phi ) * r;
                     double Vy = std::cos( phi ) * r;
-                    double Vz = std::sqrt( 2.f - z );
+                    double Vz = std::sqrt( 2.0 - z );
 
                     // Compute the row vector S = Transpose(V) * R, where R is a simple
                     // rotation by theta about the z-axis.  No need to compute Sz since

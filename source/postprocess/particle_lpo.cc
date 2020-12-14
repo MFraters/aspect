@@ -514,19 +514,19 @@ namespace aspect
                       switch (write_draw_volume_weighted_lpo[property_i].second)
                         {
                           case Output::VolumeFraction:
-                            string_stream_content_draw_volume_weighting << volume_fractions_grains[write_raw_lpo[property_i].first][grain_i] << " ";
+                            string_stream_content_draw_volume_weighting << volume_fractions_grains[write_draw_volume_weighted_lpo[property_i].first][grain_i] << " ";
                             break;
 
                           case Output::RotationMatrix:
-                            string_stream_content_draw_volume_weighting << weighted_a_cosine_matrices[write_raw_lpo[property_i].first][grain_i] << " ";
+                            string_stream_content_draw_volume_weighting << weighted_a_cosine_matrices[write_draw_volume_weighted_lpo[property_i].first][grain_i] << " ";
                             break;
 
                           case Output::EulerAngles:
                             Assert(compute_raw_euler_angles == true,
                                    ExcMessage("Internal error: writing out raw Euler angles, without them being computed."));
-                            string_stream_content_draw_volume_weighting << weighted_euler_angles[write_raw_lpo[property_i].first][grain_i][0] << " "
-                                                                        <<  weighted_euler_angles[write_raw_lpo[property_i].first][grain_i][1] << " "
-                                                                        <<  weighted_euler_angles[write_raw_lpo[property_i].first][grain_i][2] << " ";
+                            string_stream_content_draw_volume_weighting << weighted_euler_angles[write_draw_volume_weighted_lpo[property_i].first][grain_i][0] << " "
+                                                                        <<  weighted_euler_angles[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
+                                                                        <<  weighted_euler_angles[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " ";
                             break;
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
