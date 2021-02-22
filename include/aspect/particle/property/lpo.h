@@ -37,11 +37,11 @@ namespace aspect
     {
       enum class DeformationType
       {
-        OlivineAFabric, OlivineBFabric, OlivineCFabric, OlivineDFabric, OlivineEFabric, Enstatite
+        Passive, OlivineAFabric, OlivineBFabric, OlivineCFabric, OlivineDFabric, OlivineEFabric, Enstatite
       };
       enum class DeformationTypeSelector
       {
-        OlivineAFabric, OlivineBFabric, OlivineCFabric, OlivineDFabric, OlivineEFabric, Enstatite, OlivineKarato2008
+        Passive, OlivineAFabric, OlivineBFabric, OlivineCFabric, OlivineDFabric, OlivineEFabric, Enstatite, OlivineKarato2008
       };
 
       enum class AdvectionMethod
@@ -51,7 +51,12 @@ namespace aspect
 
       enum class LpoDerivativeAlgorithm
       {
-        SpinTensor, DRex2004
+        Zero, SpinTensor, DRex2004
+      };
+
+      enum class NondimensionalizationMethod
+      {
+        None, StrainRateSecondInvariant
       };
       /**
        * Todo: write what this plugin does.
@@ -262,7 +267,6 @@ namespace aspect
           advect_forward_euler(std::vector<double> &volume_fractions,
                                std::vector<Tensor<2,3> > &a_cosine_matrices,
                                const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
-                               const double strain_rate_second_invariant,
                                const double dt) const;
           /**
            * derivatives: Todo
@@ -271,7 +275,6 @@ namespace aspect
           advect_backward_euler(std::vector<double> &volume_fractions,
                                 std::vector<Tensor<2,3> > &a_cosine_matrices,
                                 const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
-                                const double strain_rate_second_invariant,
                                 const double dt) const;
 
           double
@@ -280,7 +283,6 @@ namespace aspect
                                 const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
                                 std::vector<double> &previous_volume_fraction_derivatives,
                                 std::vector<Tensor<2,3> > &previous_a_cosine_matrices_derivatives,
-                                const double strain_rate_second_invariant,
                                 const double dt) const;
 
 
@@ -416,6 +418,11 @@ namespace aspect
            * grain boundery mobility
            */
           double mobility;
+
+          /**
+           * Nondimensionalzation method for D-Rex 2004
+           */
+          NondimensionalizationMethod nondimensionalization_method;
 
           /**
            * Advection method for particle properties
