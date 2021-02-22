@@ -254,7 +254,7 @@ namespace aspect
                                                            volume_fractions_grains,
                                                            a_cosine_matrices_grains);
 
-          const unsigned int lpo_hex_data_position = property_information.n_fields() == 0 && hexagonal_plugin_exists == false
+          const unsigned int lpo_hex_data_position = property_information.n_fields() == 0 || hexagonal_plugin_exists == false
                                                      ?
                                                      0
                                                      :
