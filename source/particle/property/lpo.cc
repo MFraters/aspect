@@ -18,7 +18,6 @@
  <http://www.gnu.org/licenses/>.
  */
 
-//#include <cstdlib>
 #include <aspect/particle/property/lpo.h>
 #include <world_builder/grains.h>
 #include <aspect/geometry_model/interface.h>
@@ -56,15 +55,6 @@ namespace aspect
       {
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
-
-        //AssertThrow(this->introspection().compositional_name_exists("water"),
-        //            ExcMessage("Particle property LPO only works if"
-        //                       "there is a compositional field called water."));
-
-
-        // todo: check wheter this works correctly. Since the get_random_number function takes a reference
-        // to the random_number_generator function, changing the function should mean that I have to update the
-        // get_random_number function as well. But I will need to test this.
       }
 
       template <int dim>
@@ -122,46 +112,6 @@ namespace aspect
                   }
               }
           }
-
-        /*olivine_deformation_type = data[lpo_data_position];
-        volume_fraction_olivine = data[lpo_data_position +1];
-        // resize the vectors to fit n_grains
-        volume_fractions_olivine.resize(n_grains);
-        a_cosine_matrices_olivine.resize(n_grains);
-        volume_fractions_enstatite.resize(n_grains);
-        a_cosine_matrices_enstatite.resize(n_grains);
-
-        // loop over grain retrieve from data from each grain
-        unsigned int data_grain_i = 0;
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            // retrieve volume fraction for olivine grains
-            volume_fractions_olivine[grain_i] = data[lpo_data_position + data_grain_i *
-                                                     (Tensor<2,3>::n_independent_components + 1) + 2];
-
-            // retrieve a_{ij} for olivine grains
-            //Tensor<2,dim> a_cosine_matrices_olivine;
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                a_cosine_matrices_olivine[grain_i][index] = data[lpo_data_position + data_grain_i *
-                                                                 (Tensor<2,3>::n_independent_components + 1) + 3 + i];
-              }
-
-            // retrieve volume fraction for enstatite grains
-            volume_fractions_enstatite[grain_i] = data[lpo_data_position + (data_grain_i+1) *
-                                                       (Tensor<2,3>::n_independent_components + 1) + 2];
-
-            // retrieve a_{ij} for enstatite grains
-            //Tensor<2,dim> a_cosine_matrices;
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                a_cosine_matrices_enstatite[grain_i][index] = data[lpo_data_position + (data_grain_i+1) *
-                                                                   (Tensor<2,3>::n_independent_components + 1) + 3 + i];
-              }
-            data_grain_i = data_grain_i + 2;
-          }*/
       }
 
 
@@ -207,48 +157,6 @@ namespace aspect
                       }
                   }
               }
-
-
-            /*
-            //std::cout << "load CN: " << std::endl;
-            unsigned int data_grain_i = 0;
-            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-              {
-                // retrieve volume fraction for olivine grains
-                volume_fractions_olivine_derivatives[grain_i] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + data_grain_i *
-                                                                     (Tensor<2,3>::n_independent_components + 1) + 2];
-
-                // retrieve a_{ij} for olivine grains
-                //Tensor<2,dim> a_cosine_matrices_olivine;
-                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                  {
-                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                    a_cosine_matrices_olivine_derivatives[grain_i][index] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + data_grain_i *
-                                                                                 (Tensor<2,3>::n_independent_components + 1) + 3 + i];
-                    //if (grain_i == 0)
-                    //  {
-                    //    std::cout << a_cosine_matrices_olivine_derivatives[grain_i][index] << " ";
-                    //  }
-                  }
-                //if (grain_i == 0)
-                //  {
-                //    std::cout << std::endl;
-                //  }
-
-                // retrieve volume fraction for enstatite grains
-                volume_fractions_enstatite_derivatives[grain_i] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + (data_grain_i+1) *
-                                                                       (Tensor<2,3>::n_independent_components + 1) + 2];
-
-                // retrieve a_{ij} for enstatite grains
-                //Tensor<2,dim> a_cosine_matrices;
-                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                  {
-                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                    a_cosine_matrices_enstatite_derivatives[grain_i][index] = data[lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + (data_grain_i+1) *
-                                                                                   (Tensor<2,3>::n_independent_components + 1) + 3 + i];
-                  }
-                data_grain_i = data_grain_i + 2;
-              }*/
           }
       }
 
@@ -303,38 +211,6 @@ namespace aspect
                   }
               }
           }
-
-        /*Assert(volume_fractions_olivine.size() == n_grains, ExcMessage("Internal error: volume_fractions_olivine is not the same as n_grains."));
-        Assert(a_cosine_matrices_olivine.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_olivine is not the same as n_grains."));
-        Assert(volume_fractions_enstatite.size() == n_grains, ExcMessage("Internal error: volume_fractions_enstatite is not the same as n_grains."));
-        Assert(a_cosine_matrices_enstatite.size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite is not the same as n_grains."));
-        data[lpo_data_position] = olivine_deformation_type;
-        data[lpo_data_position + 1] = volume_fraction_olivine;
-        // loop over grains to store the data of each grain
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            // store volume fraction for olivine grains
-            data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 2] = volume_fractions_olivine[grain_i];
-
-            // store a_{ij} for olivine grains
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 3 + i] = a_cosine_matrices_olivine[grain_i][index];
-              }
-
-            // store volume fraction for enstatite grains
-            data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 12] = volume_fractions_enstatite[grain_i];
-
-            // store a_{ij} for enstatite grains
-            for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-              {
-                const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                data[lpo_data_position + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + i] = a_cosine_matrices_enstatite[grain_i][index];
-              }
-          }*/
-        //std::cout << "last olivine index = "   << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 3 + Tensor<2,3>::n_independent_components << std::endl;
-        //std::cout << "last enstatite index = " << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + Tensor<2,3>::n_independent_components << std::endl;
       }
 
 
@@ -350,10 +226,6 @@ namespace aspect
                                              std::vector<std::vector<double> > &volume_fractions_grains_derivatives,
                                              std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains_derivatives) const
       {
-        //Assert(volume_fractions_mineral[0].size() == n_grains, ExcMessage("Internal error: volume_fractions_olivine is not the same as n_grains."));
-        //Assert(a_cosine_matrices_mineral[0].size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_olivine is not the same as n_grains."));
-        //Assert(volume_fractions_mineral[1].size() == n_grains, ExcMessage("Internal error: volume_fractions_enstatite is not the same as n_grains."));
-        //Assert(a_cosine_matrices_mineral[1].size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite is not the same as n_grains."));
         store_particle_data(lpo_data_position,
                             data,
                             deformation_type,
@@ -389,33 +261,6 @@ namespace aspect
                       }
                   }
               }
-
-            /*Assert(volume_fractions_grains_derivatives[1].size() == n_grains, ExcMessage("Internal error: volume_fractions_enstatite_derivatives is not the same as n_grains."));
-            Assert(a_cosine_matrices_grains_derivatives[1].size() == n_grains, ExcMessage("Internal error: a_cosine_matrices_enstatite_derivatives is not the same as n_grains."));
-            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-              {
-                // store volume fraction for olivine grains
-                data[lpo_data_position + n_grains[0] * n_grains.size() * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 2] = volume_fractions_grains_derivatives[0][grain_i];
-
-                // store a_{ij} for olivine grains
-                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                  {
-                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                    data[lpo_data_position + n_grains[0] * n_grains.size() * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 3 + i] = a_cosine_matrices_grains_derivatives[0][grain_i][index];
-                  }
-
-                // store volume fraction for enstatite grains
-                data[lpo_data_position + n_grains[1] * n_grains.size() * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 12] = volume_fractions_grains_derivatives[1][grain_i];
-
-                // store a_{ij} for enstatite grains
-                for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                  {
-                    const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                    data[lpo_data_position + n_grains[1] * n_grains.size() * (Tensor<2,3>::n_independent_components + 1) + grain_i * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + i] = a_cosine_matrices_grains_derivatives[1][grain_i][index];
-                  }
-              }*/
-            //std::cout << "last olivine index extra = " << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 3 + Tensor<2,3>::n_independent_components << std::endl;
-            //std::cout << "last enstatite index extra = " << lpo_data_position + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + n_grains * 2.0 * (Tensor<2,3>::n_independent_components + 1) + 13 + Tensor<2,3>::n_independent_components << std::endl;
           }
       }
 
@@ -454,8 +299,6 @@ namespace aspect
             volume_fractions_grains[mineral_i].resize(n_grains);
             a_cosine_matrices_grains[mineral_i].resize(n_grains);
 
-            // world builder or not?
-            bool use_world_builder = false;
             if (use_world_builder == true)
               {
 #ifdef ASPECT_WITH_WORLD_BUILDER
@@ -467,7 +310,6 @@ namespace aspect
                 for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
                   {
                     sum_volume_fractions += wb_grains.sizes[grain_i];
-                    //std::cout << olivine_grains.sizes[grain_i] << ", ";
                     volume_fractions_grains[mineral_i][grain_i] = wb_grains.sizes[grain_i];
                     // we are receiving a array<array<double,3>,3> which nees to be unrolled in the correct way
                     // for a tensor<2,3> it just loops first over the second index and than the first index
@@ -492,11 +334,7 @@ namespace aspect
               }
             else
               {
-                // set volume fraction
                 const double initial_volume_fraction = 1.0/n_grains;
-                //for (unsigned int i = 0; i < n_grains ; ++i)
-                //data.push_back(initial_volume_fraction);
-
                 boost::random::uniform_real_distribution<double> uniform_distribution(0,1);
 
                 // it is 2 times the amount of grains because we have to compute for olivine and enstatite.
@@ -523,8 +361,6 @@ namespace aspect
                     double one = uniform_distribution(this->random_number_generator);
                     double two = uniform_distribution(this->random_number_generator);
                     double three = uniform_distribution(this->random_number_generator);
-
-                    //std::cout << one << " " <<  two << " " << three << std::endl;
 
                     double theta = 2.0 * M_PI * one; // Rotation about the pole (Z)
                     double phi = 2.0 * M_PI * two; // For direction of pole deflection.
@@ -611,7 +447,7 @@ namespace aspect
         // Get volume weighted euler angles, using random draws to convert odf
         // to a discrete number of orientations, weighted by volume
         // 1a. Get index that would sort volume fractions AND
-        //ix = np.argsort(fv[q,:]);
+        // ix = np.argsort(fv[q,:]);
         // 1b. Get the sorted volume and angle arrays
         std::vector<double> fv_to_sort = fv;
         std::vector<double> fv_sorted = fv;
@@ -666,13 +502,6 @@ namespace aspect
                   {
                     break;
                   }
-
-
-                /*Assert(matrices_sorted[counter].size() == 3, ExcMessage("matrices_sorted vector (size = " + std::to_string(matrices_sorted[counter].size()) +
-                                                                      ") should have size 3."));*/
-
-                /*Assert(matrices_out[counter].size() == 3, ExcMessage("matrices_out vector (size = " + std::to_string(matrices_out[counter].size()) +
-                                                                   ") should have size 3."));*/
               }
             matrices_out[grain_i] = matrices_sorted[counter];
           }
@@ -772,9 +601,6 @@ namespace aspect
             velocity_gradient_3d[2][2] = velocity_gradient[2][2];
           }
 
-        std::cout << "spin tensor = " << -0.5 *(velocity_gradient_3d - dealii::transpose(velocity_gradient_3d)) << std::endl;
-
-        //const double n_minerals = 2;
         std::vector<unsigned int> deformation_types;
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
@@ -896,7 +722,12 @@ namespace aspect
                                                                                             volume_fraction_mineral[mineral_i],
                                                                                             ref_resolved_shear_stress);
 
-
+            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+              {
+                Assert(isfinite(volume_fractions_grains[mineral_i][grain_i]),
+                       ExcMessage("volume_fractions_grains[mineral_i][" + std::to_string(grain_i) + "] is not finite: "
+                                  + std::to_string(volume_fractions_grains[mineral_i][grain_i]) + "."));
+              }
 
             switch (advection_method)
               {
@@ -1260,22 +1091,17 @@ namespace aspect
       LPO<dim>::get_property_information() const
       {
         std::vector<std::pair<std::string,unsigned int> > property_information;
-        //std::cout << "n_minerals = " << n_minerals << ", n_grains = " << n_grains << std::endl;
-        //size_t counter = 0;
+
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
             property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " type",1));
-            //counter++;
             property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " volume fraction",1));
-            //counter++;
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
                 property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " volume fraction",1));
-                //counter++;
                 for (unsigned int index = 0; index < Tensor<2,3>::n_independent_components; index++)
                   {
                     property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " a_cosine_matrix " + std::to_string(index),1));
-                    //counter++;
                   }
               }
           }
@@ -1287,18 +1113,13 @@ namespace aspect
                 for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
                   {
                     property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " volume fraction derivative",1));
-                    //counter++;
                     for (unsigned int index = 0; index < Tensor<2,3>::n_independent_components; index++)
                       {
                         property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " a_cosine_matrix derivative" + std::to_string(index),1));
-                        //counter++;
                       }
                   }
               }
           }
-//std::cout << "proertpy end c = " << counter << std::endl;
-
-        //std::cout << "lpo property_information.size() = " << property_information.size() << std::endl;
         return property_information;
       }
 
@@ -1349,15 +1170,15 @@ namespace aspect
             Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set."));
             for (size_t iteration = 0; iteration < property_advection_max_iterations; iteration++)
               {
-                Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set. grain_i = "
+                Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set in iteration " + std::to_string(iteration) + ": grain_i = "
                                                         + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(volume_fractions[grain_i])
-                                                        + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
+                                                        + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i]) + ", vf_new = " + std::to_string(vf_new)));
 
                 vf_new = volume_fractions[grain_i] + dt * vf_new * derivatives.first[grain_i];
 
                 Assert(std::isfinite(volume_fractions[grain_i]),ExcMessage("volume_fractions[grain_i] is not finite. grain_i = "
                                                                            + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(volume_fractions[grain_i])
-                                                                           + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
+                                                                           + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])+ ", vf_new = " + std::to_string(vf_new)));
                 if (std::fabs(vf_new-vf_old) < property_advection_tolerance)
                   {
                     break;
@@ -1366,6 +1187,10 @@ namespace aspect
               }
 
             volume_fractions[grain_i] = vf_new;
+            Assert(std::isfinite(volume_fractions[grain_i]),ExcMessage("vf_new is not finite before it is set. grain_i = "
+                                                                       + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(volume_fractions[grain_i])
+                                                                       + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i]) + ", vf_new = " + std::to_string(vf_new)));
+
             sum_volume_fractions += volume_fractions[grain_i];
           }
 
@@ -1412,7 +1237,7 @@ namespace aspect
             for (size_t iteration = 0; iteration < property_advection_max_iterations; iteration++)
               {
                 vf_new = volume_fractions[grain_i] + dt * 0.5 * ((volume_fractions[grain_i] * previous_volume_fraction_derivatives[grain_i]) + (vf_new * derivatives.first[grain_i]));
-                //std::cout << "res g: " << iteration << "= " << std::fabs(vf_new-vf_old) << std::endl;
+
                 if (std::fabs(vf_new-vf_old) < property_advection_tolerance)
                   {
                     break;
@@ -1423,7 +1248,7 @@ namespace aspect
             previous_volume_fraction_derivatives[grain_i] = derivatives.first[grain_i];
 
             volume_fractions[grain_i] = vf_new;
-            //volume_fractions[grain_i] = volume_fractions[grain_i];// + dt * strain_rate_second_invariant * derivatives.first[grain_i];
+
             sum_volume_fractions += volume_fractions[grain_i];
           }
 
@@ -1431,23 +1256,16 @@ namespace aspect
           {
             auto cosine_old = a_cosine_matrices[grain_i];
             auto cosine_new = a_cosine_matrices[grain_i];
-            bool finished = false;
             for (size_t iteration = 0; iteration < property_advection_max_iterations; iteration++)
               {
                 cosine_new = a_cosine_matrices[grain_i] + dt * 0.5 * ((a_cosine_matrices[grain_i] * previous_a_cosine_matrices_derivatives[grain_i])
                                                                       + (cosine_new * derivatives.second[grain_i]));
-                //std::cout << "iteration " << iteration << ", norm = " << (cosine_new-cosine_old).norm() << std::endl;
+
                 if ((cosine_new-cosine_old).norm() < property_advection_tolerance)
                   {
-                    finished = true;
                     break;
                   }
                 cosine_old = cosine_new;
-              }
-
-            if (!finished)
-              {
-                //std::cout << "not finished, norm = " << (cosine_new-cosine_old).norm() << std::endl;
               }
 
             previous_a_cosine_matrices_derivatives[grain_i] = derivatives.second[grain_i];
@@ -1530,9 +1348,10 @@ namespace aspect
                                              const double volume_fraction_mineral,
                                              const std::array<double,4> &ref_resolved_shear_stress) const
       {
-        const double nondimensionalization_value = nondimensionalization_method == NondimensionalizationMethod::None ? 1.0 : std::sqrt(std::abs(second_invariant(strain_rate)));
+        const std::array< double, 3 > eigenvalues = dealii::eigenvalues(strain_rate);
+        const double nondimensionalization_value = std::max(std::abs(eigenvalues[0]),std::abs(eigenvalues[2]));
 
-        Assert(!std::isnan(strain_rate_second_invariant), ExcMessage("The second invariant of the strain rate is not a number."));
+        Assert(!std::isnan(nondimensionalization_value), ExcMessage("The second invariant of the strain rate is not a number."));
 
         // Make the strain-rate and velocity gradient tensor non-dimensional
         // by dividing it through the second invariant
@@ -1550,10 +1369,6 @@ namespace aspect
 
         // create shorcuts
         const std::array<double, 4> &tau = ref_resolved_shear_stress;
-
-        //std::cout << "flag 3: ref_resolved_shear_stress= " << tau[0] << ":" << tau[1] << ":" << tau[2] << ":" << tau[3] << std::endl;
-
-
 
         std::vector<double> strain_energy(n_grains);
         double mean_strain_energy = 0;
@@ -1584,7 +1399,6 @@ namespace aspect
               {
                 for (unsigned int j = 0; j < 3; ++j)
                   {
-                    //strain_rate_nondimensional is in 2d not big enough
                     bigI[0] = bigI[0] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][1][j];
 
                     bigI[1] = bigI[1] + strain_rate_nondimensional[i][j] * a_cosine_matrices[grain_i][0][i] * a_cosine_matrices[grain_i][2][j];
@@ -1636,13 +1450,11 @@ namespace aspect
 
                 double q_min = ratio * (bigI[index_min_q]/tau[index_min_q]);
 
-                // todo: explain
                 beta[index_max_q] = 1.0; // max q_abs, weak system (most deformation) "s=1"
                 beta[index_intermediate_q] = q_intermediate * std::pow(std::abs(q_intermediate), stress_exponent-1);
                 beta[index_min_q] = q_min * std::pow(std::abs(q_min), stress_exponent-1);
                 beta[index_inactive_q] = 0.0;
 
-                // todo: explain
                 for (unsigned int i = 0; i < 3; i++)
                   {
                     for (unsigned int j = 0; j < 3; j++)
@@ -1707,7 +1519,6 @@ namespace aspect
                                       + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
                                       + rhos3 * exp(-nucleation_efficientcy * rhos3 * rhos3)
                                       + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
-            //std::cout << "strain_energy[" << grain_i << "] = " << strain_energy[grain_i] << std::endl;
 
             Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
                                                                 + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3)
@@ -1718,24 +1529,10 @@ namespace aspect
             deriv_a_cosine_matrices[grain_i] = 0;
             if (volume_fractions[grain_i] >= threshold_GBS/n_grains)
               {
-                //for (unsigned int i = 0; i < 3; ++i)
-                //  for (unsigned int j = 0; j < 3; ++j)
-                //    for (unsigned int k = 0; k < 3; ++k)
-                //      //for (unsigned int l = 0; l < 3; ++l)
-                //        {
-                //          deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][l] * a_cosine_matrices[grain_i][i][l] * w[k];
-                //          //deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][i] /* a_cosine_matrices[grain_i][i][l]*/*w[k];
-                //          //deriv_a_cosine_matrices[grain_i][i][j] = deriv_a_cosine_matrices[grain_i][i][j] + permutation_operator_3d[j][k][l] * w[k];
-                //        }
-                // Different than D-Rex. Here we actually only compute the derivative and do not
-                // multiply it with the a_cosine_matrices. We do that when we advect.
-                //deriv_a_cosine_matrices[grain_i] = a_cosine_matrices[grain_i] * (permutation_operator_3d * w);
-                deriv_a_cosine_matrices[grain_i] =permutation_operator_3d * w;
-                //std::cout << "deriv_a_cosine_matrices[grain_i] = " << deriv_a_cosine_matrices[grain_i] << std::endl << "permutation_operator_3d * w =      " << permutation_operator_3d *w << ", a_cosine_matrices["<< grain_i << "] = " << a_cosine_matrices[grain_i] << ", w = " << w  << std::endl;
+                deriv_a_cosine_matrices[grain_i] = permutation_operator_3d * w  * nondimensionalization_value;
 
                 // volume averaged strain energy
                 mean_strain_energy += volume_fractions[grain_i] * strain_energy[grain_i];
-
 
                 Assert(isfinite(mean_strain_energy), ExcMessage("mean_strain_energy when adding grain " + std::to_string(grain_i) + " is not finite: " + std::to_string(mean_strain_energy)
                                                                 + ", volume_fractions[grain_i] = " + std::to_string(volume_fractions[grain_i]) + ", strain_energy[grain_i] = " + std::to_string(strain_energy[grain_i]) + "."));
@@ -1750,10 +1547,7 @@ namespace aspect
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
             // Different than D-Rex. Here we actually only compute the derivative and do not multiply it with the volume_fractions. We do that when we advect.
-            //deriv_volume_fractions[grain_i] = volume_fraction_mineral * mobility * (mean_strain_energy - strain_energy[grain_i]);
-            deriv_volume_fractions[grain_i] = volume_fraction_mineral * mobility * (mean_strain_energy - strain_energy[grain_i]);
-            //std::cout << "deriv_volume_fractions[grain_i] = " << deriv_volume_fractions[grain_i]<< " = Xm (" << Xm << ") * mobility (" << mobility << ")  * volume_fractions[grain_i] ("
-            //<< volume_fractions[grain_i] << ") * (" << mean_strain_energy << " - " << strain_energy[grain_i] << ")" << std::endl;
+            deriv_volume_fractions[grain_i] = volume_fraction_mineral * mobility * (mean_strain_energy - strain_energy[grain_i]) * nondimensionalization_value;
 
             Assert(isfinite(deriv_volume_fractions[grain_i]),
                    ExcMessage("deriv_volume_fractions[" + std::to_string(grain_i) + "] is not finite: "
@@ -1860,10 +1654,9 @@ namespace aspect
                                    Patterns::Double(0),
                                    "This is the grain-boundary sliding threshold. ");
 
-                prm.declare_entry ("Nondimensionalization method", "none",
+                prm.declare_entry ("Use World Builder", "false",
                                    Patterns::Anything(),
-                                   "The nondimensionalization method which can be one of the following: "
-                                    "none or strain rate second invariant.");
+                                   "Whether to use the world builder for setting the LPO.");
               }
               prm.leave_subsection();
             }
@@ -1887,13 +1680,13 @@ namespace aspect
             prm.enter_subsection("LPO");
             {
 
-              random_number_seed = prm.get_integer ("Random number seed"); // 2
-              n_grains = prm.get_integer("Number of grains per praticle"); //10000;
+              random_number_seed = prm.get_integer ("Random number seed");
+              n_grains = prm.get_integer("Number of grains per praticle");
 
               property_advection_tolerance = prm.get_double("Property advection tolerance");
               property_advection_max_iterations = prm.get_integer ("Property advection max iterations");
 
-              const std::string temp_lpo_derivative_algorithm = prm.get("LPO derivatives algorithm"); // todo trim?
+              const std::string temp_lpo_derivative_algorithm = prm.get("LPO derivatives algorithm");
 
               if (temp_lpo_derivative_algorithm == "Spin tensor")
                 {
@@ -1934,33 +1727,15 @@ namespace aspect
 
               prm.enter_subsection("D-Rex 2004");
               {
-                mobility = prm.get_double("Mobility"); //50;
-                volume_fractions_minerals = Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Volume fractions minerals"))); // 0.5;
-                stress_exponent = prm.get_double("Stress exponents"); //3.5;
-                exponent_p = prm.get_double("Exponents p"); //1.5;
-                nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
-                threshold_GBS = prm.get_double("Threshold GBS"); //0.0;
+                mobility = prm.get_double("Mobility");
+                volume_fractions_minerals = Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Volume fractions minerals")));
+                stress_exponent = prm.get_double("Stress exponents");
+                exponent_p = prm.get_double("Exponents p");
+                nucleation_efficientcy = prm.get_double("Nucleation efficientcy");
+                threshold_GBS = prm.get_double("Threshold GBS");
+                use_world_builder = prm.get_bool("Use World Builder");
 
-
-                std::string nondimensionalization_method_string = prm.get("nondimensionalization method");
-
-                if (nondimensionalization_method_string == "none")
-                  {
-                    nondimensionalization_method = NondimensionalizationMethod::None;
-                  }
-                else if (nondimensionalization_method_string == "strain rate second invariant")
-                  {
-                    nondimensionalization_method = NondimensionalizationMethod::StrainRateSecondInvariant;
-                  }
-                else
-                  {
-                    AssertThrow(false,
-                                ExcMessage("The nondimensionalization method needs to be one of the following: "
-                                           "none or strain rate second invariant."))
-                  }
-
-
-                const std::vector<std::string> temp_deformation_type_selector = dealii::Utilities::split_string_list(prm.get("Minerals")); // todo trim?
+                const std::vector<std::string> temp_deformation_type_selector = dealii::Utilities::split_string_list(prm.get("Minerals"));
                 n_minerals = temp_deformation_type_selector.size();
                 deformation_type_selector.resize(n_minerals);
 

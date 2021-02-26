@@ -1094,7 +1094,7 @@ namespace aspect
                                                 "Assemble composition system"));
 
     const unsigned int block_idx = advection_field.block_index(introspection);
-
+    
     if (!advection_field.is_temperature() && advection_field.compositional_variable!=0)
       {
         // Allocate the system matrix for the current compositional field by
