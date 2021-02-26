@@ -1113,112 +1113,115 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::assemble_advection_system (const AdvectionField &advection_field)
   {
-    TimerOutput::Scope timer (computing_timer, (advection_field.is_temperature() ?
-                                                "Assemble temperature system" :
-                                                "Assemble composition system"));
-
-    const unsigned int block_idx = advection_field.block_index(introspection);
-    
-    if (!advection_field.is_temperature() && advection_field.compositional_variable!=0)
+    if (!advection_field.is_temperature() || advection_field.is_temperature() && !this->parameters.no_temperature_advection)
       {
-        // Allocate the system matrix for the current compositional field by
-        // reusing the Trilinos sparsity pattern from the matrix stored for
-        // composition 0 (this is the place we allocate the matrix at).
-        const unsigned int block0_idx = AdvectionField::composition(0).block_index(introspection);
-        system_matrix.block(block_idx, block_idx).reinit(system_matrix.block(block0_idx, block0_idx));
+        TimerOutput::Scope timer (computing_timer, (advection_field.is_temperature() ?
+                                                    "Assemble temperature system" :
+                                                    "Assemble composition system"));
+
+        const unsigned int block_idx = advection_field.block_index(introspection);
+
+        if (!advection_field.is_temperature() && advection_field.compositional_variable!=0)
+          {
+            // Allocate the system matrix for the current compositional field by
+            // reusing the Trilinos sparsity pattern from the matrix stored for
+            // composition 0 (this is the place we allocate the matrix at).
+            const unsigned int block0_idx = AdvectionField::composition(0).block_index(introspection);
+            system_matrix.block(block_idx, block_idx).reinit(system_matrix.block(block0_idx, block0_idx));
+          }
+
+        system_matrix.block(block_idx, block_idx) = 0;
+        system_rhs.block(block_idx) = 0;
+
+
+        using CellFilter = FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
+        Vector<double> viscosity_per_cell;
+        viscosity_per_cell.reinit(triangulation.n_active_cells());
+        get_artificial_viscosity(viscosity_per_cell, advection_field);
+
+        // We have to assemble the term u.grad phi_i * phi_j, which is
+        // of total polynomial degree
+        //   stokes_deg + 2*temp_deg -1
+        // (or similar for comp_deg). This suggests using a Gauss
+        // quadrature formula of order
+        //   temp_deg + stokes_deg/2
+        // rounded up (note that x/2 rounded up
+        // equals (x+1)/2 using integer division.)
+        //
+        // (Note: All compositional fields have the same base element and therefore
+        // the same composition_degree. Thus, we do not need to find out the degree
+        // of the current field, but use the global instead)
+        const unsigned int advection_quadrature_degree = advection_field.polynomial_degree(introspection)
+                                                         +
+                                                         (parameters.stokes_velocity_degree+1)/2;
+
+        const bool allocate_face_quadrature = (!assemblers->advection_system_on_boundary_face.empty() ||
+                                               !assemblers->advection_system_on_interior_face.empty()) &&
+                                              assemblers->advection_system_assembler_on_face_properties[advection_field.field_index()].need_face_finite_element_evaluation;
+        const bool allocate_neighbor_contributions = !assemblers->advection_system_on_interior_face.empty() &&
+                                                     assemblers->advection_system_assembler_on_face_properties[advection_field.field_index()].need_face_finite_element_evaluation;;
+
+        const bool use_supg = (parameters.advection_stabilization_method
+                               == Parameters<dim>::AdvectionStabilizationMethod::supg);
+
+        // When using SUPG, we need to compute hessians to be able to compute the residual:
+        const UpdateFlags update_flags = update_values |
+                                         update_gradients |
+                                         update_quadrature_points |
+                                         update_JxW_values |
+                                         ((use_supg) ? update_hessians : UpdateFlags(0));
+
+        const UpdateFlags face_update_flags = (allocate_face_quadrature ?
+                                               update_values |
+                                               update_gradients |
+                                               update_quadrature_points |
+                                               update_normal_vectors |
+                                               update_JxW_values
+                                               :
+                                               update_default);
+
+        auto worker = [&](const typename DoFHandler<dim>::active_cell_iterator &cell,
+                          internal::Assembly::Scratch::AdvectionSystem<dim> &scratch,
+                          internal::Assembly::CopyData::AdvectionSystem<dim> &data)
+        {
+          this->local_assemble_advection_system(advection_field, viscosity_per_cell, cell, scratch, data);
+        };
+
+        auto copier = [&](const internal::Assembly::CopyData::AdvectionSystem<dim> &data)
+        {
+          this->copy_local_to_global_advection_system(advection_field, data);
+        };
+
+        WorkStream::
+        run (CellFilter (IteratorFilters::LocallyOwnedCell(),
+                         dof_handler.begin_active()),
+             CellFilter (IteratorFilters::LocallyOwnedCell(),
+                         dof_handler.end()),
+             worker,
+             copier,
+             internal::Assembly::Scratch::
+             AdvectionSystem<dim> (finite_element,
+                                   finite_element.base_element(advection_field.base_element(introspection)),
+                                   *mapping,
+                                   QGauss<dim>(advection_quadrature_degree),
+                                   /* Only generate a valid face quadrature if necessary.
+                                    * Otherwise, generate invalid face quadrature rule.
+                                    */
+                                   (allocate_face_quadrature ?
+                                    QGauss<dim-1>(advection_quadrature_degree) :
+                                    Quadrature<dim-1> ()),
+                                   update_flags,
+                                   face_update_flags,
+                                   introspection.n_compositional_fields,
+                                   advection_field),
+             internal::Assembly::CopyData::
+             AdvectionSystem<dim> (finite_element.base_element(advection_field.base_element(introspection)),
+                                   allocate_neighbor_contributions));
+
+        system_matrix.compress(VectorOperation::add);
+        system_rhs.compress(VectorOperation::add);
       }
-
-    system_matrix.block(block_idx, block_idx) = 0;
-    system_rhs.block(block_idx) = 0;
-
-
-    using CellFilter = FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
-
-    Vector<double> viscosity_per_cell;
-    viscosity_per_cell.reinit(triangulation.n_active_cells());
-    get_artificial_viscosity(viscosity_per_cell, advection_field);
-
-    // We have to assemble the term u.grad phi_i * phi_j, which is
-    // of total polynomial degree
-    //   stokes_deg + 2*temp_deg -1
-    // (or similar for comp_deg). This suggests using a Gauss
-    // quadrature formula of order
-    //   temp_deg + stokes_deg/2
-    // rounded up (note that x/2 rounded up
-    // equals (x+1)/2 using integer division.)
-    //
-    // (Note: All compositional fields have the same base element and therefore
-    // the same composition_degree. Thus, we do not need to find out the degree
-    // of the current field, but use the global instead)
-    const unsigned int advection_quadrature_degree = advection_field.polynomial_degree(introspection)
-                                                     +
-                                                     (parameters.stokes_velocity_degree+1)/2;
-
-    const bool allocate_face_quadrature = (!assemblers->advection_system_on_boundary_face.empty() ||
-                                           !assemblers->advection_system_on_interior_face.empty()) &&
-                                          assemblers->advection_system_assembler_on_face_properties[advection_field.field_index()].need_face_finite_element_evaluation;
-    const bool allocate_neighbor_contributions = !assemblers->advection_system_on_interior_face.empty() &&
-                                                 assemblers->advection_system_assembler_on_face_properties[advection_field.field_index()].need_face_finite_element_evaluation;
-
-    const bool use_supg = (parameters.advection_stabilization_method
-                           == Parameters<dim>::AdvectionStabilizationMethod::supg);
-
-    // When using SUPG, we need to compute hessians to be able to compute the residual:
-    const UpdateFlags update_flags = update_values |
-                                     update_gradients |
-                                     update_quadrature_points |
-                                     update_JxW_values |
-                                     ((use_supg) ? update_hessians : UpdateFlags(0));
-
-    const UpdateFlags face_update_flags = (allocate_face_quadrature ?
-                                           update_values |
-                                           update_gradients |
-                                           update_quadrature_points |
-                                           update_normal_vectors |
-                                           update_JxW_values
-                                           :
-                                           update_default);
-
-    auto worker = [&](const typename DoFHandler<dim>::active_cell_iterator &cell,
-                      internal::Assembly::Scratch::AdvectionSystem<dim> &scratch,
-                      internal::Assembly::CopyData::AdvectionSystem<dim> &data)
-    {
-      this->local_assemble_advection_system(advection_field, viscosity_per_cell, cell, scratch, data);
-    };
-
-    auto copier = [&](const internal::Assembly::CopyData::AdvectionSystem<dim> &data)
-    {
-      this->copy_local_to_global_advection_system(advection_field, data);
-    };
-
-    WorkStream::
-    run (CellFilter (IteratorFilters::LocallyOwnedCell(),
-                     dof_handler.begin_active()),
-         CellFilter (IteratorFilters::LocallyOwnedCell(),
-                     dof_handler.end()),
-         worker,
-         copier,
-         internal::Assembly::Scratch::
-         AdvectionSystem<dim> (finite_element,
-                               finite_element.base_element(advection_field.base_element(introspection)),
-                               *mapping,
-                               QGauss<dim>(advection_quadrature_degree),
-                               /* Only generate a valid face quadrature if necessary.
-                                * Otherwise, generate invalid face quadrature rule.
-                                */
-                               (allocate_face_quadrature ?
-                                QGauss<dim-1>(advection_quadrature_degree) :
-                                Quadrature<dim-1> ()),
-                               update_flags,
-                               face_update_flags,
-                               introspection.n_compositional_fields,
-                               advection_field),
-         internal::Assembly::CopyData::
-         AdvectionSystem<dim> (finite_element.base_element(advection_field.base_element(introspection)),
-                               allocate_neighbor_contributions));
-
-    system_matrix.compress(VectorOperation::add);
-    system_rhs.compress(VectorOperation::add);
   }
 }
 

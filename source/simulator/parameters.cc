@@ -265,6 +265,10 @@ namespace aspect
                        "The `Newton Stokes' scheme is deprecated and only allowed for reasons of "
                        "backwards compatibility. It is the same as `iterated Advection and Newton Stokes'.");
 
+    prm.declare_entry ("No temperature advection", "false",
+                       Patterns::Bool(),
+                       "Prevent temperature from being advected.");
+
     prm.declare_entry ("Nonlinear solver tolerance", "1e-5",
                        Patterns::Double(0., 1.),
                        "A relative tolerance up to which the nonlinear solver will iterate. "
@@ -1408,6 +1412,8 @@ namespace aspect
       else
         AssertThrow (false, ExcNotImplemented());
     }
+
+    no_temperature_advection = prm.get_bool("No temperature advection");
 
     prm.enter_subsection ("Solver parameters");
     {

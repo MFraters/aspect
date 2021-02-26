@@ -450,6 +450,7 @@ namespace aspect
      * @{
      */
     typename NonlinearSolver::Kind nonlinear_solver;
+    bool no_temperature_advection;
 
     typename AdvectionStabilizationMethod::Kind advection_stabilization_method;
     double                         nonlinear_tolerance;
