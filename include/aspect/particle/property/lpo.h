@@ -420,9 +420,9 @@ namespace aspect
           double mobility;
 
           /**
-           * Nondimensionalzation method for D-Rex 2004
+           * Whether to use the world builder
            */
-          NondimensionalizationMethod nondimensionalization_method;
+          bool use_world_builder;
 
           /**
            * Advection method for particle properties
