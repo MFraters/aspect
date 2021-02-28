@@ -593,7 +593,17 @@ namespace aspect
 
             // The following line would do the same as the lines below, but is is slow. It has therefore been
             // replaced by the lines below.
-            //auto ortho_and_higher_vector = projection_matrix_mono_to_ortho*mono_and_higher_vector_croped;
+            //auto ortho_and_higher_vector = projection_matrix_mono_to_ortho*mono_and_higher_vector;
+            dealii::Tensor<1,9>  mono_and_higher_vector_croped;
+            mono_and_higher_vector_croped[0] = mono_and_higher_vector[0];
+            mono_and_higher_vector_croped[1] = mono_and_higher_vector[1];
+            mono_and_higher_vector_croped[2] = mono_and_higher_vector[2];
+            mono_and_higher_vector_croped[3] = mono_and_higher_vector[3];
+            mono_and_higher_vector_croped[4] = mono_and_higher_vector[4];
+            mono_and_higher_vector_croped[5] = mono_and_higher_vector[5];
+            mono_and_higher_vector_croped[6] = mono_and_higher_vector[6];
+            mono_and_higher_vector_croped[7] = mono_and_higher_vector[7];
+            mono_and_higher_vector_croped[8] = mono_and_higher_vector[8];
             dealii::Tensor<1,9> ortho_and_higher_vector;
             ortho_and_higher_vector[0] = mono_and_higher_vector[0];
             ortho_and_higher_vector[1] = mono_and_higher_vector[1];
