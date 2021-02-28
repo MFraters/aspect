@@ -249,10 +249,10 @@ namespace aspect
 
 
           static SymmetricTensor<2,21> projection_matrix_tric_to_mono;
-          static SymmetricTensor<2,21> projection_matrix_mono_to_ortho;
-          static SymmetricTensor<2,21> projection_matrix_ortho_to_tetra;
-          static SymmetricTensor<2,21> projection_matrix_tetra_to_hexa;
-          static SymmetricTensor<2,21> projection_matrix_hexa_to_iso;
+          static SymmetricTensor<2,9> projection_matrix_mono_to_ortho;
+          static SymmetricTensor<2,9> projection_matrix_ortho_to_tetra;
+          static SymmetricTensor<2,9> projection_matrix_tetra_to_hexa;
+          static SymmetricTensor<2,9> projection_matrix_hexa_to_iso;
 
         private:
           unsigned int lpo_data_position;
