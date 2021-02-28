@@ -200,16 +200,12 @@ namespace aspect
                                           {
                                             for (size_t s = 0; s < 3; s++)
                                               {
-                                                //std::cout << "0" << std::endl;
-                                                //std::cout << "1 Cav2["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav2[i][j][k][l] <<" = " << acmg[p][i] << "..." << std::endl;
                                                 Cav2[i][j][k][l] += acmg[p][i]*acmg[q][j]*acmg[r][k]*acmg[s][l]*C0[p][q][r][s];
-                                                //std::cout << "2 Cav2["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav2[i][j][k][l] <<" = " << acmg[p][i] << "..." << std::endl;
                                               }
                                           }
                                       }
                                   }
                                 Cav[i][j][k][l] += Cav2[i][j][k][l] *  volume_fractions_grains[mineral_i][grain_i] * volume_fraction_minerals[mineral_i];
-                                //std::cout << "Cav["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<Cav[i][j][k][l] <<":" << Cav2[i][j][k][l] << std::endl;
                               }
                           }
                       }
@@ -264,15 +260,12 @@ namespace aspect
 #if DEAL_II_VERSION_GTE(9,3,0)
           {
             data.push_back(S_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)]);
-            std::cout << counter << ": " << SS_average[SymmetricTensor<2,6>::unrolled_to_component_indices(i)] << std::endl;
-            counter++;
           }
 #else
           {
             if (i < 6)
               {
                 data.push_back(S_average[ {i,i}]);
-                //std::cout << counter << ": " << S_average[ {i,i}] << std::endl; counter++;
               }
             else
               {
@@ -285,8 +278,6 @@ namespace aspect
                           if (c == i)
                             {
                               data.push_back(S_average[ {d,e}]);
-
-                              //std::cout << counter << ": " << S_average[ {d,e}] << std::endl; counter++;
                               return;
                             }
                         }
