@@ -1841,32 +1841,42 @@ TEST_CASE("LPO elastic tensor decomposition")
       }
     CHECK(tric_vector.norm_square() == Approx(0.0));
 
-    const Tensor<1,21> ortho_and_higher_vector = DecomposeElasticMatrix<3>::projection_matrix_mono_to_ortho*mono_and_higher_vector;
-    const Tensor<1,21> mono_vector = mono_and_higher_vector-ortho_and_higher_vector;
-    for (size_t iii = 0; iii < 21; iii++)
+    dealii::Tensor<1,9>  mono_and_higher_vector_croped;
+    mono_and_higher_vector_croped[0] = mono_and_higher_vector[0];
+    mono_and_higher_vector_croped[1] = mono_and_higher_vector[1];
+    mono_and_higher_vector_croped[2] = mono_and_higher_vector[2];
+    mono_and_higher_vector_croped[3] = mono_and_higher_vector[3];
+    mono_and_higher_vector_croped[4] = mono_and_higher_vector[4];
+    mono_and_higher_vector_croped[5] = mono_and_higher_vector[5];
+    mono_and_higher_vector_croped[6] = mono_and_higher_vector[6];
+    mono_and_higher_vector_croped[7] = mono_and_higher_vector[7];
+    mono_and_higher_vector_croped[8] = mono_and_higher_vector[8];
+    const Tensor<1,9> ortho_and_higher_vector = DecomposeElasticMatrix<3>::projection_matrix_mono_to_ortho*mono_and_higher_vector_croped;
+    const Tensor<1,9> mono_vector = mono_and_higher_vector_croped-ortho_and_higher_vector;
+    for (size_t iii = 0; iii < 9; iii++)
       {
         CHECK(std::abs(mono_vector[iii]) < 1e-15);
       }
     CHECK(mono_vector.norm_square() == Approx(0.0));
 
-    const Tensor<1,21> tetra_and_higher_vector = DecomposeElasticMatrix<3>::projection_matrix_ortho_to_tetra*ortho_and_higher_vector;
-    const Tensor<1,21> ortho_vector = ortho_and_higher_vector-tetra_and_higher_vector;
-    for (size_t iii = 0; iii < 21; iii++)
+    const Tensor<1,9> tetra_and_higher_vector = DecomposeElasticMatrix<3>::projection_matrix_ortho_to_tetra*ortho_and_higher_vector;
+    const Tensor<1,9> ortho_vector = ortho_and_higher_vector-tetra_and_higher_vector;
+    for (size_t iii = 0; iii < 9; iii++)
       {
         CHECK(ortho_vector[iii] == Approx(reference_O_vector[iii]));
       }
     CHECK(ortho_vector.norm_square() == Approx(536.0));
 
-    const Tensor<1,21> hexa_and_higher_vector = DecomposeElasticMatrix<3>::projection_matrix_tetra_to_hexa*tetra_and_higher_vector;
-    const Tensor<1,21> tetra_vector = tetra_and_higher_vector-hexa_and_higher_vector;
-    for (size_t iii = 0; iii < 21; iii++)
+    const Tensor<1,9> hexa_and_higher_vector = DecomposeElasticMatrix<3>::projection_matrix_tetra_to_hexa*tetra_and_higher_vector;
+    const Tensor<1,9> tetra_vector = tetra_and_higher_vector-hexa_and_higher_vector;
+    for (size_t iii = 0; iii < 9; iii++)
       {
         CHECK(tetra_vector[iii] == Approx(reference_T_vector[iii]));
       }
     CHECK(tetra_vector.norm_square() == Approx(72.0));
 
-    const Tensor<1,21> iso_vector = DecomposeElasticMatrix<3>::projection_matrix_hexa_to_iso*hexa_and_higher_vector;
-    for (size_t iii = 0; iii < 21; iii++)
+    const Tensor<1,9> iso_vector = DecomposeElasticMatrix<3>::projection_matrix_hexa_to_iso*hexa_and_higher_vector;
+    for (size_t iii = 0; iii < 9; iii++)
       {
         // something weird is going on with the approx, somehow without a very large
         // epsilon it thinks for example that "194.6666666667 == Approx( 194.7 )" is false.
@@ -1874,8 +1884,8 @@ TEST_CASE("LPO elastic tensor decomposition")
       }
     CHECK(iso_vector.norm_square() == Approx(189529.3333333334));
 
-    const Tensor<1,21> hexa_vector = hexa_and_higher_vector-iso_vector;
-    for (size_t iii = 0; iii < 21; iii++)
+    const Tensor<1,9> hexa_vector = hexa_and_higher_vector-iso_vector;
+    for (size_t iii = 0; iii < 9; iii++)
       {
         // same as above.
         CHECK(hexa_vector[iii] == Approx(reference_hex_vector[iii]).epsilon(2.5e-2));
@@ -2008,7 +2018,7 @@ TEST_CASE("LPO elastic tensor decomposition")
       }
     // chose the permutation which fits the solution given in the paper.
     // This is not a even permutation.
-    std::array<unsigned short int, 3> perumation = {2,1,0};
+    std::array<unsigned short int, 3> perumation = {{2,1,0}};
     Tensor<2,3> permutated_SCC;
     for (size_t j = 0; j < 3; j++)
       {
@@ -2041,13 +2051,13 @@ TEST_CASE("LPO elastic tensor decomposition")
     full_elastic_matrix[5][5] = 0.5*(full_elastic_matrix[0][0] + full_elastic_matrix[0][1]);
 
     std::array<std::array<double,3>,7 > reference_norms;
-    reference_norms[0] = {0,0,0}; // no triclinic
-    reference_norms[1] = {0,0,0}; // no monoclinic
-    reference_norms[2] = {12822.0,0,12822.0}; // orthorhomic depedent on direction (remember, this is basically just one grain)
-    reference_norms[3] = {1568.0,8712.0,1568.0}; // tetragonal could be present
-    reference_norms[4] = {2759.3333333333,8437.3333333333,2759.3333333333}; // hexagonal is expected
-    reference_norms[5] = {247182.6666666667,247182.6666666667,247182.6666666667}; // isotropic should be the same for every permuation
-    reference_norms[6] = {264332.0,264332.0,264332.0}; // total should be the same for every direction
+    reference_norms[0] = {{0,0,0}}; // no triclinic
+    reference_norms[1] = {{0,0,0}}; // no monoclinic
+    reference_norms[2] = {{12822.0,0,12822.0}}; // orthorhomic depedent on direction (remember, this is basically just one grain)
+    reference_norms[3] = {{1568.0,8712.0,1568.0}}; // tetragonal could be present
+    reference_norms[4] = {{2759.3333333333,8437.3333333333,2759.3333333333}}; // hexagonal is expected
+    reference_norms[5] = {{247182.6666666667,247182.6666666667,247182.6666666667}}; // isotropic should be the same for every permuation
+    reference_norms[6] = {{264332.0,264332.0,264332.0}}; // total should be the same for every direction
 
     // It is already in a SCC frame, so they should be
     // unit vectors. The order is irrelevant.
@@ -2091,7 +2101,7 @@ TEST_CASE("LPO elastic tensor decomposition")
                    && reference_unpermutated_SCC[iii][2] == Approx(-unpermutated_SCC[iii][2]).epsilon(epsilon))));
       }
     std::array<std::array<double,3>,7 > norms = DecomposeElasticMatrix<3>::compute_elastic_tensor_SCC_decompositions(unpermutated_SCC, full_elastic_matrix);
-    std::array<double,3> totals = {0,0,0};
+    std::array<double,3> totals = {{0,0,0}};
     for (size_t iii = 0; iii < 7; iii++)
       {
         // also check that the total is equal to the full norm.
@@ -2156,13 +2166,13 @@ TEST_CASE("LPO elastic tensor decomposition")
     full_elastic_matrix[5][5] = 76;
 
     std::array<std::array<double,3>,7 > reference_norms;
-    reference_norms[0] = {0,0,0}; // no triclinic
-    reference_norms[1] = {0,0,0}; // no monoclinic
-    reference_norms[2] = {453.5,1044.0,1113.5}; // orthorhomic depedent on direction
-    reference_norms[3] = {91.125,84.5,595.125}; // tetragonal could be present
-    reference_norms[4] = {1350.175,766.3,186.175}; // hexagonal is expected
-    reference_norms[5] = {222364.2,222364.2,222364.2}; // isotropic should be the same for every permuation
-    reference_norms[6] = {224259.0,224259.0,224259.0}; // total should be the same for every direction
+    reference_norms[0] = {{0,0,0}}; // no triclinic
+    reference_norms[1] = {{0,0,0}}; // no monoclinic
+    reference_norms[2] = {{453.5,1044.0,1113.5}}; // orthorhomic depedent on direction
+    reference_norms[3] = {{91.125,84.5,595.125}}; // tetragonal could be present
+    reference_norms[4] = {{1350.175,766.3,186.175}}; // hexagonal is expected
+    reference_norms[5] = {{222364.2,222364.2,222364.2}}; // isotropic should be the same for every permuation
+    reference_norms[6] = {{224259.0,224259.0,224259.0}}; // total should be the same for every direction
 
     // It is already in a SCC frame, so they should be
     // unit vectors. The order is irrelevant.
@@ -2206,7 +2216,7 @@ TEST_CASE("LPO elastic tensor decomposition")
                    && reference_unpermutated_SCC[iii][2] == Approx(-unpermutated_SCC[iii][2]).epsilon(epsilon))));
       }
     std::array<std::array<double,3>,7 > norms = DecomposeElasticMatrix<3>::compute_elastic_tensor_SCC_decompositions(unpermutated_SCC, full_elastic_matrix);
-    std::array<double,3> totals = {0,0,0};
+    std::array<double,3> totals = {{0,0,0}};
     for (size_t iii = 0; iii < 7; iii++)
       {
         // also check that the total is equal to the full norm.
@@ -2272,13 +2282,13 @@ TEST_CASE("LPO elastic tensor decomposition")
     full_elastic_matrix[5][5] = 78.36;
 
     std::array<std::array<double,3>,7 > reference_norms;
-    reference_norms[0] = {0,0,0}; // no triclinic
-    reference_norms[1] = {0,0,0}; // no monoclinic
-    reference_norms[2] = {4181.95385,689.94905,8020.4222}; // orthorhomic depedent on direction
-    reference_norms[3] = {1298.2060125,90.3840125,525.5282}; // tetragonal could be present
-    reference_norms[4] = {4364.6051908333,9064.4319908333,1298.8146533333}; // hexagonal is expected
-    reference_norms[5] = {282871.5975466666,282871.5975466666,282871.5975466666}; // isotropic should be the same for every permuation
-    reference_norms[6] = {292716.3626,292716.3626,292716.3626}; // total should be the same for every direction
+    reference_norms[0] = {{0,0,0}}; // no triclinic
+    reference_norms[1] = {{0,0,0}}; // no monoclinic
+    reference_norms[2] = {{4181.95385,689.94905,8020.4222}}; // orthorhomic depedent on direction
+    reference_norms[3] = {{1298.2060125,90.3840125,525.5282}}; // tetragonal could be present
+    reference_norms[4] = {{4364.6051908333,9064.4319908333,1298.8146533333}}; // hexagonal is expected
+    reference_norms[5] = {{282871.5975466666,282871.5975466666,282871.5975466666}}; // isotropic should be the same for every permuation
+    reference_norms[6] = {{292716.3626,292716.3626,292716.3626}}; // total should be the same for every direction
 
     // It is already in a SCC frame, so they should be
     // unit vectors. The order is irrelevant.
@@ -2322,7 +2332,7 @@ TEST_CASE("LPO elastic tensor decomposition")
                    && reference_unpermutated_SCC[iii][2] == Approx(-unpermutated_SCC[iii][2]).epsilon(epsilon))));
       }
     std::array<std::array<double,3>,7 > norms = DecomposeElasticMatrix<3>::compute_elastic_tensor_SCC_decompositions(unpermutated_SCC, full_elastic_matrix);
-    std::array<double,3> totals = {0,0,0};
+    std::array<double,3> totals = {{0,0,0}};
     for (size_t iii = 0; iii < 7; iii++)
       {
         // also check that the total is equal to the full norm.
@@ -2388,13 +2398,13 @@ TEST_CASE("LPO elastic tensor decomposition")
     full_elastic_matrix[5][5] = 80.1;
 
     std::array<std::array<double,3>,7 > reference_norms;
-    reference_norms[0] = {0,0,0}; // no triclinic
-    reference_norms[1] = {0,0,0}; // no monoclinic
-    reference_norms[2] = {576.245,1514.945,1679.46}; // orthorhomic depedent on direction
-    reference_norms[3] = {67.86125,199.00125,483.605}; // tetragonal could be present
-    reference_norms[4] = {2076.64175,1006.80175,557.683}; // hexagonal is expected
-    reference_norms[5] = {245485.992,245485.992,245485.992}; // isotropic should be the same for every permuation
-    reference_norms[6] = {248206.74,248206.74,248206.74}; // total should be the same for every direction
+    reference_norms[0] = {{0,0,0}}; // no triclinic
+    reference_norms[1] = {{0,0,0}}; // no monoclinic
+    reference_norms[2] = {{576.245,1514.945,1679.46}}; // orthorhomic depedent on direction
+    reference_norms[3] = {{67.86125,199.00125,483.605}}; // tetragonal could be present
+    reference_norms[4] = {{2076.64175,1006.80175,557.683}}; // hexagonal is expected
+    reference_norms[5] = {{245485.992,245485.992,245485.992}}; // isotropic should be the same for every permuation
+    reference_norms[6] = {{248206.74,248206.74,248206.74}}; // total should be the same for every direction
 
     // It is already in a SCC frame, so they should be
     // unit vectors. The order is irrelevant.
@@ -2438,7 +2448,7 @@ TEST_CASE("LPO elastic tensor decomposition")
                    && reference_unpermutated_SCC[iii][2] == Approx(-unpermutated_SCC[iii][2]).epsilon(epsilon))));
       }
     std::array<std::array<double,3>,7 > norms = DecomposeElasticMatrix<3>::compute_elastic_tensor_SCC_decompositions(unpermutated_SCC, full_elastic_matrix);
-    std::array<double,3> totals = {0,0,0};
+    std::array<double,3> totals = {{0,0,0}};
     for (size_t iii = 0; iii < 7; iii++)
       {
         // also check that the total is equal to the full norm.
@@ -2507,13 +2517,13 @@ TEST_CASE("LPO elastic tensor decomposition")
     full_elastic_matrix[5][5] = 0.5*(full_elastic_matrix[0][0] + full_elastic_matrix[0][1]);
 
     std::array<std::array<double,3>,7 > reference_norms;
-    reference_norms[0] = {0,0,0}; // no triclinic
-    reference_norms[1] = {0,0,0}; // no monoclinic
-    reference_norms[2] = {16161.695,0.0,16161.695}; // orthorhomic depedent on direction
-    reference_norms[3] = {2786.31125,1425.78,2786.31125}; // tetragonal could be present
-    reference_norms[4] = {8079.22575,25601.452,8079.22575}; // hexagonal is expected
-    reference_norms[5] = {421517.088,421517.088,421517.088}; // isotropic should be the same for every permuation
-    reference_norms[6] = {448544.32,448544.32,448544.32}; // total should be the same for every direction
+    reference_norms[0] = {{0,0,0}}; // no triclinic
+    reference_norms[1] = {{0,0,0}}; // no monoclinic
+    reference_norms[2] = {{16161.695,0.0,16161.695}}; // orthorhomic depedent on direction
+    reference_norms[3] = {{2786.31125,1425.78,2786.31125}}; // tetragonal could be present
+    reference_norms[4] = {{8079.22575,25601.452,8079.22575}}; // hexagonal is expected
+    reference_norms[5] = {{421517.088,421517.088,421517.088}}; // isotropic should be the same for every permuation
+    reference_norms[6] = {{448544.32,448544.32,448544.32}}; // total should be the same for every direction
 
     // It is already in a SCC frame, so they should be
     // unit vectors. The order is irrelevant.
@@ -2557,7 +2567,7 @@ TEST_CASE("LPO elastic tensor decomposition")
                    && reference_unpermutated_SCC[iii][2] == Approx(-unpermutated_SCC[iii][2]).epsilon(epsilon))));
       }
     std::array<std::array<double,3>,7 > norms = DecomposeElasticMatrix<3>::compute_elastic_tensor_SCC_decompositions(unpermutated_SCC, full_elastic_matrix);
-    std::array<double,3> totals = {0,0,0};
+    std::array<double,3> totals = {{0,0,0}};
     for (size_t iii = 0; iii < 7; iii++)
       {
         // also check that the total is equal to the full norm.
