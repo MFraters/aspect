@@ -106,7 +106,6 @@ namespace aspect
         // get_random_number function as well. But I will need to test this.
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
-        //std::cout << ">>> random_number_seed+my_rank = " << random_number_seed+my_rank << ", random_number_seed = " << random_number_seed << std::endl;
 
         const auto &manager = this->get_particle_world().get_property_manager();
         AssertThrow(manager.plugin_name_exists("lpo"),
@@ -149,7 +148,6 @@ namespace aspect
 
           }
 
-        //std::cout << "volume_fraction_olivine = " << volume_fraction_olivine << std::endl;
         /** This implements the Voigt averaging as described in the equation at the
         * bottom of page 385 in Mainprice (1990):
         * $C^V_{ijkl} = \sum^S_l F_s \sum^{N_s}_l C_{ijkl}/N_s$, where $F_s$ is the
@@ -158,71 +156,15 @@ namespace aspect
         * Mainprice (1990): $C_{ijkl} = R_{ip} R_{jg} R_{kr} R_{is} C_{pgrs}$, where
         * R_{ij} is the lpo orientation matrix.
         */
-        Tensor<4,3,double> Cav;
+        SymmetricTensor<2,6,double> Sav;
         for (size_t mineral_i = 0; mineral_i < n_minerals_local; mineral_i++)
           {
-            Tensor<4,3,double> C0;
-            // Turn the olivine stiffness matrix into a rank 4 tensor
-            for (size_t i = 0; i < 3; i++)
-              {
-                for (size_t j = 0; j < 3; j++)
-                  {
-                    for (size_t k = 0; k < 3; k++)
-                      {
-                        for (size_t l = 0; l < 3; l++)
-                          {
-                            C0[i][j][k][l] = stiffness_matrices[mineral_i][indices_tensor[i][j]][indices_tensor[k][l]];
-                            //std::cout << "C0["<<i<<"]["<<j<<"]["<<k<<"]["<<l<<"] = "<<C0[i][j][k][l] << std::endl;
-                          }
-                      }
-                  }
-              }
 
-            // Do the Voigt average for olvine
             for (size_t grain_i = 0; grain_i < n_grains_local; grain_i++)
               {
-                Tensor<4,3,double> Cav2;
-
-                const Tensor<2,3> &acmg = a_cosine_matrices_grains[mineral_i][grain_i];
-                for (size_t i = 0; i < 3; i++)
-                  {
-                    for (size_t j = 0; j < 3; j++)
-                      {
-                        for (size_t k = 0; k < 3; k++)
-                          {
-                            for (size_t l = 0; l < 3; l++)
-                              {
-                                for (size_t p = 0; p < 3; p++)
-                                  {
-                                    for (size_t q = 0; q < 3; q++)
-                                      {
-                                        for (size_t r = 0; r < 3; r++)
-                                          {
-                                            for (size_t s = 0; s < 3; s++)
-                                              {
-                                                Cav2[i][j][k][l] += acmg[p][i]*acmg[q][j]*acmg[r][k]*acmg[s][l]*C0[p][q][r][s];
-                                              }
-                                          }
-                                      }
-                                  }
-                                Cav[i][j][k][l] += Cav2[i][j][k][l] *  volume_fractions_grains[mineral_i][grain_i] * volume_fraction_minerals[mineral_i];
-                              }
-                          }
-                      }
-                  }
+                auto rotated_matrx = rotate_6x6_matrix(stiffness_matrices[mineral_i], transpose(a_cosine_matrices_grains[mineral_i][grain_i]));
+                Sav += volume_fractions_grains[mineral_i][grain_i] * volume_fraction_minerals[mineral_i] * rotated_matrx;
               }
-          }
-
-        // turn rank 4 Voigt averaged stiffness tensor into a stiffness matrix
-        // TODO: optimize loop for symmetric matrices
-        SymmetricTensor<2,6> Sav;
-        for (size_t i = 0; i < 6; i++)
-          {
-            for (size_t j = 0; j < 6; j++)
-              {
-                Sav[i][j] = Cav[indices_vector_1[i]][indices_vector_2[i]][indices_vector_1[j]][indices_vector_2[j]];
-              }
-
           }
 
         return Sav;
@@ -253,8 +195,7 @@ namespace aspect
                                                                 volume_fractions_grains,
                                                                 a_cosine_matrices_grains,
                                                                 deformation_type);
-        //std::cout << "elastic n_minerals = " << n_minerals << ", n_grains = " << n_grains << std::endl;
-        //size_t counter = 0;
+
         // There is a bug up to dealii 9.3.0, so we have to work around it.
         for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
 #if DEAL_II_VERSION_GTE(9,3,0)
