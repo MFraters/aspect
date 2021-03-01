@@ -310,6 +310,9 @@ namespace aspect
 
           /**
            * derivatives: Todo
+           * @param prevent_nondimensionalization is only there for the unit test. In normal sitations it should always be set to false,
+           * because the nondimensionalization should always be done (in this exact way), unless you really know what
+           * you are doing.
            */
           std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
           compute_derivatives_drex2004(const std::vector<double> &volume_fractions,
@@ -317,7 +320,8 @@ namespace aspect
                                        const SymmetricTensor<2,3> &strain_rate_nondimensional,
                                        const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                                        const double volume_fraction_mineral,
-                                       const std::array<double,4> &ref_resolved_shear_stress) const;
+                                       const std::array<double,4> &ref_resolved_shear_stress,
+                                       const bool prevent_nondimensionalization = false) const;
 
           std::vector<std::vector<double> >
           volume_weighting(std::vector<double> fv, std::vector<std::vector<double> > angles) const;

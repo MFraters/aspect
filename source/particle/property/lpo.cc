@@ -1346,21 +1346,29 @@ namespace aspect
                                              const SymmetricTensor<2,3> &strain_rate,
                                              const Tensor<2,3> &velocity_gradient_tensor,
                                              const double volume_fraction_mineral,
-                                             const std::array<double,4> &ref_resolved_shear_stress) const
+                                             const std::array<double,4> &ref_resolved_shear_stress,
+                                             const bool prevent_nondimensionalization) const
       {
-        const std::array< double, 3 > eigenvalues = dealii::eigenvalues(strain_rate);
-        const double nondimensionalization_value = std::max(std::abs(eigenvalues[0]),std::abs(eigenvalues[2]));
-
-        Assert(!std::isnan(nondimensionalization_value), ExcMessage("The second invariant of the strain rate is not a number."));
-
-        // Make the strain-rate and velocity gradient tensor non-dimensional
-        // by dividing it through the second invariant
         SymmetricTensor<2,3> strain_rate_nondimensional = strain_rate;
         Tensor<2,3> velocity_gradient_tensor_nondimensional = velocity_gradient_tensor;
-        if (nondimensionalization_value != 0)
+        // This if statement is only there for the unit test. In normal sitations it should always be set to false,
+        // because the nondimensionalization should always be done (in this exact way), unless you really know what
+        // you are doing.
+        double nondimensionalization_value = 1.0;
+        if (!prevent_nondimensionalization)
           {
-            strain_rate_nondimensional /= nondimensionalization_value;
-            velocity_gradient_tensor_nondimensional /=  nondimensionalization_value;
+            const std::array< double, 3 > eigenvalues = dealii::eigenvalues(strain_rate);
+            nondimensionalization_value = std::max(std::abs(eigenvalues[0]),std::abs(eigenvalues[2]));
+
+            Assert(!std::isnan(nondimensionalization_value), ExcMessage("The second invariant of the strain rate is not a number."));
+
+            // Make the strain-rate and velocity gradient tensor non-dimensional
+            // by dividing it through the second invariant
+            if (nondimensionalization_value != 0)
+              {
+                strain_rate_nondimensional /= nondimensionalization_value;
+                velocity_gradient_tensor_nondimensional /=  nondimensionalization_value;
+              }
           }
 
         // create output variables
@@ -1519,6 +1527,7 @@ namespace aspect
                                       + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
                                       + rhos3 * exp(-nucleation_efficientcy * rhos3 * rhos3)
                                       + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
+
 
             Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
                                                                 + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3)
