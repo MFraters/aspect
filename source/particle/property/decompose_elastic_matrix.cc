@@ -172,7 +172,6 @@ namespace aspect
         // get_random_number function as well. But I will need to test this.
         const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
         this->random_number_generator.seed(random_number_seed+my_rank);
-        //std::cout << ">>> random_number_seed+my_rank = " << random_number_seed+my_rank << ", random_number_seed = " << random_number_seed << std::endl;
 
         const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
         //AssertThrow(manager.plugin_name_exists("lpo"),
@@ -190,7 +189,6 @@ namespace aspect
 
         //lpo_data_position = manager.get_data_info().get_position_by_plugin_index(manager.get_plugin_index_by_name("lpo"));
         lpo_elastic_tensor_data_position = manager.get_data_info().get_position_by_plugin_index(manager.get_plugin_index_by_name("lpo elastic tensor"));
-//std::cout << "flag 1" << std::endl;
       }
 
 
@@ -274,10 +272,6 @@ namespace aspect
         const SymmetricTensor<2,3> voigt_stiffness_tensor_full = compute_voigt_stiffness_tensor(elastic_matrix);
         Tensor<2,3> SCC_full = compute_unpermutated_SCC(dilatation_stiffness_tensor_full, voigt_stiffness_tensor_full);
 
-        //double full_elastic_vector_norm_square = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(elastic_matrix).norm_square();
-        //double full_elastic_vector_norm_square_rot = LpoElasticTensor<dim>::transform_6x6_matrix_to_21D_vector(LpoElasticTensor<dim>::rotate_6x6_matrix(elastic_matrix,SCC_full)).norm_square();
-        //std::cout << "full_elastic_vector_norm_square = " << full_elastic_vector_norm_square << ", rot = " << full_elastic_vector_norm_square_rot << std::endl;
-
         std::array<std::array<double,3>,7 > norms = compute_elastic_tensor_SCC_decompositions(SCC_full, elastic_matrix);
 
         // get max hexagonal element index, which is the same as the permutation index
@@ -289,24 +283,6 @@ namespace aspect
           {
             hexa_permutated_SCC[index] = SCC_full[perumation[index]];
           }
-
-
-
-        /*std::cout << " ------> %percentages (min-norm:perm;max-norm:perm): isotropic = " << (norms[5][0]/full_elastic_vector_norm_square)*100
-                  << ", hexag = (" << (norms[4][min_max_norm_elemtents[4][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[4][0] << ";" << (norms[4][min_max_norm_elemtents[4][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[4][1] <<  ")"
-                  << ", tetra = (" << (norms[3][min_max_norm_elemtents[3][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[3][0] << ";" << (norms[3][min_max_norm_elemtents[3][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[3][1] <<  ")"
-                  << ", ortho = (" << (norms[2][min_max_norm_elemtents[2][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[2][0] << ";" << (norms[2][min_max_norm_elemtents[2][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[2][1] <<  ")"
-                  << ", monoc = (" << (norms[1][min_max_norm_elemtents[1][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[1][0] << ";" << (norms[1][min_max_norm_elemtents[1][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[1][1] <<  ")"
-                  << ", tricl = (" << (norms[0][min_max_norm_elemtents[0][0]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[0][0] << ";" << (norms[0][min_max_norm_elemtents[0][1]]/full_elastic_vector_norm_square)*100 << ":" << min_max_norm_elemtents[0][1] <<  ")"
-                  << std::endl << std::endl;
-
-        std::cout << " ------> %anisotropy = " << (anistropic_norm/full_elastic_vector_norm_square)*100. << ", (min-norm:perm;max-norm:perm):"
-                  << ", hexag = (" << (norms[4][min_max_norm_elemtents[4][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
-                  << ", tetra = (" << (norms[3][min_max_norm_elemtents[3][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
-                  << ", ortho = (" << (norms[2][min_max_norm_elemtents[2][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
-                  << ", monoc = (" << (norms[1][min_max_norm_elemtents[1][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
-                  << ", tricl = (" << (norms[0][min_max_norm_elemtents[0][0]]/anistropic_norm)*100  << ";" << (norms[4][min_max_norm_elemtents[4][1]]/anistropic_norm)*100 <<  ")"
-                  << std::endl;*/
 
         data[data_position]    = SCC_full[0][0];
         data[data_position+1]  = SCC_full[0][1];
@@ -459,28 +435,6 @@ namespace aspect
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> voigt_eigenvectors_a = eigenvectors(voigt_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
         const std::array<std::pair<double,Tensor<1,3,double> >, 3> dilatation_eigenvectors_a = eigenvectors(dilatation_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
 
-        //std::cout << "voigt_eigenvectors = " << std::endl;
-        //for (size_t iii = 0; iii < 3; iii++)
-        //{
-        //  for (size_t jjj = 0; jjj < 3; jjj++)
-        //  {
-        //    std::cout << voigt_eigenvectors_a[iii].second[jjj] << " ";
-        //  }
-        //  std::cout << std::endl;
-        //}
-        //std::cout << std::endl;
-
-        //std::cout << "dilatation_eigenvectors = " << std::endl;
-        //for (size_t iii = 0; iii < 3; iii++)
-        //{
-        //  for (size_t jjj = 0; jjj < 3; jjj++)
-        //  {
-        //    std::cout << dilatation_eigenvectors_a[iii].second[jjj] << " ";
-        //  }
-        //  std::cout << std::endl;
-        //}
-        //std::cout << std::endl;
-
 
         std::vector<Tensor<1,3,double> > unpermutated_SCC(3);
         // averaging eigenvectors
@@ -517,7 +471,6 @@ namespace aspect
             unpermutated_SCC[i1] = 0.5*(dilatation_eigenvectors_a[i1].second + (double)NDVC*voigt_eigenvectors_a[std::abs((int)NDVC)].second);
             unpermutated_SCC[i1] = unpermutated_SCC[i1]/unpermutated_SCC[i1].norm();
           }
-        //std::cout << "NDVC = " << NDVC << std::endl;
 
         return Tensor<2,3>(
         {
@@ -552,14 +505,12 @@ namespace aspect
 
         for (unsigned short int permutation_i = 0; permutation_i < 3; permutation_i++)
           {
-            //std::cout << "permutation_i = " << permutation_i << std::endl;
             std::array<unsigned short int, 3> perumation = indexed_even_permutation(permutation_i);
 
             for (size_t j = 0; j < 3; j++)
               {
                 permutated[permutation_i][j] = unpermutated_SCC[perumation[j]];
               }
-            //std::cout << "permutated scc: " << permutated[permutation_i] << std::endl;
 
             rotated_elastic_matrix[permutation_i] = LpoElasticTensor<dim>::rotate_6x6_matrix(elastic_matrix,(permutated[permutation_i]));
 
