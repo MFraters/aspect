@@ -454,7 +454,6 @@ namespace aspect
 
         for (unsigned short int i = 1; i < 3; i++)
           {
-            //std::cout << "i = " << i << ", tensor = " << input_tensor[0][0][i][i] << ":" << input_tensor[i][i][0][0] << std::endl;
             output[0][i] = 0.5*(input_tensor[0][0][i][i] + input_tensor[i][i][0][0]);
             //output[0][i] = output[i][0];
           }
@@ -475,7 +474,6 @@ namespace aspect
 
         for (unsigned short int i = 0; i < 3; i++)
           {
-            //std::cout << i << ":5 = " << input_tensor[i][i][0][1] << ":" << input_tensor[i][i][1][0] << ":" << input_tensor[0][1][i][i] << ":" << input_tensor[1][0][i][i] << std::endl;
             output[i][5]=0.25*(input_tensor[i][i][0][1]+input_tensor[i][i][1][0]+input_tensor[0][1][i][i]+input_tensor[1][0][i][i]);
             //output[5][i]=output[i][5];
           }
@@ -615,69 +613,6 @@ namespace aspect
 
       }
 
-      /*
-            template<int dim>
-            std::array<std::array<double,3>,3>
-            LpoElasticTensor<dim>::compute_s_wave_anisotropy(std::vector<Tensor<2,6> >& matrices) const
-            {
-              SymmetricTensor< 2, 3, double > sum_matrix_a;
-              SymmetricTensor< 2, 3, double > sum_matrix_b;
-              SymmetricTensor< 2, 3, double > sum_matrix_c;
-
-              // extracting the a, b and c orientations from the olivine a matrix
-              for (unsigned int i_grain = 0; i_grain < matrices.size(); i_grain++)
-                {
-                  sum_matrix_a[0][0] += matrices[i_grain][0][0] * matrices[i_grain][0][0]; // SUM(l^2)
-                  sum_matrix_a[1][1] += matrices[i_grain][0][1] * matrices[i_grain][0][1]; // SUM(m^2)
-                  sum_matrix_a[2][2] += matrices[i_grain][0][2] * matrices[i_grain][0][2]; // SUM(n^2)
-                  sum_matrix_a[0][1] += matrices[i_grain][0][0] * matrices[i_grain][0][1]; // SUM(l*m)
-                  sum_matrix_a[0][2] += matrices[i_grain][0][0] * matrices[i_grain][0][2]; // SUM(l*n)
-                  sum_matrix_a[1][2] += matrices[i_grain][0][1] * matrices[i_grain][0][2]; // SUM(m*n)
-
-
-                  sum_matrix_b[0][0] += matrices[i_grain][1][0] * matrices[i_grain][1][0]; // SUM(l^2)
-                  sum_matrix_b[1][1] += matrices[i_grain][1][1] * matrices[i_grain][1][1]; // SUM(m^2)
-                  sum_matrix_b[2][2] += matrices[i_grain][1][2] * matrices[i_grain][1][2]; // SUM(n^2)
-                  sum_matrix_b[0][1] += matrices[i_grain][1][0] * matrices[i_grain][1][1]; // SUM(l*m)
-                  sum_matrix_b[0][2] += matrices[i_grain][1][0] * matrices[i_grain][1][2]; // SUM(l*n)
-                  sum_matrix_b[1][2] += matrices[i_grain][1][1] * matrices[i_grain][1][2]; // SUM(m*n)
-
-
-                  sum_matrix_c[0][0] += matrices[i_grain][2][0] * matrices[i_grain][2][0]; // SUM(l^2)
-                  sum_matrix_c[1][1] += matrices[i_grain][2][1] * matrices[i_grain][2][1]; // SUM(m^2)
-                  sum_matrix_c[2][2] += matrices[i_grain][2][2] * matrices[i_grain][2][2]; // SUM(n^2)
-                  sum_matrix_c[0][1] += matrices[i_grain][2][0] * matrices[i_grain][2][1]; // SUM(l*m)
-                  sum_matrix_c[0][2] += matrices[i_grain][2][0] * matrices[i_grain][2][2]; // SUM(l*n)
-                  sum_matrix_c[1][2] += matrices[i_grain][2][1] * matrices[i_grain][2][2]; // SUM(m*n)
-
-                }
-              const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
-              const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
-              const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
-
-              / *
-              std::cout << "old eigen_vector_array_a = ";
-              for (size_t i = 0; i < eigenvectors_a.size(); i++)
-              {
-                std::cout << eigenvectors_a[0].second[i] << " ";
-              }
-              std::cout << std::endl;
-              * /
-
-              // create shorcuts
-              const Tensor<1,3,double> &averaged_a = eigenvectors_a[0].second;
-              const Tensor<1,3,double> &averaged_b = eigenvectors_b[0].second;
-              const Tensor<1,3,double> &averaged_c = eigenvectors_c[0].second;
-
-
-              // todo: find out why returning a {{averaged_a[0],...},{...},{...}} does not compile.
-              std::array a = {averaged_a[0],averaged_a[1],averaged_a[2]};
-              std::array b = {averaged_b[0],averaged_b[1],averaged_b[2]};
-              std::array c = {averaged_c[0],averaged_c[1],averaged_c[2]};
-
-              return {a,b,c};
-            }
-      */
       template<int dim>
       std::vector<Tensor<2,3> >
       LpoElasticTensor<dim>::random_draw_volume_weighting(std::vector<double> fv,
@@ -721,7 +656,6 @@ namespace aspect
         for (unsigned int grain_i = 0; grain_i < n_output_grains; ++grain_i)
           {
             idxgrain[grain_i] = dist(this->random_number_generator);
-            //std::cout << ">>> rand new = " << grain_i << ": "<< idxgrain[grain_i] << std::endl;
           }
 
         // 4. Find the maximum cum_weight that is less than the random value.
@@ -778,10 +712,8 @@ namespace aspect
       {
         std::vector<std::pair<std::string,unsigned int> > property_information;
 
-        //for (unsigned int i = 0; i < SymmetricTensor<2,6>::n_independent_components ; ++i)
         property_information.push_back(std::make_pair("lpo_elastic_tensor",SymmetricTensor<2,6>::n_independent_components));
 
-        //std::cout << "elastic property_information.size() = " << property_information.size() << std::endl;
         return property_information;
       }
 
