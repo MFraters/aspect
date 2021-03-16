@@ -275,39 +275,6 @@ namespace aspect
 
 
           // write content file
-
-          // loop over grain retrieve from data from each grain
-          /*unsigned int data_grain_i = 0;
-          for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-            {
-              // retrieve volume fraction for olvine grains
-              volume_fractions_olivine[grain_i] = properties[data_position + data_grain_i *
-                                                             (Tensor<2,3>::n_independent_components + 1) + 1];
-
-              // retrieve a_{ij} for olvine grains
-              //Tensor<2,dim> a_cosine_matrices_olivine;
-              for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                {
-                  const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                  a_cosine_matrices_olivine[grain_i][index] = properties[data_position + data_grain_i *
-                                                                         (Tensor<2,3>::n_independent_components + 1) + 2 + i];
-                }
-
-              // retrieve volume fraction for enstatite grains
-              volume_fractions_enstatite[grain_i] = properties[data_position + (data_grain_i+1) *
-                                                               (Tensor<2,3>::n_independent_components + 1) + 1];
-
-              // retrieve a_{ij} for enstatite grains
-              //Tensor<2,dim> a_cosine_matrices;
-              for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
-                {
-                  const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                  a_cosine_matrices_enstatite[grain_i][index] = properties[data_position + (data_grain_i+1) *
-                                                                           (Tensor<2,3>::n_independent_components + 1) + 2 + i];
-                }
-              data_grain_i = data_grain_i + 2;
-            }*/
-
           std::vector<std::vector<std::vector<double> > > euler_angles;
           if (compute_raw_euler_angles == true)
             {
