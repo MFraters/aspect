@@ -257,38 +257,6 @@ namespace aspect
                                                      :
                                                      property_information.get_position_by_field_name("lpo elastic axis e1");
 
-          /*
-                    std::vector<double> ref_volume_fractions_olivine(n_grains);
-                    std::vector<Tensor<2,3> > ref_a_cosine_matrices_olivine(n_grains);
-                    std::vector<double> ref_volume_fractions_enstatite(n_grains);
-                    std::vector<Tensor<2,3> > ref_a_cosine_matrices_enstatite(n_grains);
-                    //std::cout << "data position = " << lpo_data_position << ":" << ref_lpo_data_position << std::endl;
-
-                    Particle::Property::LPO<dim>::load_lpo_particle_data(ref_lpo_data_position,
-                                                                         properties,
-                                                                         n_grains,
-                                                                       olivine_deformation_type,
-                                                                       volume_fraction_olivine,
-                                                                         ref_volume_fractions_olivine,
-                                                                         ref_a_cosine_matrices_olivine,
-                                                                         ref_volume_fractions_enstatite,
-                                                                         ref_a_cosine_matrices_enstatite);
-
-                    for (size_t grain_i = 0; grain_i < ref_a_cosine_matrices_olivine.size(); grain_i++)
-                      {
-                        for (size_t i = 0; i < 3; i++)
-                          {
-                            for (size_t j = 0; j < 3; j++)
-                              {
-                                Assert(std::fabs(ref_a_cosine_matrices_olivine[grain_i][i][j] - a_cosine_matrices_olivine[grain_i][i][j]) < 1e-8,
-                                       ExcMessage("Error " + std::to_string(ref_a_cosine_matrices_olivine[grain_i][i][j]) + ":" + std::to_string(a_cosine_matrices_olivine[grain_i][i][j])));
-                              }
-
-                          }
-
-                      }*/
-
-
           // write master file
           string_stream_master << id << " " << position << " " << properties[lpo_data_position];
           if (hexagonal_plugin_exists == true)
@@ -724,8 +692,6 @@ namespace aspect
 
         }
 
-      //if (rotation_matrix[2][2] > 1.0)
-      //  std::cout << "rotation_matrix[2][2] -1 = " << rotation_matrix[2][2] - 1.0 << std::endl;
       AssertThrow(!std::isnan(phi1), ExcMessage(" phi1 is nan. theta = " + std::to_string(theta) + ", rotation_matrix[2][2]= " + std::to_string(rotation_matrix[2][2])
                                                 + ", acos(rotation_matrix[2][2]) = " + std::to_string(std::acos(rotation_matrix[2][2])) + ", acos(1.0) = " + std::to_string(std::acos(1.0))));
       AssertThrow(!std::isnan(theta), ExcMessage(" theta is nan."));
@@ -736,7 +702,6 @@ namespace aspect
       euler_angles[2] = wrap_angle(phi2 * rad_to_degree);
 
 
-      //std::cout << " euler_angles = " <<  euler_angles[0] << ":" <<  euler_angles[1] << ":" <<  euler_angles[2] << std::endl;
       AssertThrow(!std::isnan(euler_angles[0]), ExcMessage(" euler_angles[0] is nan."));
       AssertThrow(!std::isnan(euler_angles[1]), ExcMessage(" euler_angles[1] is nan."));
       AssertThrow(!std::isnan(euler_angles[2]), ExcMessage(" euler_angles[2] is nan."));
