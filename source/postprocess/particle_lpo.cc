@@ -174,9 +174,6 @@ namespace aspect
 
       bool hexagonal_plugin_exists = manager.plugin_name_exists("decompose elastic matrix");
 
-
-      //std::cout << "n_grains = " << n_grains << ", static = " << aspect::Particle::Property::LPO<dim>::get_number_of_grains() << std::endl;
-      //unsigned int n_grains = aspect::Particle::Property::LPO<dim>::get_number_of_grains();
       // if this is the first time we get here, set the last output time
       // to the current time - output_interval. this makes sure we
       // always produce data during the first time step
@@ -660,19 +657,16 @@ namespace aspect
           unsigned int counter = 0;
           for (unsigned int grain_j = 0; grain_j < n_grains; ++grain_j)
             {
-              //std::cout << "grain_i = " << grain_i << ", grain_j = " << grain_j <<  ", counter = " << counter << ", cum_weight[grain_j] = " << cum_weight[grain_j] << ", idgrain = " << idxgrain[grain_i] << std::endl;
               if (cum_weight[grain_j] < idxgrain[grain_i])
                 {
                   counter++;
                 }
-
-              Assert(angles_sorted[counter].size() == 3, ExcMessage("angles_sorted vector (size = " + std::to_string(angles_sorted[counter].size()) +
-                                                                    ") should have size 3."));
-
-              angles_out[grain_i] = angles_sorted[counter];
-              Assert(angles_out[counter].size() == 3, ExcMessage("angles_out vector (size = " + std::to_string(angles_out[counter].size()) +
-                                                                 ") should have size 3."));
+              else
+                {
+                  break;
+                }
             }
+          angles_out[grain_i] = angles_sorted[counter];
         }
       return angles_out;
     }
