@@ -860,40 +860,6 @@ namespace aspect
 
       }
 
-      template<int dim>
-      void
-      LPO<dim>::orthogonalize_matrix(dealii::Tensor<2, 3> &tensor,
-                                     double tolerance) const
-      {
-        if (std::abs(determinant(tensor) - 1.0) > tolerance)
-          {
-            LAPACKFullMatrix<double> identity_matrix(3);
-            for (size_t i = 0; i < 3; i++)
-              {
-                identity_matrix.set(i,i,1);
-              }
-
-            FullMatrix<double> matrix_olivine(3);
-            LAPACKFullMatrix<double> lapack_matrix_olivine(3);
-            LAPACKFullMatrix<double> result(3);
-            LAPACKFullMatrix<double> result2(3);
-
-            // todo: find or add dealii functionallity to copy in one step.
-            matrix_olivine.copy_from(tensor);
-            lapack_matrix_olivine.copy_from(matrix_olivine);
-
-            // now compute the svd of the matrices
-            lapack_matrix_olivine.compute_svd();
-
-            // Use the SVD results to orthogonalize: ((U*I)*V^T)^T
-            lapack_matrix_olivine.get_svd_u().mmult(result,identity_matrix);
-            result.mmult(result2,(lapack_matrix_olivine.get_svd_vt()));
-
-            // todo: find or add dealii functionallity to copy in one step.
-            matrix_olivine = result2;
-            matrix_olivine.copy_to(tensor);
-          }
-      }
 
       template<int dim>
       DeformationType
