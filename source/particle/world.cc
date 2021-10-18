@@ -480,7 +480,6 @@ namespace aspect
     }
 
 
-
     template <int dim>
     void
     World<dim>::local_update_particles(const typename DoFHandler<dim>::active_cell_iterator &cell,
