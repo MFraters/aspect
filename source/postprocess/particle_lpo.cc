@@ -748,7 +748,7 @@ namespace aspect
         {
           prm.enter_subsection("LPO");
           {
-            prm.declare_entry ("Number of grains per praticle", "50",
+            prm.declare_entry ("Number of grains per particle", "50",
                                Patterns::Integer (0),
                                "The number of grains of olivine and the number of grain of enstatite "
                                "each particle contains.");
@@ -860,7 +860,7 @@ namespace aspect
         {
           prm.enter_subsection("LPO");
           {
-            n_grains = prm.get_integer("Number of grains per praticle");
+            n_grains = prm.get_integer("Number of grains per particle");
             prm.enter_subsection("D-Rex 2004");
             {
               // Static variable of LPO has not been initialize yet, so we need to get it directly.

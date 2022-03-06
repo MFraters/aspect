@@ -733,7 +733,7 @@ namespace aspect
                                  "user seed + MPI Rank. ");
 
 
-              prm.declare_entry ("Number of grains per praticle", "50",
+              prm.declare_entry ("Number of grains per particle", "50",
                                  Patterns::Integer (0),
                                  "The number of grains of olivine and the number of grain of enstatite "
                                  "each particle contains.");
@@ -759,7 +759,7 @@ namespace aspect
                                  Patterns::Double(0),
                                  "This is exponent p as defined in equation 11 of Kaminski et al., 2004. ");
 
-              prm.declare_entry ("Nucleation efficientcy", "5",
+              prm.declare_entry ("Nucleation efficiency", "5",
                                  Patterns::Double(0),
                                  "This is the dimensionless nucleation rate as defined in equation 8 of "
                                  "Kaminski et al., 2004. ");
@@ -800,7 +800,7 @@ namespace aspect
               x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
               stress_exponent = prm.get_double("Stress exponents"); //3.5;
               exponent_p = prm.get_double("Exponents p"); //1.5;
-              nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
+              nucleation_efficiency = prm.get_double("Nucleation efficiency"); //5;
               threshold_GBS = prm.get_double("Threshold GBS"); //0.0;
               n_samples = prm.get_integer("Number of samples"); // 0
               if (n_samples == 0)
