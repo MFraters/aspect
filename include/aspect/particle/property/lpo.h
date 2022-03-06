@@ -398,10 +398,10 @@ namespace aspect
           unsigned int property_advection_max_iterations;
 
           /**
-           * efficientcy of nucleation parameter.
+           * efficiency of nucleation parameter.
            * lamda_m in equation 8 of Kamisnki et al. (2004, Geophys. J. Int)
            */
-          double nucleation_efficientcy;
+          double nucleation_efficiency;
 
           /**
            * An exponent described in equation 10 of Kaminsty and Ribe (2001, EPSL)

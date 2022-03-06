@@ -1489,15 +1489,15 @@ namespace aspect
             const double rhos4 = std::pow(tau[index_inactive_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent);
 
-            strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficientcy * rhos1 * rhos1)
-                                      + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
-                                      + rhos3 * exp(-nucleation_efficientcy * rhos3 * rhos3)
-                                      + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
+            strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficiency * rhos1 * rhos1)
+                                      + rhos2 * exp(-nucleation_efficiency * rhos2 * rhos2)
+                                      + rhos3 * exp(-nucleation_efficiency * rhos3 * rhos3)
+                                      + rhos4 * exp(-nucleation_efficiency * rhos4 * rhos4));
 
 
             Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
                                                                 + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3)
-                                                                + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficientcy = " + std::to_string(nucleation_efficientcy) + "."));
+                                                                + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficiency = " + std::to_string(nucleation_efficiency) + "."));
 
             // compute the derivative of the cosine matrix a: \frac{\partial a_{ij}}{\partial t}
             // (Eq. 9, Kaminski & Ribe 2001)
@@ -1564,7 +1564,7 @@ namespace aspect
                                  "same amount of MPI processes. It is implemented as final seed = "
                                  "user seed + MPI Rank. ");
 
-              prm.declare_entry ("Number of grains per praticle", "50",
+              prm.declare_entry ("Number of grains per particle", "50",
                                  Patterns::Integer (0),
                                  "The number of grains of olivine and the number of grain of enstatite "
                                  "each particle contains.");
@@ -1620,7 +1620,7 @@ namespace aspect
                                    Patterns::Double(0),
                                    "This is exponent p as defined in equation 11 of Kaminski et al., 2004. ");
 
-                prm.declare_entry ("Nucleation efficientcy", "5",
+                prm.declare_entry ("Nucleation efficiency", "5",
                                    Patterns::Double(0),
                                    "This is the dimensionless nucleation rate as defined in equation 8 of "
                                    "Kaminski et al., 2004. ");
@@ -1656,7 +1656,7 @@ namespace aspect
             {
 
               random_number_seed = prm.get_integer ("Random number seed");
-              n_grains = prm.get_integer("Number of grains per praticle");
+              n_grains = prm.get_integer("Number of grains per particle");
 
               property_advection_tolerance = prm.get_double("Property advection tolerance");
               property_advection_max_iterations = prm.get_integer ("Property advection max iterations");
@@ -1706,7 +1706,7 @@ namespace aspect
                 volume_fractions_minerals = Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Volume fractions minerals")));
                 stress_exponent = prm.get_double("Stress exponents");
                 exponent_p = prm.get_double("Exponents p");
-                nucleation_efficientcy = prm.get_double("Nucleation efficientcy");
+                nucleation_efficiency = prm.get_double("Nucleation efficiency");
                 threshold_GBS = prm.get_double("Threshold GBS");
                 use_world_builder = prm.get_bool("Use World Builder");
 

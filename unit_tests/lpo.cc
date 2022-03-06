@@ -465,12 +465,12 @@ TEST_CASE("LPO")
         prm.enter_subsection("LPO");
         {
           prm.set("Random number seed","1"); // 2
-          prm.set("Number of grains per praticle","5"); //10000;
+          prm.set("Number of grains per particle","5"); //10000;
           /*mobility = prm.get_double("Mobility"); //50;
           x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
           stress_exponent = prm.get_double("Stress exponents"); //3.5;
           exponent_p = prm.get_double("Exponents p"); //1.5;
-          nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
+          nucleation_efficiency = prm.get_double("Nucleation efficiency"); //5;
           threshold_GBS = prm.get_double("Threshold GBS"); //0.0;*/
         }
         prm.leave_subsection ();
@@ -665,12 +665,12 @@ TEST_CASE("LPO")
         prm.enter_subsection("LPO");
         {
           prm.set("Random number seed","1"); // 2
-          prm.set("Number of grains per praticle","5"); //10000;
+          prm.set("Number of grains per particle","5"); //10000;
           /*mobility = prm.get_double("Mobility"); //50;
           x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
           stress_exponent = prm.get_double("Stress exponents"); //3.5;
           exponent_p = prm.get_double("Exponents p"); //1.5;
-          nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
+          nucleation_efficiency = prm.get_double("Nucleation efficiency"); //5;
           threshold_GBS = prm.get_double("Threshold GBS"); //0.0;*/
         }
         prm.leave_subsection ();
@@ -867,12 +867,12 @@ TEST_CASE("LPO")
         prm.enter_subsection("LPO");
         {
           prm.set("Random number seed","1"); // 2
-          prm.set("Number of grains per praticle","5"); //10000;
+          prm.set("Number of grains per particle","5"); //10000;
           /*mobility = prm.get_double("Mobility"); //50;
           x_olivine = prm.get_double("Volume fraction olivine"); // 0.5;
           stress_exponent = prm.get_double("Stress exponents"); //3.5;
           exponent_p = prm.get_double("Exponents p"); //1.5;
-          nucleation_efficientcy = prm.get_double("Nucleation efficientcy"); //5;
+          nucleation_efficiency = prm.get_double("Nucleation efficiency"); //5;
           threshold_GBS = prm.get_double("Threshold GBS"); //0.0;*/
         }
         prm.leave_subsection ();
