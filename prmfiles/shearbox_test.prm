@@ -1,0 +1,121 @@
+set Dimension   = 3
+set End time    = 30e6
+set Use years in output instead of seconds = true
+set Timing output frequency = 50
+set Maximum time step = 5000
+#set Nonlinear solver scheme = single Advection, no Stokes
+
+set Output directory = /media/fraters/Data/Data/ASPECT/CPO/cornerflow/v1.1_wc800-25_aBE_MiOlKa08-En_vf0.7-0.3_Mo125_n5_t0.3_v1e22_g1000 ## Annotation Output directory
+
+subsection Geometry model
+  set Model name = box
+  subsection Box
+    set Box origin Y coordinate = 0
+    set Box origin X coordinate = 0
+    set Box origin Z coordinate = 0
+    set Z extent = 300e3
+    set X extent = 300e3
+    set Y extent = 25e3 
+    set Z repetitions = 24 
+    set X repetitions = 24 
+    set Y repetitions = 2
+  end
+end
+
+subsection Initial temperature model
+  set Model name = function
+end
+
+#subsection Boundary velocity model
+#  set Zero velocity boundary indicators = top
+#end
+
+subsection Gravity model
+  set Model name = vertical
+  subsection Vertical
+    set Magnitude = 0
+  end
+end
+
+subsection Material model
+  set Model name = simple #diffusion dislocation #simple
+  subsection Simple model
+    set Viscosity = 1e22 ## Annotation visocosity
+  end
+end
+
+subsection Mesh refinement
+  set Initial global refinement = 0
+  set Initial adaptive refinement = 0
+  set Minimum refinement level = 0
+end
+
+subsection Compositional fields
+  set Number of fields = 1
+  set Names of fields = water
+ set Compositional field methods = static
+end
+
+subsection Initial composition model
+  set Model name = function
+
+  subsection Function
+    set Variable names      = x,y,z
+    set Function expression = if(z<-0.5*x+300000, 800, 25) ## Annotation water function expression
+  end
+end
+
+subsection Postprocess
+  set List of postprocessors = visualization, particles, lpo
+
+  subsection Visualization
+    set Output format                 = vtu
+    set Time between graphical output = 50000
+    set List of output variables = strain rate, viscosity
+  end
+
+  subsection Particles
+    set Number of particles = 750 
+    set Time between data output = 25000
+    set List of particle properties = lpo, lpo bingham average,lpo elastic tensor, decompose elastic matrix, integrated strain invariant
+    set Exclude output properties = a_cosine_matrix, volume fraction
+
+    set Integration scheme = rk4
+
+    subsection LPO
+      set Random number seed = 200
+      set Number of grains per praticle = 1000 ## Annotation grain count
+      set Property advection method = Backward Euler ## Annotation Property advection method
+      set Property advection tolerance = 1e-15
+       subsection D-Rex 2004
+        set Minerals = Olivine: Karato 2008, Enstatite ## Annotation Minerals
+        set Mobility = 125 ## Annotation LPO Mobility
+        set Volume fractions minerals = 0.7,0.3 ## Annotation Volume fractions minerals
+         set Stress exponents = 3.5
+         set Exponents p = 1.5
+        set Nucleation efficientcy = 5 ## Annotation Nucleation efficientcy
+         set Threshold GBS = 0.3 ## Annotation TGBS
+       end
+    end
+    subsection LpoBinghamAverage
+      set Random number seed = 200
+    end
+  end
+  subsection LPO
+    set Time between data output = 100000
+    set Write in background thread = true
+    set Compress lpo data files = true 
+      set Write out raw lpo data = 
+      set Write out draw volume weighted lpo data = mineral 0: volume fraction, mineral 0: Euler angles, mineral 1: volume fraction, mineral 1: Euler angles
+  end
+end
+
+subsection Boundary velocity model
+  set Prescribed velocity boundary indicators =  top: function
+  set Tangential velocity boundary indicators = left, front, back #, right, bottom, top
+    subsection Function
+    set Variable names      = x,y,z
+    set Function constants  = cm=0.01, year=1
+    set Function expression = 1.0*cm/year;0.0;0.0
+  end
+end
