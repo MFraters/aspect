@@ -181,13 +181,17 @@ namespace aspect
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
         std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+        std::vector<std::vector<std::array<double,4>>> dislocation_densities;
+        std::vector<std::vector<std::array<double,4>>> recrystalized_fraction;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
                                                          deformation_type,
                                                          volume_fraction_mineral,
                                                          volume_fractions_grains,
-                                                         a_cosine_matrices_grains);
+                                                         a_cosine_matrices_grains,
+                                                         dislocation_densities,
+                                                         recrystalized_fraction);
 
 
 
@@ -242,13 +246,17 @@ namespace aspect
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
         std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+        std::vector<std::vector<std::array<double,4>>> dislocation_densities;
+        std::vector<std::vector<std::array<double,4>>> recrystalized_fraction;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
                                                          deformation_type,
                                                          volume_fraction_mineral,
                                                          volume_fractions_grains,
-                                                         a_cosine_matrices_grains);
+                                                         a_cosine_matrices_grains,
+                                                         dislocation_densities,
+                                                         recrystalized_fraction);
 
         SymmetricTensor<2,6> S_average = compute_elastic_tensor(volume_fraction_mineral,
                                                                 volume_fractions_grains,

@@ -243,13 +243,17 @@ namespace aspect
           std::vector<double> volume_fraction_mineral;
           std::vector<std::vector<double>> volume_fractions_grains;
           std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+        std::vector<std::vector<std::array<double,4>>> dislocation_densities;
+        std::vector<std::vector<std::array<double,4>>> recrystalized_fraction;
 
-          Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
-                                                           properties,
-                                                           deformation_type,
-                                                           volume_fraction_mineral,
-                                                           volume_fractions_grains,
-                                                           a_cosine_matrices_grains);
+        Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
+                                                         properties,
+                                                         deformation_type,
+                                                         volume_fraction_mineral,
+                                                         volume_fractions_grains,
+                                                         a_cosine_matrices_grains,
+                                                         dislocation_densities,
+                                                         recrystalized_fraction);
 
           const unsigned int lpo_hex_data_position = property_information.n_fields() == 0 || hexagonal_plugin_exists == false
                                                      ?
@@ -322,6 +326,18 @@ namespace aspect
                                                       << "mineral_" << write_raw_lpo[property_i].first << "_EA_z" << " ";
                             break;
 
+                          case Output::DislocationDensities:
+                            string_stream_content_draw_volume_weighting << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_0" << " "
+                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_1" << " "
+                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_2" << " "
+                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_3" << " ";
+                            break;
+                          case Output::RecrystalizationFraction:
+                            string_stream_content_draw_volume_weighting << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_0" << " "
+                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_1" << " "
+                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_2" << " "
+                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_3" << " ";
+                            break;
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
                             break;
@@ -355,6 +371,21 @@ namespace aspect
                                                       <<  euler_angles[write_raw_lpo[property_i].first][grain_i][2] << " ";
                             break;
 
+
+                          case Output::DislocationDensities:
+                            string_stream_content_draw_volume_weighting << dislocation_densities[write_raw_lpo[property_i].first][grain_i][0] << " "
+                             << dislocation_densities[write_raw_lpo[property_i].first][grain_i][1] << " "
+                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][2] << " "
+                               << dislocation_densities[write_raw_lpo[property_i].first][grain_i][3] << " ";
+                            break;
+
+                          case Output::RecrystalizationFraction:
+                            string_stream_content_draw_volume_weighting << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][0] << " "
+                             << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][1] << " "
+                              << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][2] << " "
+                               << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][3] << " ";
+                            break;
+                            
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
                             break;
@@ -426,8 +457,19 @@ namespace aspect
                             string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_phi" << " "
                                                                         << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_theta" << " "
                                                                         << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_z" << " ";
-                            break;
 
+                          case Output::DislocationDensities:
+                            string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_dis_dens_0" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_dis_dens_1" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_dis_dens_2" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_dis_dens_3" << " ";
+                            break;
+                          case Output::RecrystalizationFraction:
+                            string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_recryst_frac_0" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_recryst_frac_1" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_recryst_frac_2" << " "
+                                                                        << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_recryst_frac_3" << " ";
+                            break;
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
                             break;
@@ -459,6 +501,20 @@ namespace aspect
                             string_stream_content_draw_volume_weighting << weighted_euler_angles[write_draw_volume_weighted_lpo[property_i].first][grain_i][0] << " "
                                                                         <<  weighted_euler_angles[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
                                                                         <<  weighted_euler_angles[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " ";
+                            break;
+
+                          case Output::DislocationDensities:
+                            string_stream_content_draw_volume_weighting << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][0] << " "
+                             << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
+                              << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " "
+                               << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][3] << " ";
+                            break;
+
+                          case Output::RecrystalizationFraction:
+                            string_stream_content_draw_volume_weighting << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][0] << " "
+                             << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
+                              << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " "
+                               << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][3] << " ";
                             break;
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
@@ -734,6 +790,10 @@ namespace aspect
         return Output::RotationMatrix;
       if (string == "Euler angles")
         return Output::EulerAngles;
+      if (string == "dislocation densities")
+        return Output::DislocationDensities;
+      if (string == "recrystalization fraction")
+        return Output::RecrystalizationFraction;
       return Output::not_found;
     }
 

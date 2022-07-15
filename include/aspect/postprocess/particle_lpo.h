@@ -134,7 +134,7 @@ namespace aspect
          */
         enum class Output
         {
-          VolumeFraction, RotationMatrix, EulerAngles,
+          VolumeFraction, RotationMatrix, EulerAngles, DislocationDensities, RecrystalizationFraction,
           not_found
         };
 

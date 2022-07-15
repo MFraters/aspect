@@ -188,7 +188,9 @@ namespace aspect
                              std::vector<unsigned int> &deformation_type,
                              std::vector<double> &volume_fraction_mineral,
                              std::vector<std::vector<double>> &volume_fractions_mineral,
-                             std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral);
+                             std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
+                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction);
 
 
           /**
@@ -202,7 +204,9 @@ namespace aspect
                                       std::vector<std::vector<double>> &volume_fractions_mineral,
                                       std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
                                       std::vector<std::vector<double> > &volume_fractions_mineral_derivatives,
-                                      std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives) const;
+                                      std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives,
+                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction) const;
 
           /**
            * Stores information in variables into the data array
@@ -214,7 +218,9 @@ namespace aspect
                               std::vector<unsigned int> &deformation_type,
                               std::vector<double> &volume_fraction_mineral,
                               std::vector<std::vector<double>> &volume_fractions_mineral,
-                              std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral);
+                              std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
+                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction);
           /**
            * Stores information in variables into the data array
            */
@@ -226,7 +232,9 @@ namespace aspect
                                        std::vector<std::vector<double>> &volume_fractions_mineral,
                                        std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
                                        std::vector<std::vector<double> > &volume_fractions_mineral_derivatives,
-                                       std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives) const;
+                                       std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives,
+                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction) const;
 
           /**
            * Find nearest orthogonal matrix using a SVD if the
