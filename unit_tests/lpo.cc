@@ -590,10 +590,12 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
+std::vector<std::array<double,4>> dislocation_densities;
+std::vector<std::array<double,4>> recrystalized_fraction; // todo: give the correct size
     std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
     derivatives = lpo_2d.compute_derivatives_drex2004(volume_fractions, a_cosine_matrices,
                                                       strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
-                                                      0.5, ref_resolved_shear_stress, true);
+                                                      0.5, ref_resolved_shear_stress, dislocation_densities, recrystalized_fraction,true);
 
     // The correct analytical solution to check against
     // Note that this still has to be multiplied with with volume fraction
@@ -791,11 +793,13 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
+std::vector<std::array<double,4>> dislocation_densities;
+std::vector<std::array<double,4>> recrystalized_fraction; // todo: give the correct size
     std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
 
     derivatives = lpo_3d.compute_derivatives_drex2004(volume_fractions, a_cosine_matrices,
                                                       strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
-                                                      0.5, ref_resolved_shear_stress, true);
+                                                      0.5, ref_resolved_shear_stress, dislocation_densities, recrystalized_fraction, true);
 
     // The correct analytical solution to check against
     double solution[5] = {3.150563756, -0.787640939, -0.787640939, -0.787640939 ,-0.787640939};
@@ -1008,11 +1012,13 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
+std::vector<std::array<double,4>> dislocation_densities;
+std::vector<std::array<double,4>> recrystalized_fraction; // todo: give the correct size
     std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
 
     derivatives = lpo_3d.compute_derivatives_drex2004(volume_fractions, a_cosine_matrices,
                                                       strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
-                                                      0.5, ref_resolved_shear_stress, true);
+                                                      0.5, ref_resolved_shear_stress, dislocation_densities, recrystalized_fraction, true);
 
     // The correct analytical solution to check against
     double solution[5] = {2.5350823696, -0.6337705924, -0.6337705924, -0.6337705924 ,-0.6337705924};

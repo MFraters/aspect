@@ -303,7 +303,9 @@ namespace aspect
                               const SymmetricTensor<2,3> &strain_rate_nondimensional,
                               const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                               const double volume_fraction_mineral,
-                              const std::array<double,4> &ref_resolved_shear_stress) const;
+                              const std::array<double,4> &ref_resolved_shear_stress,
+                              std::vector<std::array<double,4>> &dislocation_densities,
+                              std::vector<std::array<double,4>> &recrystalized_fraction) const;
 
           /**
            * derivatives: Todo
@@ -329,6 +331,8 @@ namespace aspect
                                        const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                                        const double volume_fraction_mineral,
                                        const std::array<double,4> &ref_resolved_shear_stress,
+                                    std::vector<std::array<double,4>> &dislocation_densities,
+                                    std::vector<std::array<double,4>> &recrystalized_fraction,
                                        const bool prevent_nondimensionalization = false) const;
 
           std::vector<std::vector<double> >

@@ -778,7 +778,9 @@ namespace aspect
                                                                                             strain_rate_3d,
                                                                                             velocity_gradient_3d,
                                                                                             volume_fraction_mineral[mineral_i],
-                                                                                            ref_resolved_shear_stress);
+                                                                                            ref_resolved_shear_stress,
+                                                                                            dislocation_densities[mineral_i],
+                                                                                            recrystalized_fraction[mineral_i]);
 
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
@@ -1319,7 +1321,9 @@ namespace aspect
                                     const SymmetricTensor<2,3> &strain_rate,
                                     const Tensor<2,3> &velocity_gradient_tensor,
                                     const double volume_fraction_mineral,
-                                    const std::array<double,4> &ref_resolved_shear_stress) const
+                                    const std::array<double,4> &ref_resolved_shear_stress,
+                                    std::vector<std::array<double,4>> &dislocation_densities,
+                                    std::vector<std::array<double,4>> &recrystalized_fraction) const
       {
         //
         std::vector<double> k_volume_fractions_zero = volume_fractions;
@@ -1347,7 +1351,9 @@ namespace aspect
                                                         strain_rate,
                                                         velocity_gradient_tensor,
                                                         volume_fraction_mineral,
-                                                        ref_resolved_shear_stress);
+                                                        ref_resolved_shear_stress,
+                                                        dislocation_densities,
+                                                        recrystalized_fraction);
               break;
             default:
               AssertThrow(false, ExcMessage("Internal error."));
@@ -1381,6 +1387,8 @@ namespace aspect
                                              const Tensor<2,3> &velocity_gradient_tensor,
                                              const double volume_fraction_mineral,
                                              const std::array<double,4> &ref_resolved_shear_stress,
+                                    std::vector<std::array<double,4>> &dislocation_densities,
+                                    std::vector<std::array<double,4>> &recrystalized_fraction,
                                              const bool prevent_nondimensionalization) const
       {
         SymmetricTensor<2,3> strain_rate_nondimensional = strain_rate;
@@ -1547,20 +1555,30 @@ namespace aspect
             // Note tau = RRSS = (tau_m^s/tau_o), this why we get tau^(p-n)
             const double rhos1 = std::pow(tau[index_max_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_max_q]),exponent_p/stress_exponent);
+                                 dislocation_densities[grain_i][0] = rhos1;
 
             const double rhos2 = std::pow(tau[index_intermediate_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_intermediate_q]),exponent_p/stress_exponent);
+                                 dislocation_densities[grain_i][1] = rhos2;
 
             const double rhos3 = std::pow(tau[index_min_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_min_q]),exponent_p/stress_exponent);
+                                 dislocation_densities[grain_i][2] = rhos3;
 
             const double rhos4 = std::pow(tau[index_inactive_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent);
+                                 dislocation_densities[grain_i][3] = rhos4;
 
             strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficientcy * rhos1 * rhos1)
                                       + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
                                       + rhos3 * exp(-nucleation_efficientcy * rhos3 * rhos3)
                                       + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
+
+
+                                 recrystalized_fraction[grain_i][0] = exp(-nucleation_efficientcy * rhos1 * rhos1);
+                                 recrystalized_fraction[grain_i][1] = exp(-nucleation_efficientcy * rhos2 * rhos2);
+                                 recrystalized_fraction[grain_i][2] = exp(-nucleation_efficientcy * rhos3 * rhos3);
+                                 recrystalized_fraction[grain_i][3] = exp(-nucleation_efficientcy * rhos4 * rhos4);
 
 
             Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
