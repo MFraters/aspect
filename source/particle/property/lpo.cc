@@ -99,6 +99,8 @@ namespace aspect
         volume_fraction_mineral.resize(n_minerals);
         volume_fractions_grains.resize(n_minerals);
         a_cosine_matrices_grains.resize(n_minerals);
+        dislocation_densities.resize(n_minerals);
+        recrystalized_fraction.resize(n_minerals);
 
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
@@ -106,6 +108,8 @@ namespace aspect
             volume_fraction_mineral[mineral_i] = data[lpo_data_position + 1 + mineral_i * (n_grains * 18 + 2)];
             volume_fractions_grains[mineral_i].resize(n_grains);
             a_cosine_matrices_grains[mineral_i].resize(n_grains);
+            dislocation_densities[mineral_i].resize(n_grains);
+            recrystalized_fraction[mineral_i].resize(n_grains);
             // loop over grains to store the data of each grain
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
@@ -462,6 +466,10 @@ namespace aspect
                   {
                     const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
                     data.emplace_back(a_cosine_matrices_grains[mineral_i][grain_i][index]);
+                  }
+                for (unsigned int i = 0; i < 8 ; ++i)
+                  {
+                    data.emplace_back(0.0);
                   }
 
               }
@@ -1120,6 +1128,14 @@ namespace aspect
                 for (unsigned int index = 0; index < Tensor<2,3>::n_independent_components; index++)
                   {
                     property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " a_cosine_matrix " + std::to_string(index),1));
+                  }
+                  for (unsigned int index = 0; index < 4; index++)
+                  {
+                    property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " disl dens " + std::to_string(index),1));
+                  }
+                  for (unsigned int index = 0; index < 4; index++)
+                  {
+                    property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " recryst frac " + std::to_string(index),1));
                   }
               }
           }

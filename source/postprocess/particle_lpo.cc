@@ -327,13 +327,13 @@ namespace aspect
                             break;
 
                           case Output::DislocationDensities:
-                            string_stream_content_draw_volume_weighting << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_0" << " "
+                            string_stream_content_raw << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_0" << " "
                                                                         << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_1" << " "
                                                                         << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_2" << " "
                                                                         << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_3" << " ";
                             break;
                           case Output::RecrystalizationFraction:
-                            string_stream_content_draw_volume_weighting << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_0" << " "
+                            string_stream_content_raw << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_0" << " "
                                                                         << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_1" << " "
                                                                         << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_2" << " "
                                                                         << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_3" << " ";
@@ -373,14 +373,14 @@ namespace aspect
 
 
                           case Output::DislocationDensities:
-                            string_stream_content_draw_volume_weighting << dislocation_densities[write_raw_lpo[property_i].first][grain_i][0] << " "
+                            string_stream_content_raw << dislocation_densities[write_raw_lpo[property_i].first][grain_i][0] << " "
                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][1] << " "
                               << dislocation_densities[write_raw_lpo[property_i].first][grain_i][2] << " "
                                << dislocation_densities[write_raw_lpo[property_i].first][grain_i][3] << " ";
                             break;
 
                           case Output::RecrystalizationFraction:
-                            string_stream_content_draw_volume_weighting << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][0] << " "
+                            string_stream_content_raw << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][0] << " "
                              << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][1] << " "
                               << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][2] << " "
                                << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][3] << " ";
@@ -457,7 +457,7 @@ namespace aspect
                             string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_phi" << " "
                                                                         << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_theta" << " "
                                                                         << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_EA_z" << " ";
-
+                            break;
                           case Output::DislocationDensities:
                             string_stream_content_draw_volume_weighting << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_dis_dens_0" << " "
                                                                         << "mineral_" << write_draw_volume_weighted_lpo[property_i].first << "_dis_dens_1" << " "
