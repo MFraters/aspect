@@ -131,7 +131,7 @@ namespace aspect
                 // store  recrystalized_fraction
                 for (unsigned int i = 0; i < 4; ++i)
                   {
-                    recrystalized_fraction[mineral_i][grain_i][i] = data[lpo_data_position + 14 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i];
+                    recrystalized_fraction[mineral_i][grain_i][i] = data[lpo_data_position + 15 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i];
                   }
               }
           }
@@ -253,7 +253,7 @@ namespace aspect
                 // store  recrystalized_fraction
                 for (unsigned int i = 0; i < 4; ++i)
                   {
-                    data[lpo_data_position + 14 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i] = recrystalized_fraction[mineral_i][grain_i][i];
+                    data[lpo_data_position + 15 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i] = recrystalized_fraction[mineral_i][grain_i][i];
                   }
               }
           }
@@ -753,7 +753,7 @@ namespace aspect
               }
 
 
-            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+            /*for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
                 for (size_t i = 0; i < 3; i++)
                   for (size_t j = 0; j < 3; j++)
@@ -763,7 +763,7 @@ namespace aspect
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][2]) + "\n"
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][2]) + "\n"
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][2])));
-              }
+              }*/
 
             /**
             * Now we have loaded all the data and can do the actual computation.
@@ -820,6 +820,7 @@ namespace aspect
               }
 
             // normalize both the olivine and enstatite volume fractions
+            //std::cout << "sum_volume_mineral = " << sum_volume_mineral << std::endl;
             const double inv_sum_volume_mineral = 1.0/sum_volume_mineral;
 
             Assert(std::isfinite(inv_sum_volume_mineral),
@@ -864,8 +865,9 @@ namespace aspect
                       // I don't think this should happen with the projection, but D-Rex
                       // does not do the orthogonal projection, but just clamps the values
                       // to 1 and -1.
-                      Assert(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])-1.0 <= 2.0 * std::numeric_limits<double>::epsilon(),
-                             ExcMessage("The a_cosine_matrices_grains[mineral_i] has a entry asolute larger than 1:" + std::to_string(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])) +"."));
+
+                      //Assert(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])-1.0 <= 2.0 * std::numeric_limits<double>::epsilon(),
+                      //       ExcMessage("The a_cosine_matrices_grains[mineral_i] has a entry asolute larger than 1:" + std::to_string(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])) +"."));
                     }
               }
 
@@ -885,7 +887,7 @@ namespace aspect
               }
 
 
-            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+            /*for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
                 for (size_t i = 0; i < 3; i++)
                   for (size_t j = 0; j < 3; j++)
@@ -895,7 +897,7 @@ namespace aspect
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][2]) + "\n"
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][2]) + "\n"
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][2])));
-              }
+              }*/
 
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
@@ -1580,6 +1582,11 @@ namespace aspect
                                  recrystalized_fraction[grain_i][2] = exp(-nucleation_efficientcy * rhos3 * rhos3);
                                  recrystalized_fraction[grain_i][3] = exp(-nucleation_efficientcy * rhos4 * rhos4);
 
+//std::cout << "strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
+//                                                                + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3)
+//                                                                + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficientcy = " + std::to_string(nucleation_efficientcy) 
+//                                                                + ", recrist 1: " << exp(-nucleation_efficientcy * rhos1 * rhos1) << ", 2: " << exp(-nucleation_efficientcy * rhos2 * rhos2)
+//                                                                 << ", 3: " << exp(-nucleation_efficientcy * rhos3 * rhos3) << ", 4: " << exp(-nucleation_efficientcy * rhos4 * rhos4) << "." << std::endl;
 
             Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
                                                                 + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3)

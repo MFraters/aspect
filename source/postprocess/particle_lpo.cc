@@ -373,10 +373,11 @@ namespace aspect
 
 
                           case Output::DislocationDensities:
-                            string_stream_content_raw << dislocation_densities[write_raw_lpo[property_i].first][grain_i][0] << " "
-                             << dislocation_densities[write_raw_lpo[property_i].first][grain_i][1] << " "
+                            string_stream_content_raw 
+                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][0] << " "
+                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][1] << " "
                               << dislocation_densities[write_raw_lpo[property_i].first][grain_i][2] << " "
-                               << dislocation_densities[write_raw_lpo[property_i].first][grain_i][3] << " ";
+                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][3] << " ";
                             break;
 
                           case Output::RecrystalizationFraction:
