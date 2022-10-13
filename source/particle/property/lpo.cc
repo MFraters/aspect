@@ -64,9 +64,9 @@ namespace aspect
                                    std::vector<unsigned int> &deformation_type,
                                    std::vector<double> &volume_fraction_mineral,
                                    std::vector<std::vector<double>> &volume_fractions_grains,
-                                   std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
-                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
-                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction)
+                                   std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains,
+                                   std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                                   std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction)
       {
         // the layout of the data vector per perticle is the following (note that for this plugin the following dim's are always 3):
         // 1. M mineral times
@@ -126,7 +126,7 @@ namespace aspect
                 // store dislocation_densities
                 for (unsigned int i = 0; i < 4; ++i)
                   {
-                    dislocation_densities[mineral_i][grain_i][i] = data[lpo_data_position + 11 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i];
+                    dislocation_densities[mineral_i][grain_i][i] = data[lpo_data_position + 12 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i];
                   }
                 // store  recrystalized_fraction
                 for (unsigned int i = 0; i < 4; ++i)
@@ -145,11 +145,11 @@ namespace aspect
                                             std::vector<unsigned int> &deformation_type,
                                             std::vector<double> &volume_fraction_mineral,
                                             std::vector<std::vector<double>> &volume_fractions_grains,
-                                            std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
-                                            std::vector<std::vector<double> > &volume_fractions_grains_derivatives,
-                                            std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains_derivatives,
-                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
-                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction) const
+                                            std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains,
+                                            std::vector<std::vector<double>> &volume_fractions_grains_derivatives,
+                                            std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains_derivatives,
+                                            std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                                            std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction) const
       {
         load_particle_data(lpo_data_position,
                            data,
@@ -195,9 +195,9 @@ namespace aspect
                                     std::vector<unsigned int> &deformation_type,
                                     std::vector<double> &volume_fraction_mineral,
                                     std::vector<std::vector<double>> &volume_fractions_grains,
-                                    std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
-                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
-                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction)
+                                    std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains,
+                                    std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                                    std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction)
       {
         // the layout of the data vector per perticle is the following (note that for this plugin the following dim's are always 3):
         // 1. M mineral times
@@ -248,7 +248,7 @@ namespace aspect
                 // store dislocation_densities
                 for (unsigned int i = 0; i < 4; ++i)
                   {
-                    data[lpo_data_position + 11 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i] = dislocation_densities[mineral_i][grain_i][i];
+                    data[lpo_data_position + 12 + grain_i * 18 + mineral_i * (n_grains * 18 + 2) + i] = dislocation_densities[mineral_i][grain_i][i];
                   }
                 // store  recrystalized_fraction
                 for (unsigned int i = 0; i < 4; ++i)
@@ -268,11 +268,11 @@ namespace aspect
                                              std::vector<unsigned int> &deformation_type,
                                              std::vector<double> &volume_fraction_mineral,
                                              std::vector<std::vector<double>> &volume_fractions_grains,
-                                             std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
-                                             std::vector<std::vector<double> > &volume_fractions_grains_derivatives,
-                                             std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains_derivatives,
-                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
-                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction) const
+                                             std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains,
+                                             std::vector<std::vector<double>> &volume_fractions_grains_derivatives,
+                                             std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains_derivatives,
+                                             std::vector<std::vector<std::array<double,4>>> &dislocation_densities,
+                                             std::vector<std::vector<std::array<double,4>>> &recrystalized_fraction) const
       {
         store_particle_data(lpo_data_position,
                             data,
@@ -340,8 +340,8 @@ namespace aspect
 
         // fabric. This is determined in the computations, so set it to -1 for now.
         std::vector<double> deformation_type(n_minerals, -1.0);
-        std::vector<std::vector<double > >volume_fractions_grains(n_minerals);
-        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains(n_minerals);
+        std::vector<std::vector<double >>volume_fractions_grains(n_minerals);
+        std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains(n_minerals);
 
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
@@ -493,7 +493,7 @@ namespace aspect
       }
 
       template<int dim>
-      std::vector<Tensor<2,3> >
+      std::vector<Tensor<2,3>>
       LPO<dim>::random_draw_volume_weighting(std::vector<double> fv,
                                              std::vector<Tensor<2,3>> matrices,
                                              unsigned int n_output_grains) const
@@ -567,7 +567,7 @@ namespace aspect
       LPO<dim>::update_one_particle_property(const unsigned int data_position,
                                              const Point<dim> &position,
                                              const Vector<double> &solution,
-                                             const std::vector<Tensor<1,dim> > &gradients,
+                                             const std::vector<Tensor<1,dim>> &gradients,
                                              const ArrayView<double> &data) const
       {
         // STEP 1: Load data and preprocess it.
@@ -658,9 +658,9 @@ namespace aspect
         std::vector<unsigned int> deformation_types;
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
-        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
-        std::vector<std::vector<double> > volume_fractions_grains_derivatives;
-        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains_derivatives;
+        std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains;
+        std::vector<std::vector<double>> volume_fractions_grains_derivatives;
+        std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains_derivatives;
         std::vector<std::vector<std::array<double,4>>> dislocation_densities;
         std::vector<std::vector<std::array<double,4>>> recrystalized_fraction;
 
@@ -773,7 +773,7 @@ namespace aspect
             */
             double sum_volume_mineral = 0;
 
-            std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives_grains = this->compute_derivatives(volume_fractions_grains[mineral_i],
+            std::pair<std::vector<double>, std::vector<Tensor<2,3>>> derivatives_grains = this->compute_derivatives(volume_fractions_grains[mineral_i],
                                                                                             a_cosine_matrices_grains[mineral_i],
                                                                                             strain_rate_3d,
                                                                                             velocity_gradient_3d,
@@ -866,8 +866,8 @@ namespace aspect
                       // does not do the orthogonal projection, but just clamps the values
                       // to 1 and -1.
 
-                      //Assert(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])-1.0 <= 2.0 * std::numeric_limits<double>::epsilon(),
-                      //       ExcMessage("The a_cosine_matrices_grains[mineral_i] has a entry asolute larger than 1:" + std::to_string(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])) +"."));
+                      Assert(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])-1.0 <= 2.0 * std::numeric_limits<double>::epsilon(),
+                             ExcMessage("The a_cosine_matrices_grains[mineral_i] has a entry asolute larger than 1:" + std::to_string(std::fabs(a_cosine_matrices_grains[mineral_i][grain_i][i][j])) +"."));
                     }
               }
 
@@ -887,7 +887,7 @@ namespace aspect
               }
 
 
-            /*for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
                 for (size_t i = 0; i < 3; i++)
                   for (size_t j = 0; j < 3; j++)
@@ -897,7 +897,7 @@ namespace aspect
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][0][2]) + "\n"
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][1][2]) + "\n"
                                       + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][0]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][1]) + " " + std::to_string(a_cosine_matrices_grains[mineral_i][grain_i][2][2])));
-              }*/
+              }
 
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
@@ -917,8 +917,8 @@ namespace aspect
                                      a_cosine_matrices_grains,
                                      volume_fractions_grains_derivatives,
                                      a_cosine_matrices_grains_derivatives,
-                                    dislocation_densities,
-                                    recrystalized_fraction);
+                                     dislocation_densities,
+                                     recrystalized_fraction);
 
 
 
@@ -997,8 +997,8 @@ namespace aspect
             case DeformationType::OlivineDFabric :
               ref_resolved_shear_stress[0] = 1;
               ref_resolved_shear_stress[1] = 1;
-              ref_resolved_shear_stress[2] = max_value;
-              ref_resolved_shear_stress[3] = 3;
+              ref_resolved_shear_stress[2] = 3;
+              ref_resolved_shear_stress[3] = max_value;
               break;
 
             // Kaminski, Ribe and Browaeys, JGI, 2004 (same as in the matlab code)
@@ -1027,7 +1027,7 @@ namespace aspect
 
 
       template<int dim>
-      std::vector<std::vector<double> >
+      std::vector<std::vector<double>>
       LPO<dim>::volume_weighting(std::vector<double> fv, std::vector<std::vector<double>> angles) const
       {
         // Get volume weighted euler angles, using random draws to convert odf
@@ -1117,10 +1117,10 @@ namespace aspect
       }
 
       template <int dim>
-      std::vector<std::pair<std::string, unsigned int> >
+      std::vector<std::pair<std::string, unsigned int>>
       LPO<dim>::get_property_information() const
       {
-        std::vector<std::pair<std::string,unsigned int> > property_information;
+        std::vector<std::pair<std::string,unsigned int>> property_information;
 
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
@@ -1133,11 +1133,11 @@ namespace aspect
                   {
                     property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " a_cosine_matrix " + std::to_string(index),1));
                   }
-                  for (unsigned int index = 0; index < 4; index++)
+                for (unsigned int index = 0; index < 4; index++)
                   {
                     property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " disl dens " + std::to_string(index),1));
                   }
-                  for (unsigned int index = 0; index < 4; index++)
+                for (unsigned int index = 0; index < 4; index++)
                   {
                     property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " grain " + std::to_string(grain_i) + " recryst frac " + std::to_string(index),1));
                   }
@@ -1164,8 +1164,8 @@ namespace aspect
       template <int dim>
       double
       LPO<dim>::advect_forward_euler(std::vector<double> &volume_fractions,
-                                     std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                     const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                     std::vector<Tensor<2,3>> &a_cosine_matrices,
+                                     const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives,
                                      const double dt) const
       {
         double sum_volume_fractions = 0;
@@ -1196,8 +1196,8 @@ namespace aspect
       template <int dim>
       double
       LPO<dim>::advect_backward_euler(std::vector<double> &volume_fractions,
-                                      std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                      const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                      std::vector<Tensor<2,3>> &a_cosine_matrices,
+                                      const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives,
                                       const double dt) const
       {
         double sum_volume_fractions = 0;
@@ -1261,10 +1261,10 @@ namespace aspect
       template <int dim>
       double
       LPO<dim>::advect_Crank_Nicolson(std::vector<double> &volume_fractions,
-                                      std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                      const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                      std::vector<Tensor<2,3>> &a_cosine_matrices,
+                                      const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives,
                                       std::vector<double> &previous_volume_fraction_derivatives,
-                                      std::vector<Tensor<2,3> > &previous_a_cosine_matrices_derivatives,
+                                      std::vector<Tensor<2,3>> &previous_a_cosine_matrices_derivatives,
                                       const double dt) const
       {
         double sum_volume_fractions = 0;
@@ -1317,9 +1317,9 @@ namespace aspect
       }
 
       template <int dim>
-      std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+      std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
       LPO<dim>::compute_derivatives(const std::vector<double> &volume_fractions,
-                                    const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                    const std::vector<Tensor<2,3>> &a_cosine_matrices,
                                     const SymmetricTensor<2,3> &strain_rate,
                                     const Tensor<2,3> &velocity_gradient_tensor,
                                     const double volume_fraction_mineral,
@@ -1329,13 +1329,13 @@ namespace aspect
       {
         //
         std::vector<double> k_volume_fractions_zero = volume_fractions;
-        std::vector<Tensor<2,3> > a_cosine_matrices_zero = a_cosine_matrices;
-        std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
+        std::vector<Tensor<2,3>> a_cosine_matrices_zero = a_cosine_matrices;
+        std::pair<std::vector<double>, std::vector<Tensor<2,3>>> derivatives;
         switch (lpo_derivative_algorithm)
           {
             case LpoDerivativeAlgorithm::Zero:
             {
-              return std::pair<std::vector<double>, std::vector<Tensor<2,3> > >(std::vector<double>(n_grains,0.0), std::vector<Tensor<2,3>>(n_grains, Tensor<2,3>()));
+              return std::pair<std::vector<double>, std::vector<Tensor<2,3>>>(std::vector<double>(n_grains,0.0), std::vector<Tensor<2,3>>(n_grains, Tensor<2,3>()));
             }
             case LpoDerivativeAlgorithm::SpinTensor:
             {
@@ -1366,9 +1366,9 @@ namespace aspect
       }
 
       template <int dim>
-      std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+      std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
       LPO<dim>::compute_derivatives_spin_tensor(const std::vector<double> &,
-                                                const std::vector<Tensor<2,3> > &,
+                                                const std::vector<Tensor<2,3>> &,
                                                 const SymmetricTensor<2,3> &,
                                                 const Tensor<2,3> &velocity_gradient_tensor,
                                                 const double,
@@ -1378,19 +1378,19 @@ namespace aspect
         // The spin tensor is defined as W = 0.5 * ( L - L^T ), where L is the velocity gradient tensor.
         const Tensor<2,3> spin_tensor = -0.5 *(velocity_gradient_tensor - dealii::transpose(velocity_gradient_tensor));
 
-        return std::pair<std::vector<double>, std::vector<Tensor<2,3> > >(std::vector<double>(n_grains,0.0), std::vector<Tensor<2,3>>(n_grains, spin_tensor));
+        return std::pair<std::vector<double>, std::vector<Tensor<2,3>>>(std::vector<double>(n_grains,0.0), std::vector<Tensor<2,3>>(n_grains, spin_tensor));
       }
 
       template <int dim>
-      std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+      std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
       LPO<dim>::compute_derivatives_drex2004(const std::vector<double> &volume_fractions,
-                                             const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                             const std::vector<Tensor<2,3>> &a_cosine_matrices,
                                              const SymmetricTensor<2,3> &strain_rate,
                                              const Tensor<2,3> &velocity_gradient_tensor,
                                              const double volume_fraction_mineral,
                                              const std::array<double,4> &ref_resolved_shear_stress,
-                                    std::vector<std::array<double,4>> &dislocation_densities,
-                                    std::vector<std::array<double,4>> &recrystalized_fraction,
+                                             std::vector<std::array<double,4>> &dislocation_densities,
+                                             std::vector<std::array<double,4>> &recrystalized_fraction,
                                              const bool prevent_nondimensionalization) const
       {
         SymmetricTensor<2,3> strain_rate_nondimensional = strain_rate;
@@ -1417,7 +1417,7 @@ namespace aspect
 
         // create output variables
         std::vector<double> deriv_volume_fractions(n_grains);
-        std::vector<Tensor<2,3> > deriv_a_cosine_matrices(n_grains);
+        std::vector<Tensor<2,3>> deriv_a_cosine_matrices(n_grains);
 
         // create shorcuts
         const std::array<double, 4> &tau = ref_resolved_shear_stress;
@@ -1557,19 +1557,19 @@ namespace aspect
             // Note tau = RRSS = (tau_m^s/tau_o), this why we get tau^(p-n)
             const double rhos1 = std::pow(tau[index_max_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_max_q]),exponent_p/stress_exponent);
-                                 dislocation_densities[grain_i][0] = rhos1;
+            dislocation_densities[grain_i][0] = rhos1;
 
             const double rhos2 = std::pow(tau[index_intermediate_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_intermediate_q]),exponent_p/stress_exponent);
-                                 dislocation_densities[grain_i][1] = rhos2;
+            dislocation_densities[grain_i][1] = rhos2;
 
             const double rhos3 = std::pow(tau[index_min_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_min_q]),exponent_p/stress_exponent);
-                                 dislocation_densities[grain_i][2] = rhos3;
+            dislocation_densities[grain_i][2] = rhos3;
 
             const double rhos4 = std::pow(tau[index_inactive_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent);
-                                 dislocation_densities[grain_i][3] = rhos4;
+            dislocation_densities[grain_i][3] = rhos4;
 
             strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficientcy * rhos1 * rhos1)
                                       + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
@@ -1577,14 +1577,14 @@ namespace aspect
                                       + rhos4 * exp(-nucleation_efficientcy * rhos4 * rhos4));
 
 
-                                 recrystalized_fraction[grain_i][0] = exp(-nucleation_efficientcy * rhos1 * rhos1);
-                                 recrystalized_fraction[grain_i][1] = exp(-nucleation_efficientcy * rhos2 * rhos2);
-                                 recrystalized_fraction[grain_i][2] = exp(-nucleation_efficientcy * rhos3 * rhos3);
-                                 recrystalized_fraction[grain_i][3] = exp(-nucleation_efficientcy * rhos4 * rhos4);
+            recrystalized_fraction[grain_i][0] = exp(-nucleation_efficientcy * rhos1 * rhos1);
+            recrystalized_fraction[grain_i][1] = exp(-nucleation_efficientcy * rhos2 * rhos2);
+            recrystalized_fraction[grain_i][2] = exp(-nucleation_efficientcy * rhos3 * rhos3);
+            recrystalized_fraction[grain_i][3] = exp(-nucleation_efficientcy * rhos4 * rhos4);
 
 //std::cout << "strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
 //                                                                + ", rhos1 = " + std::to_string(rhos1) + ", rhos2 = " + std::to_string(rhos2) + ", rhos3 = " + std::to_string(rhos3)
-//                                                                + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficientcy = " + std::to_string(nucleation_efficientcy) 
+//                                                                + ", rhos4= " + std::to_string(rhos4) + ", nucleation_efficientcy = " + std::to_string(nucleation_efficientcy)
 //                                                                + ", recrist 1: " << exp(-nucleation_efficientcy * rhos1 * rhos1) << ", 2: " << exp(-nucleation_efficientcy * rhos2 * rhos2)
 //                                                                 << ", 3: " << exp(-nucleation_efficientcy * rhos3 * rhos3) << ", 4: " << exp(-nucleation_efficientcy * rhos4 * rhos4) << "." << std::endl;
 
@@ -1622,7 +1622,7 @@ namespace aspect
                               + std::to_string(deriv_volume_fractions[grain_i])));
           }
 
-        return std::pair<std::vector<double>, std::vector<Tensor<2,3> > >(deriv_volume_fractions, deriv_a_cosine_matrices);
+        return std::pair<std::vector<double>, std::vector<Tensor<2,3>>>(deriv_volume_fractions, deriv_a_cosine_matrices);
       }
 
       template<int dim>

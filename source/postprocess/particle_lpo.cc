@@ -55,9 +55,12 @@ namespace aspect
     {
       // make sure a thread that may still be running in the background,
       // writing data, finishes
-      background_thread_master.join ();
-      background_thread_content_raw.join ();
-      background_thread_content_draw_volume_weighting.join ();
+      if (background_thread_master.joinable())
+        background_thread_master.join ();
+      if (background_thread_content_raw.joinable())
+        background_thread_content_raw.join ();
+      if (background_thread_content_draw_volume_weighting.joinable())
+        background_thread_content_draw_volume_weighting.join ();
     }
 
     template <int dim>
@@ -242,18 +245,18 @@ namespace aspect
           std::vector<unsigned int> deformation_type;
           std::vector<double> volume_fraction_mineral;
           std::vector<std::vector<double>> volume_fractions_grains;
-          std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
-        std::vector<std::vector<std::array<double,4>>> dislocation_densities;
-        std::vector<std::vector<std::array<double,4>>> recrystalized_fraction;
+          std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains;
+          std::vector<std::vector<std::array<double,4>>> dislocation_densities;
+          std::vector<std::vector<std::array<double,4>>> recrystalized_fraction;
 
-        Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
-                                                         properties,
-                                                         deformation_type,
-                                                         volume_fraction_mineral,
-                                                         volume_fractions_grains,
-                                                         a_cosine_matrices_grains,
-                                                         dislocation_densities,
-                                                         recrystalized_fraction);
+          Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
+                                                           properties,
+                                                           deformation_type,
+                                                           volume_fraction_mineral,
+                                                           volume_fractions_grains,
+                                                           a_cosine_matrices_grains,
+                                                           dislocation_densities,
+                                                           recrystalized_fraction);
 
           const unsigned int lpo_hex_data_position = property_information.n_fields() == 0 || hexagonal_plugin_exists == false
                                                      ?
@@ -279,7 +282,7 @@ namespace aspect
 
 
           // write content file
-          std::vector<std::vector<std::vector<double> > > euler_angles;
+          std::vector<std::vector<std::vector<double>>> euler_angles;
           if (compute_raw_euler_angles == true)
             {
               euler_angles.resize(n_minerals);
@@ -328,15 +331,15 @@ namespace aspect
 
                           case Output::DislocationDensities:
                             string_stream_content_raw << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_0" << " "
-                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_1" << " "
-                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_2" << " "
-                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_3" << " ";
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_1" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_2" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_dis_dens_3" << " ";
                             break;
                           case Output::RecrystalizationFraction:
                             string_stream_content_raw << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_0" << " "
-                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_1" << " "
-                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_2" << " "
-                                                                        << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_3" << " ";
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_1" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_2" << " "
+                                                      << "mineral_" << write_raw_lpo[property_i].first << "_recryst_frac_3" << " ";
                             break;
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
@@ -373,20 +376,20 @@ namespace aspect
 
 
                           case Output::DislocationDensities:
-                            string_stream_content_raw 
-                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][0] << " "
-                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][1] << " "
-                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][2] << " "
-                              << dislocation_densities[write_raw_lpo[property_i].first][grain_i][3] << " ";
+                            string_stream_content_raw
+                                << dislocation_densities[write_raw_lpo[property_i].first][grain_i][0] << " "
+                                << dislocation_densities[write_raw_lpo[property_i].first][grain_i][1] << " "
+                                << dislocation_densities[write_raw_lpo[property_i].first][grain_i][2] << " "
+                                << dislocation_densities[write_raw_lpo[property_i].first][grain_i][3] << " ";
                             break;
 
                           case Output::RecrystalizationFraction:
                             string_stream_content_raw << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][0] << " "
-                             << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][1] << " "
-                              << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][2] << " "
-                               << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][3] << " ";
+                                                      << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][1] << " "
+                                                      << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][2] << " "
+                                                      << recrystalized_fraction[write_raw_lpo[property_i].first][grain_i][3] << " ";
                             break;
-                            
+
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
                             break;
@@ -398,7 +401,7 @@ namespace aspect
             }
           if (write_draw_volume_weighted_lpo.size() != 0)
             {
-              std::vector<std::vector<std::vector<double> >> weighted_euler_angles;
+              std::vector<std::vector<std::vector<double>>> weighted_euler_angles;
 
               weighted_euler_angles.resize(n_minerals);
               for (unsigned int mineral_i = 0; mineral_i < n_minerals; ++mineral_i)
@@ -412,7 +415,7 @@ namespace aspect
                 }
 
 
-              std::vector<std::vector<Tensor<2,3> > > weighted_a_cosine_matrices;
+              std::vector<std::vector<Tensor<2,3>>> weighted_a_cosine_matrices;
 
               if (compute_weighted_A_matrix == true)
                 {
@@ -506,16 +509,16 @@ namespace aspect
 
                           case Output::DislocationDensities:
                             string_stream_content_draw_volume_weighting << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][0] << " "
-                             << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
-                              << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " "
-                               << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][3] << " ";
+                                                                        << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
+                                                                        << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " "
+                                                                        << dislocation_densities[write_draw_volume_weighted_lpo[property_i].first][grain_i][3] << " ";
                             break;
 
                           case Output::RecrystalizationFraction:
                             string_stream_content_draw_volume_weighting << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][0] << " "
-                             << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
-                              << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " "
-                               << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][3] << " ";
+                                                                        << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][1] << " "
+                                                                        << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][2] << " "
+                                                                        << recrystalized_fraction[write_draw_volume_weighted_lpo[property_i].first][grain_i][3] << " ";
                             break;
                           default:
                             Assert(false, ExcMessage("Internal error: raw LPO postprocess case not found."));
@@ -539,41 +542,44 @@ namespace aspect
         {
           // Wait for all previous write operations to finish, should
           // any be still active,
-          background_thread_master.join ();
+          if (background_thread_master.joinable())
+            background_thread_master.join ();
 
           // then continue with writing the master file
-          background_thread_master = Threads::new_thread (&writer,
-                                                          filename_master,
-                                                          temporary_output_location,
-                                                          file_contents_master,
-                                                          false);
+          background_thread_master = std::thread (&writer,
+                                                  filename_master,
+                                                  temporary_output_location,
+                                                  file_contents_master,
+                                                  false);
 
           if (write_raw_lpo.size() != 0)
             {
               // Wait for all previous write operations to finish, should
               // any be still active,
-              background_thread_content_raw.join ();
+              if (background_thread_content_raw.joinable())
+                background_thread_content_raw.join ();
 
               // then continue with writing our own data.
-              background_thread_content_raw = Threads::new_thread (&writer,
-                                                                   filename_raw,
-                                                                   temporary_output_location,
-                                                                   file_contents_raw,
-                                                                   compress_lpo_data_files);
+              background_thread_content_raw = std::thread (&writer,
+                                                           filename_raw,
+                                                           temporary_output_location,
+                                                           file_contents_raw,
+                                                           compress_lpo_data_files);
             }
 
           if (write_draw_volume_weighted_lpo.size() != 0)
             {
               // Wait for all previous write operations to finish, should
               // any be still active,
-              background_thread_content_draw_volume_weighting.join ();
+              if (background_thread_content_draw_volume_weighting.joinable())
+                background_thread_content_draw_volume_weighting.join ();
 
               // then continue with writing our own data.
-              background_thread_content_draw_volume_weighting = Threads::new_thread (&writer,
-                                                                                     filename_draw_volume_weighting,
-                                                                                     temporary_output_location,
-                                                                                     file_contents_draw_volume_weighting,
-                                                                                     compress_lpo_data_files);
+              background_thread_content_draw_volume_weighting = std::thread (&writer,
+                                                                             filename_draw_volume_weighting,
+                                                                             temporary_output_location,
+                                                                             file_contents_draw_volume_weighting,
+                                                                             compress_lpo_data_files);
             }
         }
       else
@@ -598,7 +604,7 @@ namespace aspect
     }
 
     template<int dim>
-    std::vector<std::vector<double> >
+    std::vector<std::vector<double>>
     LPO<dim>::random_draw_volume_weighting(std::vector<double> fv,
                                            std::vector<std::vector<double>> angles) const
     {
