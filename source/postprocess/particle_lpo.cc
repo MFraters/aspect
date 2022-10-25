@@ -485,7 +485,7 @@ namespace aspect
           background_thread_master.join ();
 
           // then continue with writing the master file
-          background_thread_master = Threads::new_thread (&writer,
+          background_thread_master = std::thread (&writer,
                                                           filename_master,
                                                           temporary_output_location,
                                                           file_contents_master,
@@ -498,7 +498,7 @@ namespace aspect
               background_thread_content_raw.join ();
 
               // then continue with writing our own data.
-              background_thread_content_raw = Threads::new_thread (&writer,
+              background_thread_content_raw = std::thread (&writer,
                                                                    filename_raw,
                                                                    temporary_output_location,
                                                                    file_contents_raw,
@@ -512,7 +512,7 @@ namespace aspect
               background_thread_content_draw_volume_weighting.join ();
 
               // then continue with writing our own data.
-              background_thread_content_draw_volume_weighting = Threads::new_thread (&writer,
+              background_thread_content_draw_volume_weighting = std::thread (&writer,
                                                                                      filename_draw_volume_weighting,
                                                                                      temporary_output_location,
                                                                                      file_contents_draw_volume_weighting,
