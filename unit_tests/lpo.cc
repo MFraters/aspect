@@ -66,7 +66,7 @@ MaterialModel::MaterialModelOutputs<dim> &out) const
 {
   AdditionalOutputs1<dim> *additional;
 
-  additional = out.template get_additional_output<AdditionalOutputs1<dim> >();
+  additional = out.template get_additional_output<AdditionalOutputs1<dim>>();
   additional->additional_material_output1[0] = 42.0;
 
 }
@@ -525,7 +525,7 @@ TEST_CASE("LPO")
     CHECK(data[103] == Approx(-0.816855));
 
     std::vector<double> volume_fractions(5,0.2);
-    std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
+    std::vector<dealii::Tensor<2,3>> a_cosine_matrices(5);
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
@@ -590,7 +590,7 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
-    std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
+    std::pair<std::vector<double>, std::vector<Tensor<2,3>>> derivatives;
     derivatives = lpo_2d.compute_derivatives_drex2004(volume_fractions, a_cosine_matrices,
                                                       strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
                                                       0.5, ref_resolved_shear_stress, true);
@@ -726,7 +726,7 @@ TEST_CASE("LPO")
     CHECK(data[103] == Approx(-0.816855));
 
     std::vector<double> volume_fractions(5,0.2);
-    std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
+    std::vector<dealii::Tensor<2,3>> a_cosine_matrices(5);
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
@@ -791,7 +791,7 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
-    std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
+    std::pair<std::vector<double>, std::vector<Tensor<2,3>>> derivatives;
 
     derivatives = lpo_3d.compute_derivatives_drex2004(volume_fractions, a_cosine_matrices,
                                                       strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
@@ -928,7 +928,7 @@ TEST_CASE("LPO")
     CHECK(data[103] == Approx(-0.816855));
 
     std::vector<double> volume_fractions(5,0.2);
-    std::vector<dealii::Tensor<2,3> > a_cosine_matrices(5);
+    std::vector<dealii::Tensor<2,3>> a_cosine_matrices(5);
     a_cosine_matrices[0][0][0] = 0.5;
     a_cosine_matrices[0][0][1] = 0.5;
     a_cosine_matrices[0][0][2] = 0.5;
@@ -1008,7 +1008,7 @@ TEST_CASE("LPO")
     ref_resolved_shear_stress[2] = 3;
     ref_resolved_shear_stress[3] = 1e60; // can't really use nummerical limits max or infinite, because need to be able to square it without becomming infinite. This is the value fortran D-Rex uses.
 
-    std::pair<std::vector<double>, std::vector<Tensor<2,3> > > derivatives;
+    std::pair<std::vector<double>, std::vector<Tensor<2,3>>> derivatives;
 
     derivatives = lpo_3d.compute_derivatives_drex2004(volume_fractions, a_cosine_matrices,
                                                       strain_rate_nondimensional, velocity_gradient_tensor_nondimensional,
@@ -1357,8 +1357,8 @@ TEST_CASE("LPO elastic tensor")
 {
 
   std::vector<double> volume_fraction_mineral = {0.7,0.3};
-  std::vector<std::vector<double> > volume_fractions_grains(2,std::vector<double>(8));
-  std::vector<std::vector<dealii::Tensor<2,3> > > a_cosine_matrices_grains(2,std::vector<dealii::Tensor<2,3> >(8));
+  std::vector<std::vector<double>> volume_fractions_grains(2,std::vector<double>(8));
+  std::vector<std::vector<dealii::Tensor<2,3>>> a_cosine_matrices_grains(2,std::vector<dealii::Tensor<2,3>>(8));
 
   dealii::Tensor<2,6> reference_elastic_tensor;
   dealii::Tensor<2,6> computed_elastic_tensor;

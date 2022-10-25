@@ -259,7 +259,7 @@ namespace aspect
       DecomposeElasticMatrix<dim>::update_one_particle_property(const unsigned int data_position,
                                                                 const Point<dim> &,
                                                                 const Vector<double> &,
-                                                                const std::vector<Tensor<1,dim> > &,
+                                                                const std::vector<Tensor<1,dim>> &,
                                                                 const ArrayView<double> &data) const
       {
         SymmetricTensor<2,6> elastic_matrix;
@@ -432,11 +432,11 @@ namespace aspect
                                                             const SymmetricTensor<2,3> &voigt_stiffness_tensor)
       {
         // computing the eigenvector of the dilation and voigt stiffness matrices and then averaging them by bysection.
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> voigt_eigenvectors_a = eigenvectors(voigt_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> dilatation_eigenvectors_a = eigenvectors(dilatation_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double>>, 3> voigt_eigenvectors_a = eigenvectors(voigt_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double>>, 3> dilatation_eigenvectors_a = eigenvectors(dilatation_stiffness_tensor, SymmetricTensorEigenvectorMethod::jacobi);
 
 
-        std::vector<Tensor<1,3,double> > unpermutated_SCC(3);
+        std::vector<Tensor<1,3,double>> unpermutated_SCC(3);
         // averaging eigenvectors
         // the next function looks for the smallest angle
         // and returns the corresponding vecvo index for that
@@ -590,7 +590,7 @@ namespace aspect
 
 
       template<int dim>
-      std::pair<SymmetricTensor<2,6>,Tensor<2,3> >
+      std::pair<SymmetricTensor<2,6>,Tensor<2,3>>
       DecomposeElasticMatrix<dim>::compute_minimum_hexagonal_projection(
         const Tensor<2,3> &unpermutated_SCC,
         const SymmetricTensor<2,6> &elastic_matrix,
@@ -685,10 +685,10 @@ namespace aspect
       }
 
       template <int dim>
-      std::vector<std::pair<std::string, unsigned int> >
+      std::vector<std::pair<std::string, unsigned int>>
       DecomposeElasticMatrix<dim>::get_property_information() const
       {
-        std::vector<std::pair<std::string,unsigned int> > property_information;
+        std::vector<std::pair<std::string,unsigned int>> property_information;
 
         property_information.push_back(std::make_pair("lpo elastic axis e1",3));
         property_information.push_back(std::make_pair("lpo elastic axis e2",3));

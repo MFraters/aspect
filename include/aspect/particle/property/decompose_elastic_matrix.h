@@ -120,7 +120,7 @@ namespace aspect
           update_one_particle_property (const unsigned int data_position,
                                         const Point<dim> &position,
                                         const Vector<double> &solution,
-                                        const std::vector<Tensor<1,dim> > &gradients,
+                                        const std::vector<Tensor<1,dim>> &gradients,
                                         const ArrayView<double> &particle_properties) const;
 
           /**
@@ -186,8 +186,8 @@ namespace aspect
            * depricated, use compute_elastic_tensor_SCC_decompositions instead.
            */
           std::pair<SymmetricTensor<2,6>,Tensor<2,3>> compute_minimum_hexagonal_projection(const Tensor<2,3> &unpermutated_SCC,
-                                                   const SymmetricTensor<2,6> &elastic_tensor,
-                                                   const double elastic_vector_norm) const;
+              const SymmetricTensor<2,6> &elastic_tensor,
+              const double elastic_vector_norm) const;
 
           /**
            * todo
@@ -207,7 +207,7 @@ namespace aspect
            * number of components this property plugin defines.
            */
           virtual
-          std::vector<std::pair<std::string, unsigned int> >
+          std::vector<std::pair<std::string, unsigned int>>
           get_property_information() const;
 
           /**
@@ -266,7 +266,7 @@ namespace aspect
            * initialized in the constructor with a constant.
            */
           mutable boost::lagged_fibonacci44497            random_number_generator;
-          //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double> > get_random_number;
+          //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double>> get_random_number;
           unsigned int random_number_seed;
 
           unsigned int n_grains;

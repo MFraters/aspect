@@ -145,7 +145,7 @@ namespace aspect
           update_one_particle_property (const unsigned int data_position,
                                         const Point<dim> &position,
                                         const Vector<double> &solution,
-                                        const std::vector<Tensor<1,dim> > &gradients,
+                                        const std::vector<Tensor<1,dim>> &gradients,
                                         const ArrayView<double> &particle_properties) const;
 
           /**
@@ -175,7 +175,7 @@ namespace aspect
            * number of components this property plugin defines.
            */
           virtual
-          std::vector<std::pair<std::string, unsigned int> >
+          std::vector<std::pair<std::string, unsigned int>>
           get_property_information() const;
 
           /**
@@ -188,7 +188,7 @@ namespace aspect
                              std::vector<unsigned int> &deformation_type,
                              std::vector<double> &volume_fraction_mineral,
                              std::vector<std::vector<double>> &volume_fractions_mineral,
-                             std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral);
+                             std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_mineral);
 
 
           /**
@@ -200,9 +200,9 @@ namespace aspect
                                       std::vector<unsigned int> &deformation_type,
                                       std::vector<double> &volume_fraction_mineral,
                                       std::vector<std::vector<double>> &volume_fractions_mineral,
-                                      std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
-                                      std::vector<std::vector<double> > &volume_fractions_mineral_derivatives,
-                                      std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives) const;
+                                      std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_mineral,
+                                      std::vector<std::vector<double>> &volume_fractions_mineral_derivatives,
+                                      std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_mineral_derivatives) const;
 
           /**
            * Stores information in variables into the data array
@@ -214,7 +214,7 @@ namespace aspect
                               std::vector<unsigned int> &deformation_type,
                               std::vector<double> &volume_fraction_mineral,
                               std::vector<std::vector<double>> &volume_fractions_mineral,
-                              std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral);
+                              std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_mineral);
           /**
            * Stores information in variables into the data array
            */
@@ -224,9 +224,9 @@ namespace aspect
                                        std::vector<unsigned int> &deformation_type,
                                        std::vector<double> &volume_fraction_mineral,
                                        std::vector<std::vector<double>> &volume_fractions_mineral,
-                                       std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral,
-                                       std::vector<std::vector<double> > &volume_fractions_mineral_derivatives,
-                                       std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_mineral_derivatives) const;
+                                       std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_mineral,
+                                       std::vector<std::vector<double>> &volume_fractions_mineral_derivatives,
+                                       std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_mineral_derivatives) const;
 
           /**
            * Find nearest orthogonal matrix using a SVD if the
@@ -254,7 +254,7 @@ namespace aspect
           reference_resolved_shear_stress_from_deformation_type(DeformationType deformation_type,
                                                                 double max_value = 1e60) const;
 
-          std::vector<Tensor<2,3> >
+          std::vector<Tensor<2,3>>
           random_draw_volume_weighting(std::vector<double> fv,
                                        std::vector<Tensor<2,3>> matrices,
                                        unsigned int n_output_grains) const;
@@ -265,33 +265,33 @@ namespace aspect
            */
           double
           advect_forward_euler(std::vector<double> &volume_fractions,
-                               std::vector<Tensor<2,3> > &a_cosine_matrices,
-                               const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                               std::vector<Tensor<2,3>> &a_cosine_matrices,
+                               const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives,
                                const double dt) const;
           /**
            * derivatives: Todo
            */
           double
           advect_backward_euler(std::vector<double> &volume_fractions,
-                                std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                std::vector<Tensor<2,3>> &a_cosine_matrices,
+                                const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives,
                                 const double dt) const;
 
           double
           advect_Crank_Nicolson(std::vector<double> &volume_fractions,
-                                std::vector<Tensor<2,3> > &a_cosine_matrices,
-                                const std::pair<std::vector<double>, std::vector<Tensor<2,3> > > &derivatives,
+                                std::vector<Tensor<2,3>> &a_cosine_matrices,
+                                const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives,
                                 std::vector<double> &previous_volume_fraction_derivatives,
-                                std::vector<Tensor<2,3> > &previous_a_cosine_matrices_derivatives,
+                                std::vector<Tensor<2,3>> &previous_a_cosine_matrices_derivatives,
                                 const double dt) const;
 
 
           /**
            * derivatives: Todo
            */
-          std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+          std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
           compute_derivatives(const std::vector<double> &volume_fractions,
-                              const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                              const std::vector<Tensor<2,3>> &a_cosine_matrices,
                               const SymmetricTensor<2,3> &strain_rate_nondimensional,
                               const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                               const double volume_fraction_mineral,
@@ -300,9 +300,9 @@ namespace aspect
           /**
            * derivatives: Todo
            */
-          std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+          std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
           compute_derivatives_spin_tensor(const std::vector<double> &volume_fractions,
-                                          const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                          const std::vector<Tensor<2,3>> &a_cosine_matrices,
                                           const SymmetricTensor<2,3> &strain_rate_nondimensional,
                                           const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                                           const double volume_fraction_mineral,
@@ -314,17 +314,17 @@ namespace aspect
            * because the nondimensionalization should always be done (in this exact way), unless you really know what
            * you are doing.
            */
-          std::pair<std::vector<double>, std::vector<Tensor<2,3> > >
+          std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
           compute_derivatives_drex2004(const std::vector<double> &volume_fractions,
-                                       const std::vector<Tensor<2,3> > &a_cosine_matrices,
+                                       const std::vector<Tensor<2,3>> &a_cosine_matrices,
                                        const SymmetricTensor<2,3> &strain_rate_nondimensional,
                                        const Tensor<2,3> &velocity_gradient_tensor_nondimensional,
                                        const double volume_fraction_mineral,
                                        const std::array<double,4> &ref_resolved_shear_stress,
                                        const bool prevent_nondimensionalization = false) const;
 
-          std::vector<std::vector<double> >
-          volume_weighting(std::vector<double> fv, std::vector<std::vector<double> > angles) const;
+          std::vector<std::vector<double>>
+          volume_weighting(std::vector<double> fv, std::vector<std::vector<double>> angles) const;
 
           /**
            * Return the number of grains per particle
@@ -381,7 +381,7 @@ namespace aspect
            * initialized in the constructor with a constant.
            */
           mutable boost::lagged_fibonacci44497            random_number_generator;
-          //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double> > get_random_number;
+          //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double>> get_random_number;
           unsigned int random_number_seed;
 
           static

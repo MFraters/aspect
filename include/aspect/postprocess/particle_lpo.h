@@ -95,7 +95,7 @@ namespace aspect
          * Todo
          */
         std::vector<std::vector<double>> random_draw_volume_weighting(std::vector<double> fv,
-                                                                      std::vector<std::vector<double>> angles) const;
+                                                                       std::vector<std::vector<double>> angles) const;
 
         /**
         * Todo
@@ -195,21 +195,21 @@ namespace aspect
          * is done because there is no way to store the simulation
          * time inside the .pvtu or .vtu files).
          */
-        std::vector<std::pair<double,std::string> > times_and_pvtu_file_names;
+        std::vector<std::pair<double,std::string>> times_and_pvtu_file_names;
 
         /**
          * A corresponding variable that we use for the .visit files created
          * by DataOutInterface::write_visit_record. The second part of a
          * pair contains all files that together form a time step.
          */
-        std::vector<std::pair<double,std::vector<std::string> > > times_and_vtu_file_names;
+        std::vector<std::pair<double,std::vector<std::string>>> times_and_vtu_file_names;
 
         /**
          * A list of list of filenames, sorted by timestep, that correspond to
          * what has been created as output. This is used to create a master
          * .visit file for the entire simulation.
          */
-        std::vector<std::vector<std::string> > output_file_names_by_timestep;
+        std::vector<std::vector<std::string>> output_file_names_by_timestep;
 
         /**
          * A set of data related to XDMF file sections describing the HDF5
@@ -253,7 +253,7 @@ namespace aspect
         /**
          * What raw lpo data to write out
          */
-        std::vector<std::pair<unsigned int,Output> > write_raw_lpo;
+        std::vector<std::pair<unsigned int,Output>> write_raw_lpo;
 
         /**
          * Whether computing raw Euler angles is needed.
@@ -269,7 +269,7 @@ namespace aspect
         /**
          * What draw volume weighted lpo data to write out
          */
-        std::vector<std::pair<unsigned int,Output> > write_draw_volume_weighted_lpo;
+        std::vector<std::pair<unsigned int,Output>> write_draw_volume_weighted_lpo;
 
         /**
          * Whether computing weighted A matrix is needed.
