@@ -486,10 +486,10 @@ namespace aspect
 
           // then continue with writing the master file
           background_thread_master = std::thread (&writer,
-                                                          filename_master,
-                                                          temporary_output_location,
-                                                          file_contents_master,
-                                                          false);
+                                                  filename_master,
+                                                  temporary_output_location,
+                                                  file_contents_master,
+                                                  false);
 
           if (write_raw_lpo.size() != 0)
             {
@@ -499,10 +499,10 @@ namespace aspect
 
               // then continue with writing our own data.
               background_thread_content_raw = std::thread (&writer,
-                                                                   filename_raw,
-                                                                   temporary_output_location,
-                                                                   file_contents_raw,
-                                                                   compress_lpo_data_files);
+                                                           filename_raw,
+                                                           temporary_output_location,
+                                                           file_contents_raw,
+                                                           compress_lpo_data_files);
             }
 
           if (write_draw_volume_weighted_lpo.size() != 0)
@@ -513,10 +513,10 @@ namespace aspect
 
               // then continue with writing our own data.
               background_thread_content_draw_volume_weighting = std::thread (&writer,
-                                                                                     filename_draw_volume_weighting,
-                                                                                     temporary_output_location,
-                                                                                     file_contents_draw_volume_weighting,
-                                                                                     compress_lpo_data_files);
+                                                                             filename_draw_volume_weighting,
+                                                                             temporary_output_location,
+                                                                             file_contents_draw_volume_weighting,
+                                                                             compress_lpo_data_files);
             }
         }
       else
