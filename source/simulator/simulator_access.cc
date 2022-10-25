@@ -675,7 +675,6 @@ namespace aspect
   const WorldBuilder::World &
   SimulatorAccess<dim>::get_world_builder () const
   {
-    <<<<<<< HEAD
     Assert (simulator->world_builder.get() != nullptr,
             ExcMessage ("You are trying to access the WorldBuilder "
                         "object, but the Simulator object is not currently storing "
