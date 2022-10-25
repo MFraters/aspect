@@ -933,8 +933,8 @@ namespace aspect
             case DeformationType::OlivineDFabric :
               ref_resolved_shear_stress[0] = 1;
               ref_resolved_shear_stress[1] = 1;
-              ref_resolved_shear_stress[2] = max_value;
-              ref_resolved_shear_stress[3] = 3;
+              ref_resolved_shear_stress[2] = 3;
+              ref_resolved_shear_stress[1] = max_value;
               break;
 
             // Kaminski, Ribe and Browaeys, JGI, 2004 (same as in the matlab code)
