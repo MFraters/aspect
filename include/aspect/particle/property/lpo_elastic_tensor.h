@@ -74,8 +74,8 @@ namespace aspect
           virtual
           SymmetricTensor<2,6>
           compute_elastic_tensor (const std::vector<double> &volume_fraction_minerals,
-                                  const std::vector<std::vector<double> > &volume_fractions_grains,
-                                  const std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
+                                  const std::vector<std::vector<double>> &volume_fractions_grains,
+                                  const std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains,
                                   const std::vector<unsigned int> &deformation_type) const;
 
           /**
@@ -120,7 +120,7 @@ namespace aspect
           update_one_particle_property (const unsigned int data_position,
                                         const Point<dim> &position,
                                         const Vector<double> &solution,
-                                        const std::vector<Tensor<1,dim> > &gradients,
+                                        const std::vector<Tensor<1,dim>> &gradients,
                                         const ArrayView<double> &particle_properties) const;
 
           /**
@@ -146,7 +146,7 @@ namespace aspect
            * number of components this property plugin defines.
            */
           virtual
-          std::vector<std::pair<std::string, unsigned int> >
+          std::vector<std::pair<std::string, unsigned int>>
           get_property_information() const;
 
           /**
@@ -220,7 +220,7 @@ namespace aspect
           /**
            * todo
            */
-          std::vector<Tensor<2,3> >
+          std::vector<Tensor<2,3>>
           random_draw_volume_weighting(std::vector<double> fv,
                                        std::vector<Tensor<2,3>> matrices,
                                        unsigned int n_output_grains) const;
@@ -272,7 +272,7 @@ namespace aspect
            * initialized in the constructor with a constant.
            */
           mutable boost::lagged_fibonacci44497            random_number_generator;
-          //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double> > get_random_number;
+          //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double>> get_random_number;
           unsigned int random_number_seed;
 
           unsigned int n_grains;

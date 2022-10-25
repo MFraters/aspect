@@ -242,7 +242,7 @@ namespace aspect
           std::vector<unsigned int> deformation_type;
           std::vector<double> volume_fraction_mineral;
           std::vector<std::vector<double>> volume_fractions_grains;
-          std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+          std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains;
 
           Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                            properties,
@@ -275,7 +275,7 @@ namespace aspect
 
 
           // write content file
-          std::vector<std::vector<std::vector<double> > > euler_angles;
+          std::vector<std::vector<std::vector<double>>> euler_angles;
           if (compute_raw_euler_angles == true)
             {
               euler_angles.resize(n_minerals);
@@ -366,7 +366,7 @@ namespace aspect
             }
           if (write_draw_volume_weighted_lpo.size() != 0)
             {
-              std::vector<std::vector<std::vector<double> >> weighted_euler_angles;
+              std::vector<std::vector<std::vector<double>>> weighted_euler_angles;
 
               weighted_euler_angles.resize(n_minerals);
               for (unsigned int mineral_i = 0; mineral_i < n_minerals; ++mineral_i)
@@ -380,7 +380,7 @@ namespace aspect
                 }
 
 
-              std::vector<std::vector<Tensor<2,3> > > weighted_a_cosine_matrices;
+              std::vector<std::vector<Tensor<2,3>>> weighted_a_cosine_matrices;
 
               if (compute_weighted_A_matrix == true)
                 {
@@ -541,7 +541,7 @@ namespace aspect
     }
 
     template<int dim>
-    std::vector<std::vector<double> >
+    std::vector<std::vector<double>>
     LPO<dim>::random_draw_volume_weighting(std::vector<double> fv,
                                            std::vector<std::vector<double>> angles) const
     {

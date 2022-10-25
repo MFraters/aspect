@@ -128,13 +128,13 @@ namespace aspect
       template <int dim>
       SymmetricTensor<2,6>
       LpoElasticTensor<dim>::compute_elastic_tensor (const std::vector<double> &volume_fraction_minerals,
-                                                     const std::vector<std::vector<double> > &volume_fractions_grains,
-                                                     const std::vector<std::vector<Tensor<2,3> > > &a_cosine_matrices_grains,
+                                                     const std::vector<std::vector<double>> &volume_fractions_grains,
+                                                     const std::vector<std::vector<Tensor<2,3>>> &a_cosine_matrices_grains,
                                                      const std::vector<unsigned int> &deformation_type) const
       {
         const size_t n_minerals_local = volume_fractions_grains.size();
         const size_t n_grains_local = volume_fractions_grains[0].size();
-        std::vector<SymmetricTensor<2,6> > stiffness_matrices(n_minerals_local);
+        std::vector<SymmetricTensor<2,6>> stiffness_matrices(n_minerals_local);
         for (size_t mineral_i = 0; mineral_i < n_minerals_local; mineral_i++)
           {
             if (deformation_type[mineral_i] == (unsigned int)DeformationTypeSelector::Enstatite)
@@ -180,7 +180,7 @@ namespace aspect
         std::vector<unsigned int> deformation_type;
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
-        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+        std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
@@ -235,13 +235,13 @@ namespace aspect
       LpoElasticTensor<dim>::update_one_particle_property(const unsigned int data_position,
                                                           const Point<dim> &,
                                                           const Vector<double> &,
-                                                          const std::vector<Tensor<1,dim> > &,
+                                                          const std::vector<Tensor<1,dim>> &,
                                                           const ArrayView<double> &data) const
       {
         std::vector<unsigned int> deformation_type;
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
-        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+        std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
@@ -614,7 +614,7 @@ namespace aspect
       }
 
       template<int dim>
-      std::vector<Tensor<2,3> >
+      std::vector<Tensor<2,3>>
       LpoElasticTensor<dim>::random_draw_volume_weighting(std::vector<double> fv,
                                                           std::vector<Tensor<2,3>> matrices,
                                                           unsigned int n_output_grains) const
@@ -707,10 +707,10 @@ namespace aspect
       }
 
       template <int dim>
-      std::vector<std::pair<std::string, unsigned int> >
+      std::vector<std::pair<std::string, unsigned int>>
       LpoElasticTensor<dim>::get_property_information() const
       {
-        std::vector<std::pair<std::string,unsigned int> > property_information;
+        std::vector<std::pair<std::string,unsigned int>> property_information;
 
         property_information.push_back(std::make_pair("lpo_elastic_tensor",SymmetricTensor<2,6>::n_independent_components));
 

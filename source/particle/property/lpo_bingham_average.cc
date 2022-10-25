@@ -82,7 +82,7 @@ namespace aspect
         std::vector<unsigned int> deformation_type;
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
-        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+        std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
@@ -96,7 +96,7 @@ namespace aspect
         //size_t counter = 0;
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
-            const std::vector<Tensor<2,3> > weighted_a_matrices = random_draw_volume_weighting(volume_fractions_grains[mineral_i], a_cosine_matrices_grains[mineral_i], n_samples);
+            const std::vector<Tensor<2,3>> weighted_a_matrices = random_draw_volume_weighting(volume_fractions_grains[mineral_i], a_cosine_matrices_grains[mineral_i], n_samples);
             std::array<std::array<double,3>,3> bingham_average = compute_bingham_average(weighted_a_matrices);
 
             for (unsigned int i = 0; i < 3; i++)
@@ -113,7 +113,7 @@ namespace aspect
       LpoBinghamAverage<dim>::update_one_particle_property(const unsigned int data_position,
                                                            const Point<dim> &,
                                                            const Vector<double> &,
-                                                           const std::vector<Tensor<1,dim> > &,
+                                                           const std::vector<Tensor<1,dim>> &,
                                                            const ArrayView<double> &data) const
       {
         //const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
@@ -122,7 +122,7 @@ namespace aspect
         std::vector<unsigned int> deformation_type;
         std::vector<double> volume_fraction_mineral;
         std::vector<std::vector<double>> volume_fractions_grains;
-        std::vector<std::vector<Tensor<2,3> > > a_cosine_matrices_grains;
+        std::vector<std::vector<Tensor<2,3>>> a_cosine_matrices_grains;
 
         Particle::Property::LPO<dim>::load_particle_data(lpo_data_position,
                                                          data,
@@ -134,7 +134,7 @@ namespace aspect
 
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
-            const std::vector<Tensor<2,3> > weighted_a_matrices = random_draw_volume_weighting(volume_fractions_grains[mineral_i], a_cosine_matrices_grains[mineral_i], n_samples);
+            const std::vector<Tensor<2,3>> weighted_a_matrices = random_draw_volume_weighting(volume_fractions_grains[mineral_i], a_cosine_matrices_grains[mineral_i], n_samples);
             std::array<std::array<double,3>,3> bingham_average = compute_bingham_average(weighted_a_matrices);
 
             unsigned int counter = 0;
@@ -150,7 +150,7 @@ namespace aspect
 
       template<int dim>
       std::array<std::array<double,3>,3>
-      LpoBinghamAverage<dim>::compute_bingham_average(std::vector<Tensor<2,3> > matrices) const
+      LpoBinghamAverage<dim>::compute_bingham_average(std::vector<Tensor<2,3>> matrices) const
       {
         SymmetricTensor< 2, 3, double > sum_matrix_a;
         SymmetricTensor< 2, 3, double > sum_matrix_b;
@@ -184,9 +184,9 @@ namespace aspect
             sum_matrix_c[1][2] += matrices[i_grain][2][1] * matrices[i_grain][2][2]; // SUM(m*n)
 
           }
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
-        const std::array<std::pair<double,Tensor<1,3,double> >, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double>>, 3> eigenvectors_a = eigenvectors(sum_matrix_a, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double>>, 3> eigenvectors_b = eigenvectors(sum_matrix_b, SymmetricTensorEigenvectorMethod::jacobi);
+        const std::array<std::pair<double,Tensor<1,3,double>>, 3> eigenvectors_c = eigenvectors(sum_matrix_c, SymmetricTensorEigenvectorMethod::jacobi);
 
 
         const Tensor<1,3,double> averaged_a = eigenvectors_a[0].second * eigenvectors_a[0].first;
@@ -204,7 +204,7 @@ namespace aspect
       }
 
       template<int dim>
-      std::vector<Tensor<2,3> >
+      std::vector<Tensor<2,3>>
       LpoBinghamAverage<dim>::random_draw_volume_weighting(std::vector<double> fv,
                                                            std::vector<Tensor<2,3>> matrices,
                                                            unsigned int n_output_grains) const
@@ -298,10 +298,10 @@ namespace aspect
       }
 
       template <int dim>
-      std::vector<std::pair<std::string, unsigned int> >
+      std::vector<std::pair<std::string, unsigned int>>
       LpoBinghamAverage<dim>::get_property_information() const
       {
-        std::vector<std::pair<std::string,unsigned int> > property_information;
+        std::vector<std::pair<std::string,unsigned int>> property_information;
         for (size_t mineral_i = 0; mineral_i < n_minerals; mineral_i++)
           {
             property_information.push_back(std::make_pair("cpo mineral " + std::to_string(mineral_i) + " bingham average a axis",3));
