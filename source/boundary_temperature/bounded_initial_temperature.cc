@@ -118,8 +118,8 @@ namespace aspect
                                                "must therefore be told what the minimal and "
                                                "maximal values on the boundary are. This is done "
                                                "using parameters set in section ``Boundary temperature model/Initial temperature''."
-					       "The only difference between this plugin and the initial temperature "
-					       "plugin is that this plugin foces the initial condition "
-					       "to be within the bounds.")
+                                               "The only difference between this plugin and the initial temperature "
+                                               "plugin is that this plugin foces the initial condition "
+                                               "to be within the bounds.")
   }
 }
