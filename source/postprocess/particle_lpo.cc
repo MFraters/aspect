@@ -55,9 +55,12 @@ namespace aspect
     {
       // make sure a thread that may still be running in the background,
       // writing data, finishes
-      background_thread_master.join ();
-      background_thread_content_raw.join ();
-      background_thread_content_draw_volume_weighting.join ();
+      if (background_thread_master.joinable())
+        background_thread_master.join ();
+      if (background_thread_content_raw.joinable())
+        background_thread_content_raw.join ();
+      if (background_thread_content_draw_volume_weighting.joinable())
+        background_thread_content_draw_volume_weighting.join ();
     }
 
     template <int dim>
@@ -172,7 +175,7 @@ namespace aspect
 
       const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
 
-      bool elastic_plugin_exists = manager.plugin_name_exists("lpo elastic tensor");
+      bool elastic_plugin_exists = false;//manager.plugin_name_exists("lpo elastic tensor");
       bool hexagonal_plugin_exists = manager.plugin_name_exists("decompose elastic matrix");
 
       // if this is the first time we get here, set the last output time
@@ -266,7 +269,7 @@ namespace aspect
                                                             ?
                                                             0
                                                             :
-                                                            property_information.get_position_by_field_name("lpo_elastic_tensor_0");
+                                                            property_information.get_position_by_field_name("lpo elastic tensor");
 
               string_stream_master << " " << properties[lpo_elstic_data_position] << " " << properties[lpo_elstic_data_position+1]
                                    << " " << properties[lpo_elstic_data_position+2] << " " << properties[lpo_elstic_data_position+3]
@@ -513,7 +516,8 @@ namespace aspect
         {
           // Wait for all previous write operations to finish, should
           // any be still active,
-          background_thread_master.join ();
+          if (background_thread_master.joinable())
+            background_thread_master.join ();
 
           // then continue with writing the master file
           background_thread_master = std::thread (&writer,
@@ -526,7 +530,8 @@ namespace aspect
             {
               // Wait for all previous write operations to finish, should
               // any be still active,
-              background_thread_content_raw.join ();
+              if (background_thread_content_raw.joinable())
+                background_thread_content_raw.join ();
 
               // then continue with writing our own data.
               background_thread_content_raw = std::thread (&writer,
@@ -540,7 +545,8 @@ namespace aspect
             {
               // Wait for all previous write operations to finish, should
               // any be still active,
-              background_thread_content_draw_volume_weighting.join ();
+              if (background_thread_content_draw_volume_weighting.joinable())
+                background_thread_content_draw_volume_weighting.join ();
 
               // then continue with writing our own data.
               background_thread_content_draw_volume_weighting = std::thread (&writer,
