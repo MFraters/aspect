@@ -712,7 +712,7 @@ namespace aspect
       {
         std::vector<std::pair<std::string,unsigned int>> property_information;
 
-        property_information.push_back(std::make_pair("lpo_elastic_tensor",SymmetricTensor<2,6>::n_independent_components));
+        property_information.push_back(std::make_pair("lpo elastic tensor",SymmetricTensor<2,6>::n_independent_components));
 
         return property_information;
       }
