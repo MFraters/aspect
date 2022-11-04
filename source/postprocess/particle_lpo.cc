@@ -172,6 +172,7 @@ namespace aspect
 
       const Particle::Property::Manager<dim> &manager = this->get_particle_world().get_property_manager();
 
+      bool elastic_plugin_exists = manager.plugin_name_exists("lpo elastic tensor");
       bool hexagonal_plugin_exists = manager.plugin_name_exists("decompose elastic matrix");
 
       // if this is the first time we get here, set the last output time
@@ -202,6 +203,11 @@ namespace aspect
       std::stringstream string_stream_content_draw_volume_weighting;
 
       string_stream_master << "id x y" << (dim == 3 ? " z" : " ") << " olivine_deformation_type"
+                           << (elastic_plugin_exists ? (std::string(" elastic_tensor_0 elastic_tensor_1 elastic_tensor_2 elastic_tensor_3")
+                                                        + " elastic_tensor_4 elastic_tensor_5 elastic_tensor_6 elastic_tensor_7 elastic_tensor_8"
+                                                        + " elastic_tensor_9 elastic_tensor_10 elastic_tensor_11 elastic_tensor_12 elastic_tensor_13"
+                                                        + " elastic_tensor_14 elastic_tensor_15 elastic_tensor_16 elastic_tensor_17 elastic_tensor_18"
+                                                        + " elastic_tensor_19 elastic_tensor_20") : "")
                            << (hexagonal_plugin_exists ? (std::string(" full_norm_square ")
                                                           + "triclinic_norm_square_p1 triclinic_norm_square_p2 triclinic_norm_square_p3 "
                                                           + "monoclinic_norm_square_p1 monoclinic_norm_square_p2 monoclinic_norm_square_p3 "
@@ -251,16 +257,41 @@ namespace aspect
                                                            volume_fractions_grains,
                                                            a_cosine_matrices_grains);
 
-          const unsigned int lpo_hex_data_position = property_information.n_fields() == 0 || hexagonal_plugin_exists == false
-                                                     ?
-                                                     0
-                                                     :
-                                                     property_information.get_position_by_field_name("lpo elastic axis e1");
-
           // write master file
           string_stream_master << id << " " << position << " " << properties[lpo_data_position];
+
+          if (elastic_plugin_exists == true)
+            {
+              const unsigned int lpo_elstic_data_position = property_information.n_fields() == 0
+                                                            ?
+                                                            0
+                                                            :
+                                                            property_information.get_position_by_field_name("lpo_elastic_tensor_0");
+
+              string_stream_master << " " << properties[lpo_elstic_data_position] << " " << properties[lpo_elstic_data_position+1]
+                                   << " " << properties[lpo_elstic_data_position+2] << " " << properties[lpo_elstic_data_position+3]
+                                   << " " << properties[lpo_elstic_data_position+4] << " " << properties[lpo_elstic_data_position+5]
+                                   << " " << properties[lpo_elstic_data_position+6] << " " << properties[lpo_elstic_data_position+7]
+                                   << " " << properties[lpo_elstic_data_position+8] << " " << properties[lpo_elstic_data_position+9]
+                                   << " " << properties[lpo_elstic_data_position+10] << " " << properties[lpo_elstic_data_position+11]
+                                   << " " << properties[lpo_elstic_data_position+12] << " " << properties[lpo_elstic_data_position+13]
+                                   << " " << properties[lpo_elstic_data_position+14] << " " << properties[lpo_elstic_data_position+15]
+                                   << " " << properties[lpo_elstic_data_position+16] << " " << properties[lpo_elstic_data_position+17]
+                                   << " " << properties[lpo_elstic_data_position+18] << " " << properties[lpo_elstic_data_position+19]
+                                   << " " << properties[lpo_elstic_data_position+20];
+
+            }
+
+
+
           if (hexagonal_plugin_exists == true)
             {
+              const unsigned int lpo_hex_data_position = property_information.n_fields() == 0
+                                                         ?
+                                                         0
+                                                         :
+                                                         property_information.get_position_by_field_name("lpo elastic axis e1");
+
               string_stream_master << " " << properties[lpo_hex_data_position+12] << " " << properties[lpo_hex_data_position+13]
                                    << " " << properties[lpo_hex_data_position+14] << " " << properties[lpo_hex_data_position+15]
                                    << " " << properties[lpo_hex_data_position+16] << " " << properties[lpo_hex_data_position+17]

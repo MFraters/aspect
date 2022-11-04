@@ -5,7 +5,7 @@ set Timing output frequency = 50
 set Maximum time step = 5000
 #set Nonlinear solver scheme = single Advection, no Stokes
 
-set Output directory = /media/fraters/Data/Data/ASPECT/CPO/cornerflow/v1.1_wc800-25_aBE_MiOlKa08-En_vf0.7-0.3_Mo125_n5_t0.3_v1e22_g1000 ## Annotation Output directory
+set Output directory = iofiles/cpo/ #/media/fraters/Data/Data/ASPECT/CPO/cornerflow/v1.1_wc800-25_aBE_MiOlKa08-En_vf0.7-0.3_Mo125_n5_t0.3_v1e22_g1000 ## Annotation Output directory
 
 subsection Geometry model
   set Model name = box
