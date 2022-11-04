@@ -961,9 +961,10 @@ namespace aspect
                   //AssertThrow(parameter_values[i] > 0,
                   //            ExcMessage ("All parameter values must be greater than 0 for harmonic averaging!"));
                   // todo
-                  if (parameter_values[i] < 0){
-                    std::cout << "Warning: Utilities: average_value: there is a negative value of parameters" << std::endl;
-                  }
+                  if (parameter_values[i] < 0)
+                    {
+                      std::cout << "Warning: Utilities: average_value: there is a negative value of parameters" << std::endl;
+                    }
                   averaged_parameter += volume_fractions[i]/(std::max(parameter_values[i], 1e-8));
                 }
               averaged_parameter = 1.0/averaged_parameter;
@@ -1086,43 +1087,43 @@ namespace aspect
         double use_manually_method_for_pyrolite = manually_method_pyrolite[in.phase_index];
         double use_manually_method_for_harzburgite = manually_method_harzburgite[in.phase_index];
         if ( abs(use_manually_method_for_spcrust - 1.0) < 1e-8)
-        {
-           function_value = eclogite_transition.compute_value_crust_1_0(in, manually_method_crust,
+          {
+            function_value = eclogite_transition.compute_value_crust_1_0(in, manually_method_crust,
                                                                          transition_depths, transition_temperatures,
                                                                          transition_widths, transition_slopes);
-        }
+          }
         else if ( abs(use_manually_method_for_spcrust - 1.1) < 1e-8)
-        {
-           function_value = eclogite_transition.compute_value_crust_1_1(in, manually_method_crust,
+          {
+            function_value = eclogite_transition.compute_value_crust_1_1(in, manually_method_crust,
                                                                          transition_depths, transition_temperatures,
                                                                          transition_widths, transition_slopes);
-        }
+          }
         else if ( abs(use_manually_method_for_spcrust - 1.2) < 1e-8)
-        {
-           function_value = eclogite_transition.compute_value_crust_1_2(in, manually_method_crust,
+          {
+            function_value = eclogite_transition.compute_value_crust_1_2(in, manually_method_crust,
                                                                          transition_depths, transition_temperatures,
                                                                          transition_widths, transition_slopes);
-        }
+          }
         else if ( abs(use_manually_method_for_spcrust - 1.3) < 1e-8)
-        {
-           function_value = eclogite_transition.compute_value_crust_1_3(in, manually_method_crust,
+          {
+            function_value = eclogite_transition.compute_value_crust_1_3(in, manually_method_crust,
                                                                          transition_depths, transition_temperatures,
                                                                          transition_widths, transition_slopes);
-        }
+          }
         else if ( abs(use_manually_method_for_pyrolite - 1.0) < 1e-8)
-        {
-           function_value = pyrolite_transition.compute_value_pyrolite_1_0(in, manually_method_pyrolite,
-                                                                         transition_depths, transition_temperatures,
-                                                                         transition_widths, transition_slopes);
-        }
+          {
+            function_value = pyrolite_transition.compute_value_pyrolite_1_0(in, manually_method_pyrolite,
+                                                                            transition_depths, transition_temperatures,
+                                                                            transition_widths, transition_slopes);
+          }
         else if ( abs(use_manually_method_for_harzburgite - 1.0) < 1e-8)
-        {
-           function_value = pyrolite_transition.compute_value_harzburgite_1_0(in, manually_method_harzburgite,
-                                                                         transition_depths, transition_temperatures,
-                                                                         transition_widths, transition_slopes);
-        }
+          {
+            function_value = pyrolite_transition.compute_value_harzburgite_1_0(in, manually_method_harzburgite,
+                                                                               transition_depths, transition_temperatures,
+                                                                               transition_widths, transition_slopes);
+          }
         else if (use_depth_instead_of_pressure)
-        {
+          {
             // calculate the deviation from the transition point (convert temperature to depth)
             double depth_deviation = in.depth - transition_depths[in.phase_index];
 
@@ -1427,58 +1428,58 @@ namespace aspect
                                                                                n_phase_transitions_per_composition,
                                                                                true);
             transition_depth_lower_limits         = Utilities::parse_map_to_double_array (prm.get("Phase transition depth lower limits"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Phase transition depth lower limits",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
-            
+                                                                                          list_of_composition_names,
+                                                                                          has_background_field,
+                                                                                          "Phase transition depth lower limits",
+                                                                                          true,
+                                                                                          n_phase_transitions_per_composition,
+                                                                                          true);
+
             transition_depth_upper_limits         = Utilities::parse_map_to_double_array (prm.get("Phase transition depth upper limits"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Phase transition depth upper limits",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
-            
-        // parse the manually defined composition
+                                                                                          list_of_composition_names,
+                                                                                          has_background_field,
+                                                                                          "Phase transition depth upper limits",
+                                                                                          true,
+                                                                                          n_phase_transitions_per_composition,
+                                                                                          true);
+
+            // parse the manually defined composition
             manually_method_crust         = Utilities::parse_map_to_double_array (prm.get("Manually define phase method crust"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Define transition of crust by depth instead of pressure",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
-        
-        // parse the manually defined composition for pyrolite
+                                                                                  list_of_composition_names,
+                                                                                  has_background_field,
+                                                                                  "Define transition of crust by depth instead of pressure",
+                                                                                  true,
+                                                                                  n_phase_transitions_per_composition,
+                                                                                  true);
+
+            // parse the manually defined composition for pyrolite
             manually_method_pyrolite         = Utilities::parse_map_to_double_array (prm.get("Manually define phase method pyrolite"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Define transition of pyrolite by depth instead of pressure",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
+                                                                                     list_of_composition_names,
+                                                                                     has_background_field,
+                                                                                     "Define transition of pyrolite by depth instead of pressure",
+                                                                                     true,
+                                                                                     n_phase_transitions_per_composition,
+                                                                                     true);
 
-        // parse the manually defined composition for harzburgite
+            // parse the manually defined composition for harzburgite
             manually_method_harzburgite        = Utilities::parse_map_to_double_array (prm.get("Manually define phase method harzburgite"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Define transition of harzburgite by depth instead of pressure",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
-        
-        // parse the Compute latent heat
-            compute_latent_heats        = Utilities::parse_map_to_double_array (prm.get("Compute latent heat"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Whether compute latent heat on phases",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
+                                                                                       list_of_composition_names,
+                                                                                       has_background_field,
+                                                                                       "Define transition of harzburgite by depth instead of pressure",
+                                                                                       true,
+                                                                                       n_phase_transitions_per_composition,
+                                                                                       true);
 
-        // parse A value for the eclogite transition temperature
+            // parse the Compute latent heat
+            compute_latent_heats        = Utilities::parse_map_to_double_array (prm.get("Compute latent heat"),
+                                                                                list_of_composition_names,
+                                                                                has_background_field,
+                                                                                "Whether compute latent heat on phases",
+                                                                                true,
+                                                                                n_phase_transitions_per_composition,
+                                                                                true);
+
+            // parse A value for the eclogite transition temperature
             eclogite_transition.parse_parameters(prm);
           }
         else
@@ -1499,20 +1500,20 @@ namespace aspect
                                                                                n_phase_transitions_per_composition,
                                                                                true);
             transition_pressure_lower_limits         = Utilities::parse_map_to_double_array (prm.get("Phase transition pressure lower limits"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Phase transition pressure lower limits",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
-            
+                                                       list_of_composition_names,
+                                                       has_background_field,
+                                                       "Phase transition pressure lower limits",
+                                                       true,
+                                                       n_phase_transitions_per_composition,
+                                                       true);
+
             transition_pressure_upper_limits         = Utilities::parse_map_to_double_array (prm.get("Phase transition pressure upper limits"),
-                                                                               list_of_composition_names,
-                                                                               has_background_field,
-                                                                               "Phase transition pressure upper limits",
-                                                                               true,
-                                                                               n_phase_transitions_per_composition,
-                                                                               true);
+                                                       list_of_composition_names,
+                                                       has_background_field,
+                                                       "Phase transition pressure upper limits",
+                                                       true,
+                                                       n_phase_transitions_per_composition,
+                                                       true);
           }
 
         transition_temperatures = Utilities::parse_map_to_double_array (prm.get("Phase transition temperatures"),
@@ -1539,7 +1540,7 @@ namespace aspect
             n_phases_total += n+1;
           }
       }
-      
+
       template <int dim>
       void
       EclogiteTransition<dim>::declare_parameters (ParameterHandler &prm)
@@ -1583,15 +1584,15 @@ namespace aspect
         prm.leave_subsection();
       }
 
-      
+
       template <int dim>
       double
       EclogiteTransition<dim>::compute_value_crust_1_0 (const PhaseFunctionInputs<dim> &in,
-                                                        const std::vector<double>& manually_method_crust,
-                                                        const std::vector<double>& transition_depths,
-                                                        const std::vector<double>& transition_temperatures,
-                                                        const std::vector<double>& transition_widths,
-                                                        const std::vector<double>& transition_slopes) const
+                                                        const std::vector<double> &manually_method_crust,
+                                                        const std::vector<double> &transition_depths,
+                                                        const std::vector<double> &transition_temperatures,
+                                                        const std::vector<double> &transition_widths,
+                                                        const std::vector<double> &transition_slopes) const
       {
         const double version = 1.0;
         // version 1.0
@@ -1599,11 +1600,11 @@ namespace aspect
         int phase_index_crust = 0;
         // composition-wise index
         while ( abs(manually_method_crust[in.phase_index - phase_index_crust - 1] - version) < 1e-8)
-            phase_index_crust++;
+          phase_index_crust++;
         // find a region in a phase diagram
         const double P0 = 1.50e9; // Pa
         std::pair<bool, double> result0 = compute_point_to_line(in, 0.0, P0, 0.0, 0.0, false, false, false);
-        
+
         // define ecologite transition by temperature
         const double W1 = 75.0;
         // const double T1 = 1048.0; // K
@@ -1618,41 +1619,45 @@ namespace aspect
         std::pair<bool, double> result660 = compute_point_to_line(in, T660, d660, W660, slope660/in.pressure_depth_derivative, true, false, false);
         // std::cout << d660 << T660 << W660 << slope660/in.pressure_depth_derivative << in.pressure << in.temperature << std::endl;
 
-        if (result0.first && result1.first && (!result660.first)){
-          // crustal eclogite transition
-          if (phase_index_crust == 0)
+        if (result0.first && result1.first && (!result660.first))
           {
-            function_value = 0.5*(1.0 + std::tanh(result1.second/W1));
+            // crustal eclogite transition
+            if (phase_index_crust == 0)
+              {
+                function_value = 0.5*(1.0 + std::tanh(result1.second/W1));
+              }
+            else
+              function_value = 0.0;
           }
-          else
-            function_value = 0.0;
-        }
-        else if ( (!result1.first) && result660.first){
-          // 660 for mantle
-          function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
-        }
-        else if ( result1.first && result660.first){
-          // 660 for crust
-          if (phase_index_crust == 0)
-            function_value = 1.0;
-          else
+        else if ( (!result1.first) && result660.first)
+          {
+            // 660 for mantle
             function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
-        }
-        else{
-          // phase 0
-          function_value = 0.0;
-        }
+          }
+        else if ( result1.first && result660.first)
+          {
+            // 660 for crust
+            if (phase_index_crust == 0)
+              function_value = 1.0;
+            else
+              function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
+          }
+        else
+          {
+            // phase 0
+            function_value = 0.0;
+          }
         return function_value;
       }
 
       template <int dim>
       double
       EclogiteTransition<dim>::compute_value_crust_1_1 (const PhaseFunctionInputs<dim> &in,
-                                                        const std::vector<double>& manually_method_crust,
-                                                        const std::vector<double>& transition_depths,
-                                                        const std::vector<double>& transition_temperatures,
-                                                        const std::vector<double>& transition_widths,
-                                                        const std::vector<double>& transition_slopes) const
+                                                        const std::vector<double> &manually_method_crust,
+                                                        const std::vector<double> &transition_depths,
+                                                        const std::vector<double> &transition_temperatures,
+                                                        const std::vector<double> &transition_widths,
+                                                        const std::vector<double> &transition_slopes) const
       {
         // version 1.1
         const double version = 1.1;
@@ -1660,12 +1665,12 @@ namespace aspect
         int phase_index_crust = 0;
         // composition-wise index
         while ( abs(manually_method_crust[in.phase_index - phase_index_crust - 1] - version) < 1e-8)
-            phase_index_crust++;
+          phase_index_crust++;
         // find a region in a phase diagram
         const double W0 = crust_eclogite_transition_P_width;
         const double P0 = crust_eclogite_transition_P + W0; // Pa
         std::pair<bool, double> result0 = compute_point_to_line(in, 0.0, P0, W0, 0.0, false, false, false);
-        
+
         // define ecologite transition by temperature
         const double W1 = crust_eclogite_transition_T_width;
         // const double T1 = 1048.0; // K
@@ -1680,85 +1685,89 @@ namespace aspect
         std::pair<bool, double> result660 = compute_point_to_line(in, T660, d660, W660, slope660/in.pressure_depth_derivative, true, false, false);
         // std::cout << d660 << T660 << W660 << slope660/in.pressure_depth_derivative << in.pressure << in.temperature << std::endl;
 
-        if (result0.first && result1.first && (!result660.first)){
-          // crustal eclogite transition
-          // const double deviation = std::min(result0.second/W0, result1.second/W1);
-          const double deviation = (result0.second/W0 + result1.second/W1) / 2.0;
-          if (phase_index_crust == 0)
+        if (result0.first && result1.first && (!result660.first))
           {
-            if(true)
-              function_value = 0.5*(1.0 + std::tanh(deviation));
+            // crustal eclogite transition
+            // const double deviation = std::min(result0.second/W0, result1.second/W1);
+            const double deviation = (result0.second/W0 + result1.second/W1) / 2.0;
+            if (phase_index_crust == 0)
+              {
+                if (true)
+                  function_value = 0.5*(1.0 + std::tanh(deviation));
+                else
+                  {
+                    if (deviation > 0.0)
+                      function_value = 1.0;
+                    else
+                      function_value = 0.5*(2.0 + deviation);
+                  }
+              }
             else
-            {
-              if(deviation > 0.0)
-                function_value = 1.0;
-              else
-                function_value = 0.5*(2.0 + deviation);
-            }
+              function_value = 0.0;
           }
-          else
-            function_value = 0.0;
-        }
-        else if ( (!result1.first) && result660.first){
-          // 660 for mantle
-          function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
-        }
-        else if ( result1.first && result660.first){
-          // 660 for crust
-          if (phase_index_crust == 0)
-            function_value = 1.0;
-          else
+        else if ( (!result1.first) && result660.first)
+          {
+            // 660 for mantle
             function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
-        }
-        else{
-          // phase 0
-          function_value = 0.0;
-        }
+          }
+        else if ( result1.first && result660.first)
+          {
+            // 660 for crust
+            if (phase_index_crust == 0)
+              function_value = 1.0;
+            else
+              function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
+          }
+        else
+          {
+            // phase 0
+            function_value = 0.0;
+          }
         return function_value;
       }
-      
+
       template <int dim>
       double
       EclogiteTransition<dim>::compute_value_crust_1_2 (const PhaseFunctionInputs<dim> &in,
-                                                        const std::vector<double>& manually_method_crust,
-                                                        const std::vector<double>& transition_depths,
-                                                        const std::vector<double>& transition_temperatures,
-                                                        const std::vector<double>& transition_widths,
-                                                        const std::vector<double>& transition_slopes) const
+                                                        const std::vector<double> &manually_method_crust,
+                                                        const std::vector<double> &transition_depths,
+                                                        const std::vector<double> &transition_temperatures,
+                                                        const std::vector<double> &transition_widths,
+                                                        const std::vector<double> &transition_slopes) const
       {
         // version 1.2
         const double version = 1.2;
         // paritial_indexes
         const int partial_index_660 = 1;
-        // initiate 
+        // initiate
         double function_value = 0.0;
         int phase_index_crust = 0;
         // composition-wise index
         while ( abs(manually_method_crust[in.phase_index - phase_index_crust - 1] - version) < 1e-8)
-            phase_index_crust++;
+          phase_index_crust++;
         // find a region in a phase diagram
         const double W0 = crust_eclogite_transition_P_width;
         const double P0 = crust_eclogite_transition_P + W0; // Pa
         std::pair<bool, double> result0 = compute_point_to_line(in, 0.0, P0, W0, 0.0, false, false, false);
-        
+
         // define ecologite transition by temperature
         // add a slope
         double W1;
         const double T1 = crust_eclogite_transition_T + crust_eclogite_transition_T_width;  // as what we need is the dash line
         std::pair<bool, double>  result1;
         if (abs(crust_eclogite_transition_T_slope) > 1e9)
-        {
-          // vertical
-          W1 = crust_eclogite_transition_T_width;
-          result1 = compute_point_to_line(in, T1, 0.0, W1, 0.0, false, false, true);
-        }
+          {
+            // vertical
+            W1 = crust_eclogite_transition_T_width;
+            result1 = compute_point_to_line(in, T1, 0.0, W1, 0.0, false, false, true);
+          }
         else
-        {
-          // with a slope, pinpoint at (T1, P0), as W1 is a width by temperature, it is multiplied with slope
-          W1 = crust_eclogite_transition_T_width * abs(crust_eclogite_transition_T_slope);
-          result1 = compute_point_to_line(in, T1, crust_eclogite_transition_P, W1, 
-                                          crust_eclogite_transition_T_slope, false, false, false);
-        }
+          {
+            // with a slope, pinpoint at (T1, P0), as W1 is a width by temperature, it is multiplied with slope
+            W1 = crust_eclogite_transition_T_width * abs(crust_eclogite_transition_T_slope);
+            result1 = compute_point_to_line(in, T1, crust_eclogite_transition_P, W1,
+                                            crust_eclogite_transition_T_slope, false, false, false);
+          }
 
         // line 2: maximux pressure on basaltic composition
         const double P2 = crust_eclogite_transition_max_P;
@@ -1772,94 +1781,98 @@ namespace aspect
         const double slope660 = transition_slopes[phase_index_660];
         std::pair<bool, double> result660 = compute_point_to_line(in, T660, d660, W660, slope660/in.pressure_depth_derivative, true, false, false);
 
-        if (result0.first && result1.first && (!result660.first)){
-          // crustal eclogite transition
-          // double deviation = (result0.second/W0 + result1.second/W1) / 2.0;
-          // deviation = std::max(result2.second/W2, deviation);
-          double deviation = average_deviation(result0.second/W0, std::max(result1.second/W1, result2.second/W2), 2.0);
-          if (phase_index_crust == 0)
+        if (result0.first && result1.first && (!result660.first))
           {
-              function_value = 0.5*(1.0 + std::tanh(deviation));
-          }
-          else
-            function_value = 0.0;
-        }
-        else if ( (!result1.first) && result2.first && (!result660.first)){
-          // crustal eclogite transition: area 2 (line 0 and line 1)
-          const double deviation = result2.second/W2;
-          if (phase_index_crust == 0)
-          {
-            if(true)
-              function_value = 0.5*(1.0 + std::tanh(deviation));
+            // crustal eclogite transition
+            // double deviation = (result0.second/W0 + result1.second/W1) / 2.0;
+            // deviation = std::max(result2.second/W2, deviation);
+            double deviation = average_deviation(result0.second/W0, std::max(result1.second/W1, result2.second/W2), 2.0);
+            if (phase_index_crust == 0)
+              {
+                function_value = 0.5*(1.0 + std::tanh(deviation));
+              }
             else
-            {
-              if(deviation > 0.0)
-                function_value = 1.0;
-              else
-                function_value = 0.5*(2.0 + deviation);
-            }
+              function_value = 0.0;
           }
-          else
+        else if ( (!result1.first) && result2.first && (!result660.first))
+          {
+            // crustal eclogite transition: area 2 (line 0 and line 1)
+            const double deviation = result2.second/W2;
+            if (phase_index_crust == 0)
+              {
+                if (true)
+                  function_value = 0.5*(1.0 + std::tanh(deviation));
+                else
+                  {
+                    if (deviation > 0.0)
+                      function_value = 1.0;
+                    else
+                      function_value = 0.5*(2.0 + deviation);
+                  }
+              }
+            else
+              function_value = 0.0;
+          }
+        else if ( result660.first)
+          {
+            // 660 for crust
+            if (phase_index_crust == 0)
+              function_value = 1.0;
+            else
+              function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
+          }
+        else
+          {
+            // phase 0
             function_value = 0.0;
-        }
-        else if ( result660.first){
-          // 660 for crust
-          if (phase_index_crust == 0)
-            function_value = 1.0;
-          else
-            function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
-        }
-        else{
-          // phase 0
-          function_value = 0.0;
-        }
+          }
         return function_value;
       }
-      
-      
+
+
       template <int dim>
       double
       EclogiteTransition<dim>::compute_value_crust_1_3 (const PhaseFunctionInputs<dim> &in,
-                                                        const std::vector<double>& manually_method_crust,
-                                                        const std::vector<double>& transition_depths,
-                                                        const std::vector<double>& transition_temperatures,
-                                                        const std::vector<double>& transition_widths,
-                                                        const std::vector<double>& transition_slopes) const
+                                                        const std::vector<double> &manually_method_crust,
+                                                        const std::vector<double> &transition_depths,
+                                                        const std::vector<double> &transition_temperatures,
+                                                        const std::vector<double> &transition_widths,
+                                                        const std::vector<double> &transition_slopes) const
       {
         // version 1.3
         const double version = 1.3;
         // paritial_indexes
         const int partial_index_660 = 1;
         const int partial_index_720 = 2;
-        // initiate 
+        // initiate
         double function_value = 0.0;
         int phase_index_crust = 0;
         // composition-wise index
         while ( abs(manually_method_crust[in.phase_index - phase_index_crust - 1] - version) < 1e-8)
-            phase_index_crust++;
+          phase_index_crust++;
         // find a region in a phase diagram
         const double W0 = crust_eclogite_transition_P_width;
         const double P0 = crust_eclogite_transition_P + W0; // Pa
         std::pair<bool, double> result0 = compute_point_to_line(in, 0.0, P0, W0, 0.0, false, false, false);
-        
+
         // define ecologite transition by temperature
         // add a slope
         double W1;
         const double T1 = crust_eclogite_transition_T + crust_eclogite_transition_T_width;  // as what we need is the dash line
         std::pair<bool, double>  result1;
         if (abs(crust_eclogite_transition_T_slope) > 1e9)
-        {
-          // vertical
-          W1 = crust_eclogite_transition_T_width;
-          result1 = compute_point_to_line(in, T1, 0.0, W1, 0.0, false, false, true);
-        }
+          {
+            // vertical
+            W1 = crust_eclogite_transition_T_width;
+            result1 = compute_point_to_line(in, T1, 0.0, W1, 0.0, false, false, true);
+          }
         else
-        {
-          // with a slope, pinpoint at (T1, P0), as W1 is a width by temperature, it is multiplied with slope
-          W1 = crust_eclogite_transition_T_width * abs(crust_eclogite_transition_T_slope);
-          result1 = compute_point_to_line(in, T1, crust_eclogite_transition_P, W1, 
-                                          crust_eclogite_transition_T_slope, false, false, false);
-        }
+          {
+            // with a slope, pinpoint at (T1, P0), as W1 is a width by temperature, it is multiplied with slope
+            W1 = crust_eclogite_transition_T_width * abs(crust_eclogite_transition_T_slope);
+            result1 = compute_point_to_line(in, T1, crust_eclogite_transition_P, W1,
+                                            crust_eclogite_transition_T_slope, false, false, false);
+          }
 
         // line 2: maximux pressure on basaltic composition
         const double P2 = crust_eclogite_transition_max_P;
@@ -1872,7 +1885,7 @@ namespace aspect
         const double W660 = transition_widths[phase_index_660];
         const double slope660 = transition_slopes[phase_index_660];
         std::pair<bool, double> result660 = compute_point_to_line(in, T660, d660, W660, slope660/in.pressure_depth_derivative, true, false, false);
-        
+
         const int phase_index_720 = in.phase_index - phase_index_crust + partial_index_720;  // third one
         const double d720 = transition_depths[phase_index_720];
         const double T720 = transition_temperatures[phase_index_720];
@@ -1880,100 +1893,106 @@ namespace aspect
         const double slope720 = transition_slopes[phase_index_720];
         std::pair<bool, double> result720 = compute_point_to_line(in, T720, d720, W720, slope720/in.pressure_depth_derivative, true, false, false);
 
-        if (result0.first && result1.first && (!result660.first)){
-          // crustal eclogite transition
-          // double deviation = (result0.second/W0 + result1.second/W1) / 2.0;
-          // deviation = std::max(result2.second/W2, deviation);
-          double deviation = average_deviation(result0.second/W0, std::max(result1.second/W1, result2.second/W2), 2.0);
-          if (phase_index_crust == 0)
+        if (result0.first && result1.first && (!result660.first))
           {
-              function_value = 0.5*(1.0 + std::tanh(deviation));
-          }
-          else
-            function_value = 0.0;
-        }
-        else if ( (!result1.first) && result2.first && (!result660.first)){
-          // crustal eclogite transition: area 2 (line 0 and line 1)
-          const double deviation = result2.second/W2;
-          if (phase_index_crust == 0)
-          {
-            if(true)
-              function_value = 0.5*(1.0 + std::tanh(deviation));
+            // crustal eclogite transition
+            // double deviation = (result0.second/W0 + result1.second/W1) / 2.0;
+            // deviation = std::max(result2.second/W2, deviation);
+            double deviation = average_deviation(result0.second/W0, std::max(result1.second/W1, result2.second/W2), 2.0);
+            if (phase_index_crust == 0)
+              {
+                function_value = 0.5*(1.0 + std::tanh(deviation));
+              }
             else
-            {
-              if(deviation > 0.0)
-                function_value = 1.0;
-              else
-                function_value = 0.5*(2.0 + deviation);
-            }
+              function_value = 0.0;
           }
-          else
+        else if ( (!result1.first) && result2.first && (!result660.first))
+          {
+            // crustal eclogite transition: area 2 (line 0 and line 1)
+            const double deviation = result2.second/W2;
+            if (phase_index_crust == 0)
+              {
+                if (true)
+                  function_value = 0.5*(1.0 + std::tanh(deviation));
+                else
+                  {
+                    if (deviation > 0.0)
+                      function_value = 1.0;
+                    else
+                      function_value = 0.5*(2.0 + deviation);
+                  }
+              }
+            else
+              function_value = 0.0;
+          }
+        else if (result660.first && !result720.first)
+          {
+            // 660 for crust
+            if (phase_index_crust < partial_index_660)
+              function_value = 1.0;
+            else if (phase_index_crust == partial_index_660)
+              function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
+            else
+              function_value = 0.0;
+          }
+        else if (result720.first)
+          {
+            // 720 for crust
+            if (phase_index_crust < partial_index_720)
+              function_value = 1.0;
+            else if (phase_index_crust == partial_index_720)
+              function_value = 0.5*(1.0 + std::tanh(result720.second/W720));
+            else
+              function_value = 0.0;
+          }
+        else
+          {
+            // phase 0
             function_value = 0.0;
-        }
-        else if (result660.first && !result720.first){
-          // 660 for crust
-          if (phase_index_crust < partial_index_660)
-            function_value = 1.0;
-          else if (phase_index_crust == partial_index_660)
-            function_value = 0.5*(1.0 + std::tanh(result660.second/W660));
-          else
-            function_value = 0.0;
-        }
-        else if (result720.first){
-          // 720 for crust
-          if (phase_index_crust < partial_index_720)
-            function_value = 1.0;
-          else if (phase_index_crust == partial_index_720)
-            function_value = 0.5*(1.0 + std::tanh(result720.second/W720));
-          else
-            function_value = 0.0;
-        }
-        else{
-          // phase 0
-          function_value = 0.0;
-        }
+          }
         return function_value;
       }
-      
-      
+
+
       template <int dim>
       double
       PyroliteTransition<dim>::compute_value_pyrolite_1_0 (const PhaseFunctionInputs<dim> &in,
-                                                        const std::vector<double>& manually_method_pyrolite,
-                                                        const std::vector<double>& transition_depths,
-                                                        const std::vector<double>& transition_temperatures,
-                                                        const std::vector<double>& transition_widths,
-                                                        const std::vector<double>& transition_slopes) const
+                                                           const std::vector<double> &manually_method_pyrolite,
+                                                           const std::vector<double> &transition_depths,
+                                                           const std::vector<double> &transition_temperatures,
+                                                           const std::vector<double> &transition_widths,
+                                                           const std::vector<double> &transition_slopes) const
       {
         // version 1.0
         const double version = 1.0;
 
-        // partial indexes of transitions 
-        const int partial_index_410 = 0; 
-        const int partial_index_520 = 1; 
-        const int partial_index_560 = 2; 
-        const int partial_index_660 = 3; 
-        const int partial_index_660_gt = 4; 
-        const int partial_index_660_gt1 = 5; 
-        const int partial_index_660_gt_combined = 6; 
-        
-        // initiate varibles 
+        // partial indexes of transitions
+        const int partial_index_410 = 0;
+        const int partial_index_520 = 1;
+        const int partial_index_560 = 2;
+        const int partial_index_660 = 3;
+        const int partial_index_660_gt = 4;
+        const int partial_index_660_gt1 = 5;
+        const int partial_index_660_gt_combined = 6;
+
+        // initiate varibles
         double function_value = 0.0;
         int phase_index_pyrolite = 0;
-        
+
         // composition-wise index
 
         // loop to get the local index relative to the 0th pyrolite phase
         // debug
-        while ( in.phase_index - phase_index_pyrolite != 0){
+        while ( in.phase_index - phase_index_pyrolite != 0)
+          {
             // see if we reach the start of the pyrolite phases
             // as for the 0th phase tran in the pyrolite phases, this loop is false initially
             if (abs(manually_method_pyrolite[in.phase_index - phase_index_pyrolite - 1] - version) > 1e-8)
               break;
             // add one to the relative index within the pyrolite phases if we haven't
             phase_index_pyrolite++;
-        }
-        
+          }
+
         // 410
         const int phase_index_410 = in.phase_index - phase_index_pyrolite + partial_index_410;
         const double d410 = transition_depths[phase_index_410];
@@ -1981,7 +2000,7 @@ namespace aspect
         const double W410 = transition_widths[phase_index_410];
         const double slope410 = transition_slopes[phase_index_410];
         std::pair<bool, double> result410 = compute_point_to_line(in, T410, d410, W410, slope410/in.pressure_depth_derivative, true, false, false);
-        
+
         // 520
         const int phase_index_520 = in.phase_index - phase_index_pyrolite + partial_index_520;
         const double d520 = transition_depths[phase_index_520];
@@ -1989,7 +2008,7 @@ namespace aspect
         const double W520 = transition_widths[phase_index_520];
         const double slope520 = transition_slopes[phase_index_520];
         std::pair<bool, double> result520 = compute_point_to_line(in, T520, d520, W520, slope520/in.pressure_depth_derivative, true, false, false);
-        
+
         // 560
         const int phase_index_560 = in.phase_index - phase_index_pyrolite + partial_index_560;
         const double d560 = transition_depths[phase_index_560];
@@ -1997,7 +2016,7 @@ namespace aspect
         const double W560 = transition_widths[phase_index_560];
         const double slope560 = transition_slopes[phase_index_560];
         std::pair<bool, double> result560 = compute_point_to_line(in, T560, d560, W560, slope560/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660
         const int phase_index_660 = in.phase_index - phase_index_pyrolite + partial_index_660;
         //const int phase_index_660 = 0;
@@ -2006,7 +2025,7 @@ namespace aspect
         const double W660 = transition_widths[phase_index_660];
         const double slope660 = transition_slopes[phase_index_660];
         std::pair<bool, double> result660 = compute_point_to_line(in, T660, d660, W660, slope660/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660 for gt, part 0
         const int phase_index_660_gt = in.phase_index - phase_index_pyrolite + partial_index_660_gt;
         //const int phase_index_660 = 0;
@@ -2015,7 +2034,7 @@ namespace aspect
         const double W660_gt = transition_widths[phase_index_660_gt];
         const double slope660_gt = transition_slopes[phase_index_660_gt];
         std::pair<bool, double> result660_gt = compute_point_to_line(in, T660_gt, d660_gt, W660_gt, slope660_gt/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660 for gt, part 1
         const int phase_index_660_gt1 = in.phase_index - phase_index_pyrolite + partial_index_660_gt1;
         //const int phase_index_660 = 0;
@@ -2024,7 +2043,7 @@ namespace aspect
         const double W660_gt1 = transition_widths[phase_index_660_gt1];
         const double slope660_gt1 = transition_slopes[phase_index_660_gt1];
         std::pair<bool, double> result660_gt1 = compute_point_to_line(in, T660_gt1, d660_gt1, W660_gt1, slope660_gt1/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660 for gt, combined
         const int phase_index_660_gt_combined = in.phase_index - phase_index_pyrolite + partial_index_660_gt_combined;
         //const int phase_index_660 = 0;
@@ -2033,83 +2052,91 @@ namespace aspect
         const double W660_gt_combined = transition_widths[phase_index_660_gt_combined];
         const double slope660_gt_combined = transition_slopes[phase_index_660_gt_combined];
         std::pair<bool, double> result660_gt_combined = compute_point_to_line(in, T660_gt_combined, d660_gt_combined, W660_gt_combined, slope660_gt_combined/in.pressure_depth_derivative, true, false, false);
-        
-        if (result410.first){
-          // 410 for pyrolite
-            if(phase_index_pyrolite == partial_index_410)
+
+        if (result410.first)
+          {
+            // 410 for pyrolite
+            if (phase_index_pyrolite == partial_index_410)
               function_value += 0.5*(1.0 + std::tanh(result410.second/W410));
-        }
-        if (result520.first){
-          // 520 for pyrolite
-            if(phase_index_pyrolite == partial_index_520)
+          }
+        if (result520.first)
+          {
+            // 520 for pyrolite
+            if (phase_index_pyrolite == partial_index_520)
               function_value += 0.5*(1.0 + std::tanh(result520.second/W520));
-        }
-        if (result560.first){
-          // 560 for pyrolite, Gt -> CaPv + Gt
-            if(phase_index_pyrolite == partial_index_560)
+          }
+        if (result560.first)
+          {
+            // 560 for pyrolite, Gt -> CaPv + Gt
+            if (phase_index_pyrolite == partial_index_560)
               function_value += 0.5*(1.0 + std::tanh(result560.second/W560));
-        }
-        if (result660.first){
-          // 660 for pyrolite, rw -> brg + fp
-            if(phase_index_pyrolite == partial_index_660)
+          }
+        if (result660.first)
+          {
+            // 660 for pyrolite, rw -> brg + fp
+            if (phase_index_pyrolite == partial_index_660)
               function_value += 0.5*(1.0 + std::tanh(result660.second/W660));
-        }
-        if (result660_gt.first && in.temperature < T660_gt){
-          // 660 for pyrolite, gt -> il
-            if(phase_index_pyrolite == partial_index_660_gt)
+          }
+        if (result660_gt.first && in.temperature < T660_gt)
+          {
+            // 660 for pyrolite, gt -> il
+            if (phase_index_pyrolite == partial_index_660_gt)
               function_value += 0.5*(1.0 + std::tanh(result660_gt.second/W660_gt));
-        }
-        if (result660_gt1.first && in.temperature < T660_gt1){
-          // 660 for pyrolite, il -> brg
-            if(phase_index_pyrolite == partial_index_660_gt1)
+          }
+        if (result660_gt1.first && in.temperature < T660_gt1)
+          {
+            // 660 for pyrolite, il -> brg
+            if (phase_index_pyrolite == partial_index_660_gt1)
               function_value += 0.5*(1.0 + std::tanh(result660_gt1.second/W660_gt1));
-        }
-        if (result660_gt_combined.first && in.temperature >= T660_gt_combined){
-          // 660 for pyrolite combined, at higher temperature, gt -> brg
-            if(phase_index_pyrolite == partial_index_660_gt_combined)
+          }
+        if (result660_gt_combined.first && in.temperature >= T660_gt_combined)
+          {
+            // 660 for pyrolite combined, at higher temperature, gt -> brg
+            if (phase_index_pyrolite == partial_index_660_gt_combined)
               function_value += 0.5*(1.0 + std::tanh(result660_gt_combined.second/W660_gt_combined));
-        }
+          }
         return function_value;
       }
-      
+
       template <int dim>
       double
       PyroliteTransition<dim>::compute_value_harzburgite_1_0 (const PhaseFunctionInputs<dim> &in,
-                                                        const std::vector<double>& manually_method_harzburgite,
-                                                        const std::vector<double>& transition_depths,
-                                                        const std::vector<double>& transition_temperatures,
-                                                        const std::vector<double>& transition_widths,
-                                                        const std::vector<double>& transition_slopes) const
+                                                              const std::vector<double> &manually_method_harzburgite,
+                                                              const std::vector<double> &transition_depths,
+                                                              const std::vector<double> &transition_temperatures,
+                                                              const std::vector<double> &transition_widths,
+                                                              const std::vector<double> &transition_slopes) const
       {
         // version 1.0
         const double version = 1.0;
 
-        // partial indexes of transitions 
-        const int partial_index_410 = 0; 
-        const int partial_index_520 = 1; 
-        const int partial_index_560 = 2; 
-        const int partial_index_660 = 3; 
-        const int partial_index_660_gt = 4; 
-        const int partial_index_660_gt1 = 5; 
-        const int partial_index_660_gt_combined = 6; 
-        
-        // initiate varibles 
+        // partial indexes of transitions
+        const int partial_index_410 = 0;
+        const int partial_index_520 = 1;
+        const int partial_index_560 = 2;
+        const int partial_index_660 = 3;
+        const int partial_index_660_gt = 4;
+        const int partial_index_660_gt1 = 5;
+        const int partial_index_660_gt_combined = 6;
+
+        // initiate varibles
         double function_value = 0.0;
         int phase_index_pyrolite = 0;
-        
+
         // composition-wise index
 
         // loop to get the local index relative to the 0th pyrolite phase
         // debug
-        while ( in.phase_index - phase_index_pyrolite != 0){
+        while ( in.phase_index - phase_index_pyrolite != 0)
+          {
             // see if we reach the start of the pyrolite phases
             // as for the 0th phase tran in the pyrolite phases, this loop is false initially
             if (abs(manually_method_harzburgite[in.phase_index - phase_index_pyrolite - 1] - version) > 1e-8)
               break;
             // add one to the relative index within the pyrolite phases if we haven't
             phase_index_pyrolite++;
-        }
-        
+          }
+
         // 410
         const int phase_index_410 = in.phase_index - phase_index_pyrolite + partial_index_410;
         const double d410 = transition_depths[phase_index_410];
@@ -2117,7 +2144,7 @@ namespace aspect
         const double W410 = transition_widths[phase_index_410];
         const double slope410 = transition_slopes[phase_index_410];
         std::pair<bool, double> result410 = compute_point_to_line(in, T410, d410, W410, slope410/in.pressure_depth_derivative, true, false, false);
-        
+
         // 520
         const int phase_index_520 = in.phase_index - phase_index_pyrolite + partial_index_520;
         const double d520 = transition_depths[phase_index_520];
@@ -2125,7 +2152,7 @@ namespace aspect
         const double W520 = transition_widths[phase_index_520];
         const double slope520 = transition_slopes[phase_index_520];
         std::pair<bool, double> result520 = compute_point_to_line(in, T520, d520, W520, slope520/in.pressure_depth_derivative, true, false, false);
-        
+
         // 560
         const int phase_index_560 = in.phase_index - phase_index_pyrolite + partial_index_560;
         const double d560 = transition_depths[phase_index_560];
@@ -2133,7 +2160,7 @@ namespace aspect
         const double W560 = transition_widths[phase_index_560];
         const double slope560 = transition_slopes[phase_index_560];
         std::pair<bool, double> result560 = compute_point_to_line(in, T560, d560, W560, slope560/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660
         const int phase_index_660 = in.phase_index - phase_index_pyrolite + partial_index_660;
         //const int phase_index_660 = 0;
@@ -2142,7 +2169,7 @@ namespace aspect
         const double W660 = transition_widths[phase_index_660];
         const double slope660 = transition_slopes[phase_index_660];
         std::pair<bool, double> result660 = compute_point_to_line(in, T660, d660, W660, slope660/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660 for gt, part 0
         const int phase_index_660_gt = in.phase_index - phase_index_pyrolite + partial_index_660_gt;
         //const int phase_index_660 = 0;
@@ -2151,7 +2178,7 @@ namespace aspect
         const double W660_gt = transition_widths[phase_index_660_gt];
         const double slope660_gt = transition_slopes[phase_index_660_gt];
         std::pair<bool, double> result660_gt = compute_point_to_line(in, T660_gt, d660_gt, W660_gt, slope660_gt/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660 for gt, part 1
         const int phase_index_660_gt1 = in.phase_index - phase_index_pyrolite + partial_index_660_gt1;
         //const int phase_index_660 = 0;
@@ -2160,7 +2187,7 @@ namespace aspect
         const double W660_gt1 = transition_widths[phase_index_660_gt1];
         const double slope660_gt1 = transition_slopes[phase_index_660_gt1];
         std::pair<bool, double> result660_gt1 = compute_point_to_line(in, T660_gt1, d660_gt1, W660_gt1, slope660_gt1/in.pressure_depth_derivative, true, false, false);
-        
+
         // 660 for gt, combined
         const int phase_index_660_gt_combined = in.phase_index - phase_index_pyrolite + partial_index_660_gt_combined;
         //const int phase_index_660 = 0;
@@ -2169,65 +2196,72 @@ namespace aspect
         const double W660_gt_combined = transition_widths[phase_index_660_gt_combined];
         const double slope660_gt_combined = transition_slopes[phase_index_660_gt_combined];
         std::pair<bool, double> result660_gt_combined = compute_point_to_line(in, T660_gt_combined, d660_gt_combined, W660_gt_combined, slope660_gt_combined/in.pressure_depth_derivative, true, false, false);
-        
-        if (result410.first){
-          // 410 for pyrolite
-            if(phase_index_pyrolite == partial_index_410)
+
+        if (result410.first)
+          {
+            // 410 for pyrolite
+            if (phase_index_pyrolite == partial_index_410)
               function_value += 0.5*(1.0 + std::tanh(result410.second/W410));
-        }
-        if (result520.first){
-          // 520 for pyrolite
-            if(phase_index_pyrolite == partial_index_520)
+          }
+        if (result520.first)
+          {
+            // 520 for pyrolite
+            if (phase_index_pyrolite == partial_index_520)
               function_value += 0.5*(1.0 + std::tanh(result520.second/W520));
-        }
-        if (result560.first){
-          // 560 for pyrolite, Gt -> CaPv + Gt
-            if(phase_index_pyrolite == partial_index_560)
+          }
+        if (result560.first)
+          {
+            // 560 for pyrolite, Gt -> CaPv + Gt
+            if (phase_index_pyrolite == partial_index_560)
               function_value += 0.5*(1.0 + std::tanh(result560.second/W560));
-        }
-        if (result660.first){
-          // 660 for pyrolite, rw -> brg + fp
-            if(phase_index_pyrolite == partial_index_660)
+          }
+        if (result660.first)
+          {
+            // 660 for pyrolite, rw -> brg + fp
+            if (phase_index_pyrolite == partial_index_660)
               function_value += 0.5*(1.0 + std::tanh(result660.second/W660));
-        }
-        if (result660_gt.first && in.temperature < T660_gt){
-          // 660 for pyrolite, gt -> il
-            if(phase_index_pyrolite == partial_index_660_gt)
+          }
+        if (result660_gt.first && in.temperature < T660_gt)
+          {
+            // 660 for pyrolite, gt -> il
+            if (phase_index_pyrolite == partial_index_660_gt)
               function_value += 0.5*(1.0 + std::tanh(result660_gt.second/W660_gt));
-        }
-        if (result660_gt1.first && in.temperature < T660_gt1){
-          // 660 for pyrolite, il -> brg
-            if(phase_index_pyrolite == partial_index_660_gt1)
+          }
+        if (result660_gt1.first && in.temperature < T660_gt1)
+          {
+            // 660 for pyrolite, il -> brg
+            if (phase_index_pyrolite == partial_index_660_gt1)
               function_value += 0.5*(1.0 + std::tanh(result660_gt1.second/W660_gt1));
-        }
-        if (result660_gt_combined.first && in.temperature > T660_gt_combined){
-          // 660 for pyrolite combined, at higher temperature, gt -> brg
-            if(phase_index_pyrolite == partial_index_660_gt_combined)
+          }
+        if (result660_gt_combined.first && in.temperature > T660_gt_combined)
+          {
+            // 660 for pyrolite combined, at higher temperature, gt -> brg
+            if (phase_index_pyrolite == partial_index_660_gt_combined)
               function_value += 0.5*(1.0 + std::tanh(result660_gt_combined.second/W660_gt_combined));
-        }
+          }
         return function_value;
       }
 
       template <int dim>
-      std::pair<bool, double> 
-      compute_point_to_line (const PhaseFunctionInputs<dim> &in, 
+      std::pair<bool, double>
+      compute_point_to_line (const PhaseFunctionInputs<dim> &in,
                              const double T, const double P, const double W, const double slope,
                              bool by_depth, bool is_negative, bool is_vertical)
       {
         // In this approach, we define a transition as a solid line and a range.
         // The solid line is a rigid boundary for the new phase.
-        // While the range is a width of transition. 
+        // While the range is a width of transition.
         double deviation;
         bool is_in;
         if (is_vertical)
           deviation = in.temperature - T;
         else
-        {
-          if (by_depth)
-            deviation = in.depth - P - slope * (in.temperature - T);
-          else
-            deviation = in.pressure - P - slope * (in.temperature - T);
-        }
+          {
+            if (by_depth)
+              deviation = in.depth - P - slope * (in.temperature - T);
+            else
+              deviation = in.pressure - P - slope * (in.temperature - T);
+          }
         // In this approach, a transition must has a direction in defination
         // We need an opposite direction when the transition defined from higher pressure to lower pressure.
         if (is_negative)
@@ -2241,18 +2275,22 @@ namespace aspect
       double average_deviation(double x1, double x2, double pinpoint)
       {
         double deviation = 0.0;
-        if (x1 < pinpoint && x2 < pinpoint){
-          deviation = pinpoint - sqrt(pow(pinpoint - x1, 2.0) + pow(pinpoint - x2, 2.0));
-        }
-        else if (x1 < pinpoint && x2 > pinpoint){
-          deviation = x1;
-        }
-        else if (x1 > pinpoint && x2 < pinpoint){
-          deviation = x2;
-        }
-        else{
-          deviation = std::min(x1, x2);
-        }
+        if (x1 < pinpoint && x2 < pinpoint)
+          {
+            deviation = pinpoint - sqrt(pow(pinpoint - x1, 2.0) + pow(pinpoint - x2, 2.0));
+          }
+        else if (x1 < pinpoint && x2 > pinpoint)
+          {
+            deviation = x1;
+          }
+        else if (x1 > pinpoint && x2 < pinpoint)
+          {
+            deviation = x2;
+          }
+        else
+          {
+            deviation = std::min(x1, x2);
+          }
         return deviation;
       }
     }
