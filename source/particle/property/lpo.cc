@@ -1814,6 +1814,7 @@ namespace aspect
                 prm.declare_entry ("Threshold GBS", "0.3",
                                    Patterns::Double(0),
                                    "This is the grain-boundary sliding threshold. ");
+
                 prm.declare_entry ("Randomize direction below threshold GWB", "false",
                                    Patterns::Bool(),
                                    "Randomize the grain direction if the grain size falls below"
@@ -1904,7 +1905,7 @@ namespace aspect
                 exponent_p = prm.get_double("Exponents p");
                 nucleation_efficientcy = prm.get_double("Nucleation efficientcy");
                 threshold_GBS = prm.get_double("Threshold GBS");
-                randomize_small_grains = prm.get_double("Randomize direction below threshold GWB");
+                randomize_small_grains = prm.get_bool("Randomize direction below threshold GWB");
                 max_grain_size = prm.get_double("Max grain size");
                 use_world_builder = prm.get_bool("Use World Builder");
 
