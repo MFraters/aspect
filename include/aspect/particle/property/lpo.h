@@ -27,6 +27,7 @@
 
 DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
 #include <boost/random.hpp>
+#include <boost/math/distributions/normal.hpp>
 DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 
 namespace aspect
@@ -398,6 +399,10 @@ namespace aspect
 
           bool randomize_small_grains;
           double max_grain_size;
+
+          bool initialize_grains_with_normal_distribution;
+          double initialize_grains_with_normal_distribution_mean;
+          double initialize_grains_with_normal_distribution_standard_deviation;
 
           static
           unsigned int n_grains;

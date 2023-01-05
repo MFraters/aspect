@@ -386,12 +386,23 @@ namespace aspect
               {
                 const double initial_volume_fraction = 1.0/n_grains;
                 boost::random::uniform_real_distribution<double> uniform_distribution(0,1);
+                boost::random::normal_distribution<double> normal_distribution(initialize_grains_with_normal_distribution_mean,
+                                                                               initialize_grains_with_normal_distribution_standard_deviation);
 
                 // it is 2 times the amount of grains because we have to compute for olivine and enstatite.
+                double grain_sizes_sum = 0.;
                 for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
                   {
                     // set volume fraction
-                    volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction;
+                    if (initialize_grains_with_normal_distribution)
+                      {
+                        volume_fractions_grains[mineral_i][grain_i] = std::min(std::max(normal_distribution(this->random_number_generator),1.),0.);
+                        grain_sizes_sum += volume_fractions_grains[mineral_i][grain_i];
+                      }
+                    else
+                      {
+                        volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction;
+                      }
 
                     // set a uniform random a_cosine_matrix per grain
                     // This function is based on an article in Graphic Gems III, written by James Arvo, Cornell University (p 116-120).
@@ -451,6 +462,16 @@ namespace aspect
                     a_cosine_matrices_grains[mineral_i][grain_i][2][1] = Vz * Sy;
                     a_cosine_matrices_grains[mineral_i][grain_i][2][2] = 1.0 - z;   // This equals Vz * Vz - 1.0
 
+                  }
+
+
+                if (initialize_grains_with_normal_distribution)
+                  {
+                    const double inv_grain_sizes_sum = 1./grain_sizes_sum;
+                    for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
+                      {
+                        volume_fractions_grains[mineral_i][grain_i] *= grain_sizes_sum;
+                      }
                   }
               }
           }
@@ -1826,6 +1847,22 @@ namespace aspect
                                    "The result is normalized again afterwards, so in pratice the grain size may be "
                                    "slightly larger than this max value.");
 
+
+                prm.declare_entry ("Initialize grain with normal distribution", "false",
+                                   Patterns::Bool(),
+                                   "Initialize grains grains with a normal distribution instead of a uniform distribution. "
+                                   "The value provided by the distribution is cut of between 0 and 1 and all values are normalized "
+                                   "between 0 and 1.");
+
+                prm.declare_entry ("Initial grains mean", "0.5.",
+                                   Patterns::Double(0),
+                                   "The mean of the initial grain size.");
+
+                prm.declare_entry ("Initial grains standard deviation", "0.1.",
+                                   Patterns::Double(0),
+                                   "The standard deviation of the initial grain size. "
+                                   "Note that values will be cut of and normalized between 0 and 1.");
+
                 prm.declare_entry ("Use World Builder", "false",
                                    Patterns::Anything(),
                                    "Whether to use the world builder for setting the LPO.");
@@ -1907,6 +1944,9 @@ namespace aspect
                 threshold_GBS = prm.get_double("Threshold GBS");
                 randomize_small_grains = prm.get_bool("Randomize direction below threshold GWB");
                 max_grain_size = prm.get_double("Max grain size");
+                initialize_grains_with_normal_distribution = prm.get_bool("Initialize grain with normal distribution");
+                initialize_grains_with_normal_distribution_mean= prm.get_double("Initial grains mean");
+                initialize_grains_with_normal_distribution_standard_deviation = prm.get_double("Initial grains standard deviation");
                 use_world_builder = prm.get_bool("Use World Builder");
 
                 const std::vector<std::string> temp_deformation_type_selector = dealii::Utilities::split_string_list(prm.get("Minerals"));
