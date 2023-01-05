@@ -836,6 +836,31 @@ namespace aspect
                                   + std::to_string(inv_sum_volume_mineral) + "."));
               }
 
+            if (max_grain_size < 1.0)
+              {
+                // check all the grainsizes if they are smaller than max_grain_size.
+                double new_sum_volume_mineral = 0.;
+                for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                  {
+                    if (volume_fractions_grains[mineral_i][grain_i] > max_grain_size)
+                      {
+                        volume_fractions_grains[mineral_i][grain_i] = max_grain_size;
+                      }
+                    new_sum_volume_mineral += volume_fractions_grains[mineral_i][grain_i];
+                  }
+
+                const double new_inv_sum_volume_mineral = 1.0/new_sum_volume_mineral;
+
+                for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                  {
+                    volume_fractions_grains[mineral_i][grain_i] *= new_inv_sum_volume_mineral;
+                    Assert(isfinite(volume_fractions_grains[mineral_i][grain_i]),
+                           ExcMessage("volume_fractions_grains[mineral_i]" + std::to_string(grain_i) + "] is not finite: "
+                                      + std::to_string(volume_fractions_grains[mineral_i][grain_i]) + ", inv_sum_volume_mineral = "
+                                      + std::to_string(inv_sum_volume_mineral) + "."));
+                  }
+              }
+
             if (randomize_small_grains)
               {
                 for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
@@ -1794,6 +1819,12 @@ namespace aspect
                                    "Randomize the grain direction if the grain size falls below"
                                    "the threshold GBS.");
 
+                prm.declare_entry ("Max grain size", "1.",
+                                   Patterns::Double(0),
+                                   "Force a maximum grain size. This action is performed after the normalization. "
+                                   "The result is normalized again afterwards, so in pratice the grain size may be "
+                                   "slightly larger than this max value.");
+
                 prm.declare_entry ("Use World Builder", "false",
                                    Patterns::Anything(),
                                    "Whether to use the world builder for setting the LPO.");
@@ -1874,6 +1905,7 @@ namespace aspect
                 nucleation_efficientcy = prm.get_double("Nucleation efficientcy");
                 threshold_GBS = prm.get_double("Threshold GBS");
                 randomize_small_grains = prm.get_double("Randomize direction below threshold GWB");
+                max_grain_size = prm.get_double("Max grain size");
                 use_world_builder = prm.get_bool("Use World Builder");
 
                 const std::vector<std::string> temp_deformation_type_selector = dealii::Utilities::split_string_list(prm.get("Minerals"));
