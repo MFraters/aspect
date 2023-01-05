@@ -397,6 +397,7 @@ namespace aspect
           unsigned int random_number_seed;
 
           bool randomize_small_grains;
+          double max_grain_size;
 
           static
           unsigned int n_grains;
