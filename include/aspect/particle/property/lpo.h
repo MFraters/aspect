@@ -396,6 +396,8 @@ namespace aspect
           //boost::variate_generator<boost::lagged_fibonacci44497&, boost::random::uniform_real_distribution<double>> get_random_number;
           unsigned int random_number_seed;
 
+          bool randomize_small_grains;
+
           static
           unsigned int n_grains;
 

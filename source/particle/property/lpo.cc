@@ -836,6 +836,74 @@ namespace aspect
                                   + std::to_string(inv_sum_volume_mineral) + "."));
               }
 
+            if (randomize_small_grains)
+              {
+                for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                  {
+                    if (volume_fractions_grains[mineral_i][grain_i] < threshold_GBS/n_grains)
+                      {
+                        boost::random::uniform_real_distribution<double> uniform_distribution(0,1);
+                        // set a uniform random a_cosine_matrix per grain
+                        // This function is based on an article in Graphic Gems III, written by James Arvo, Cornell University (p 116-120).
+                        // The original code can be found on  http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/rand_rotation.c
+                        // and is licenend accourding to this website with the following licence:
+                        //
+                        // "The Graphics Gems code is copyright-protected. In other words, you cannot claim the text of the code as your own and
+                        // resell it. Using the code is permitted in any program, product, or library, non-commercial or commercial. Giving credit
+                        // is not required, though is a nice gesture. The code comes as-is, and if there are any flaws or problems with any Gems
+                        // code, nobody involved with Gems - authors, editors, publishers, or webmasters - are to be held responsible. Basically,
+                        // don't be a jerk, and remember that anything free comes with no guarantee.""
+                        //
+                        // The book saids in the preface the following: "As in the first two volumes, all of the C and C++ code in this book is in
+                        // the public domain, and is yours to study, modify, and use."
+
+                        // first generate three random numbers between 0 and 1 and multiply them with 2 PI or 2 for z. Note that these are not the same as phi_1, theta and phi_2.
+                        double one = uniform_distribution(this->random_number_generator);
+                        double two = uniform_distribution(this->random_number_generator);
+                        double three = uniform_distribution(this->random_number_generator);
+
+                        double theta = 2.0 * M_PI * one; // Rotation about the pole (Z)
+                        double phi = 2.0 * M_PI * two; // For direction of pole deflection.
+                        double z = 2.0 * three; //For magnitude of pole deflection.
+
+                        // Compute a vector V used for distributing points over the sphere
+                        // via the reflection I - V Transpose(V).  This formulation of V
+                        // will guarantee that if x[1] and x[2] are uniformly distributed,
+                        // the reflected points will be uniform on the sphere.  Note that V
+                        // has length sqrt(2) to eliminate the 2 in the Householder matrix.
+
+                        double r  = std::sqrt( z );
+                        double Vx = std::sin( phi ) * r;
+                        double Vy = std::cos( phi ) * r;
+                        double Vz = std::sqrt( 2.0 - z );
+
+                        // Compute the row vector S = Transpose(V) * R, where R is a simple
+                        // rotation by theta about the z-axis.  No need to compute Sz since
+                        // it's just Vz.
+
+                        double st = std::sin( theta );
+                        double ct = std::cos( theta );
+                        double Sx = Vx * ct - Vy * st;
+                        double Sy = Vx * st + Vy * ct;
+
+                        // Construct the rotation matrix  ( V Transpose(V) - I ) R, which
+                        // is equivalent to V S - R.
+
+                        a_cosine_matrices_grains[mineral_i][grain_i][0][0] = Vx * Sx - ct;
+                        a_cosine_matrices_grains[mineral_i][grain_i][0][1] = Vx * Sy - st;
+                        a_cosine_matrices_grains[mineral_i][grain_i][0][2] = Vx * Vz;
+
+                        a_cosine_matrices_grains[mineral_i][grain_i][1][0] = Vy * Sx + st;
+                        a_cosine_matrices_grains[mineral_i][grain_i][1][1] = Vy * Sy - ct;
+                        a_cosine_matrices_grains[mineral_i][grain_i][1][2] = Vy * Vz;
+
+                        a_cosine_matrices_grains[mineral_i][grain_i][2][0] = Vz * Sx;
+                        a_cosine_matrices_grains[mineral_i][grain_i][2][1] = Vz * Sy;
+                        a_cosine_matrices_grains[mineral_i][grain_i][2][2] = 1.0 - z;   // This equals Vz * Vz - 1.0
+                      }
+                  }
+              }
+
             for (unsigned int i = 0; i < n_grains; ++i)
               {
                 for (size_t j = 0; j < 3; j++)
@@ -1721,6 +1789,10 @@ namespace aspect
                 prm.declare_entry ("Threshold GBS", "0.3",
                                    Patterns::Double(0),
                                    "This is the grain-boundary sliding threshold. ");
+                prm.declare_entry ("Randomize direction below threshold GWB", "false",
+                                   Patterns::Bool(),
+                                   "Randomize the grain direction if the grain size falls below"
+                                   "the threshold GBS.");
 
                 prm.declare_entry ("Use World Builder", "false",
                                    Patterns::Anything(),
@@ -1801,6 +1873,7 @@ namespace aspect
                 exponent_p = prm.get_double("Exponents p");
                 nucleation_efficientcy = prm.get_double("Nucleation efficientcy");
                 threshold_GBS = prm.get_double("Threshold GBS");
+                randomize_small_grains = prm.get_double("Randomize direction below threshold GWB");
                 use_world_builder = prm.get_bool("Use World Builder");
 
                 const std::vector<std::string> temp_deformation_type_selector = dealii::Utilities::split_string_list(prm.get("Minerals"));
