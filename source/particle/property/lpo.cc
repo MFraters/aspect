@@ -396,7 +396,7 @@ namespace aspect
                     // set volume fraction
                     if (initialize_grains_with_normal_distribution)
                       {
-                        volume_fractions_grains[mineral_i][grain_i] = std::min(std::max(normal_distribution(this->random_number_generator),1.),0.);
+                        volume_fractions_grains[mineral_i][grain_i] = std::min(std::max(normal_distribution(this->random_number_generator),0.),1.);
                         grain_sizes_sum += volume_fractions_grains[mineral_i][grain_i];
                       }
                     else
@@ -1854,11 +1854,11 @@ namespace aspect
                                    "The value provided by the distribution is cut of between 0 and 1 and all values are normalized "
                                    "between 0 and 1.");
 
-                prm.declare_entry ("Initial grains mean", "0.5.",
+                prm.declare_entry ("Initial grains mean", "0.5",
                                    Patterns::Double(0),
                                    "The mean of the initial grain size.");
 
-                prm.declare_entry ("Initial grains standard deviation", "0.1.",
+                prm.declare_entry ("Initial grains standard deviation", "0.1",
                                    Patterns::Double(0),
                                    "The standard deviation of the initial grain size. "
                                    "Note that values will be cut of and normalized between 0 and 1.");
