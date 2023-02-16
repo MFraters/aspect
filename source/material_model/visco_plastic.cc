@@ -179,7 +179,17 @@ namespace aspect
                                                   phase_function.n_phase_transitions_for_each_composition(),
                                                   eos_outputs);
 
-          const std::vector<double> volume_fractions = MaterialUtilities::compute_composition_fractions(in.composition[i], volumetric_compositions);
+          // We only want to compute mass/volume fractions for fields that are chemical compositions.
+          std::vector<double> chemical_compositions(in.composition[i].size(),0.);
+          const std::vector<typename Parameters<dim>::CompositionalFieldDescription> composition_descriptions = this->introspection().get_composition_descriptions();
+
+          for (unsigned int c=0; c<in.composition[i].size(); ++c)
+            if (composition_descriptions[c].type == Parameters<dim>::CompositionalFieldDescription::chemical_composition
+                || composition_descriptions[c].type == Parameters<dim>::CompositionalFieldDescription::unspecified)
+              chemical_compositions[c] = in.composition[i][c];
+
+          const std::vector<double> volume_fractions = MaterialUtilities::compute_composition_fractions(chemical_compositions, volumetric_compositions);
+          //const std::vector<double> volume_fractions = MaterialUtilities::compute_composition_fractions(in.composition[i], volumetric_compositions);
 
           // not strictly correct if thermal expansivities are different, since we are interpreting
           // these compositions as volume fractions, but the error introduced should not be too bad.
