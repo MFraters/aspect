@@ -675,6 +675,7 @@ namespace aspect
             deformation_types[mineral_i] = (unsigned int)deformation_type;
 
             const std::array<double,4> ref_resolved_shear_stress = reference_resolved_shear_stress_from_deformation_type(deformation_type);
+            Assert(ref_resolved_shear_stress[0] > 0. && ref_resolved_shear_stress[1] > 0. && ref_resolved_shear_stress[2] > 0. && ref_resolved_shear_stress[3] > 0., ExcMessage("Incorrect ref_resolved_shear_stress: " + std::to_string(ref_resolved_shear_stress[0]) + ":" + std::to_string(ref_resolved_shear_stress[1]) + ":" + std::to_string(ref_resolved_shear_stress[2]) + ":" + std::to_string(ref_resolved_shear_stress[3])));
 
             for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
               {
@@ -934,7 +935,7 @@ namespace aspect
               ref_resolved_shear_stress[0] = 1;
               ref_resolved_shear_stress[1] = 1;
               ref_resolved_shear_stress[2] = 3;
-              ref_resolved_shear_stress[1] = max_value;
+              ref_resolved_shear_stress[3] = max_value;
               break;
 
             // Kaminski, Ribe and Browaeys, JGI, 2004 (same as in the matlab code)
@@ -1488,6 +1489,11 @@ namespace aspect
 
             const double rhos4 = std::pow(tau[index_inactive_q],exponent_p-stress_exponent) *
                                  std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent);
+
+            Assert(isfinite(rhos1) && !std::isnan(rhos1), ExcMessage("rhos1 is not finite or is nan (" + std::to_string(rhos1) + "): index=" + std::to_string(index_max_q) + ", tau=" + std::to_string(tau[index_max_q]) + ", beta=" + std::to_string(beta[index_max_q]) + ", p1=" + std::to_string(std::pow(tau[index_max_q],exponent_p-stress_exponent)) + ", p2=" + std::to_string(std::pow(std::abs(gamma*beta[index_max_q]),exponent_p/stress_exponent)) + ", full tau=" + std::to_string(tau[0]) + ":" + std::to_string(tau[1]) + ":" + std::to_string(tau[2]) + ":" + std::to_string(tau[3]) + "."));
+            Assert(isfinite(rhos2) && !std::isnan(rhos2), ExcMessage("rhos2 is not finite or is nan (" + std::to_string(rhos2) + "): index=" + std::to_string(index_intermediate_q) + ", tau=" + std::to_string(tau[index_intermediate_q]) + ", beta=" + std::to_string(beta[index_intermediate_q]) + ", p1=" + std::to_string(std::pow(tau[index_intermediate_q],exponent_p-stress_exponent)) + ", p2=" + std::to_string(std::pow(std::abs(gamma*beta[index_intermediate_q]),exponent_p/stress_exponent)) + "."));
+            Assert(isfinite(rhos3) && !std::isnan(rhos3), ExcMessage("rhos3 is not finite or is nan (" + std::to_string(rhos3) + "): index=" + std::to_string(index_min_q) + ", tau=" + std::to_string(tau[index_min_q]) + ", beta=" + std::to_string(beta[index_min_q]) + ", p1=" + std::to_string(std::pow(tau[index_min_q],exponent_p-stress_exponent)) + ", p2=" + std::to_string(std::pow(std::abs(gamma*beta[index_min_q]),exponent_p/stress_exponent)) + "."));
+            Assert(isfinite(rhos4) && !std::isnan(rhos4), ExcMessage("rhos4 is not finite or is nan (" + std::to_string(rhos4) + "): index=" + std::to_string(index_inactive_q) + ", tau=" + std::to_string(tau[index_inactive_q]) + ", beta=" + std::to_string(beta[index_inactive_q]) + ", p1=" + std::to_string(std::pow(tau[index_inactive_q],exponent_p-stress_exponent)) + ", p2=" + std::to_string(std::pow(std::abs(gamma*beta[index_inactive_q]),exponent_p/stress_exponent)) + "."));
 
             strain_energy[grain_i] = (rhos1 * exp(-nucleation_efficientcy * rhos1 * rhos1)
                                       + rhos2 * exp(-nucleation_efficientcy * rhos2 * rhos2)
