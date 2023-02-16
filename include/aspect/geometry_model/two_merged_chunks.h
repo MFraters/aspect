@@ -312,6 +312,8 @@ namespace aspect
          */
         internal::ChunkGeometry<dim> manifold;
 
+        bool two_mergd_grids;
+
         /**
          * Bind boundary indicators to child cells after each mesh refinement round.
          */
