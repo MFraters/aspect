@@ -51,10 +51,10 @@ namespace aspect
         point_spherical[1] = 0.0;
 
       Point<dim> euler_pole;
-      std::vector<Point<2>> polygon = {{-117./180.*M_PI, 32./180.*M_PI},
-        {-100./180.*M_PI, 32./180.*M_PI},
-        {-100./180.*M_PI, 58./180.*M_PI},
-        {-137./180.*M_PI, 58./180.*M_PI}
+      std::vector<Point<2>> polygon = {{(-117./180.)*M_PI, (30./180.)*M_PI},
+        {(-100./180.)*M_PI, (30./180.)*M_PI},
+        {(-100./180.)*M_PI, (60./180.)*M_PI},
+        {(-137./180.)*M_PI, (60./180.)*M_PI}
       };
       //std::cout << "point_spherical = " << point_spherical << std::endl;
       // need to use absolute plate motions, because otherwise I get large flows in the mantle. This is because there is no resitance from the lower mantle
@@ -84,9 +84,9 @@ namespace aspect
 
       // NA: https://www.sciencedirect.com/science/article/pii/S0012821X18301432
       // NA                PA
-      const double longitude = point_in_polygon ?  -33.326/180.*M_PI : 97.344/180.*M_PI;  //319.3/180.*M_PI;//−80.64 : 114.70); //
-      const double lattitude = point_in_polygon ?  -46.094/180.*M_PI : -59.790/180.*M_PI; //-58.3/180.*M_PI;//−4.85  : −63.58); //
-      const double angular_speed = (1e-6/year_in_seconds)*sin(point_in_polygon   ?  0.1780/180.*M_PI :  0.8023/180.*M_PI);//;0.651 : 0.209);   //
+      const double longitude = point_in_polygon ?  (-33.326/180.)*M_PI : (97.344/180.)*M_PI;  //319.3/180.*M_PI;//−80.64 : 114.70); //
+      const double lattitude = point_in_polygon ?  (-46.094/180.)*M_PI : (-59.790/180.)*M_PI; //-58.3/180.*M_PI;//−4.85  : −63.58); //
+      const double angular_speed = (1e-6/year_in_seconds)*sin(point_in_polygon   ?  (0.1780/180.)*M_PI :  (0.8023/180.)*M_PI);//;0.651 : 0.209);   //
       euler_pole[0] = angular_speed*cos(lattitude)*cos(longitude);
       euler_pole[1] = angular_speed*cos(lattitude)*sin(longitude);
       euler_pole[2] = angular_speed*sin(lattitude)    ;
@@ -96,14 +96,18 @@ namespace aspect
       //constexpr double lattitude = -59.790/180.*M_PI;
       // return a zero tensor regardless of position
       //return position_norm*(0.8023e-6/31556952)*dealii::cross_product_3d(euler_pole,position);
-      const double prefix = position_norm;
+      //const double prefix = position_norm;
       //if(point_in_polygon)
       //  std::cout << "euler_pole = " << euler_pole << ", position = " << position_normalized << ", angular_speed = " << angular_speed << ", velocity = " << prefix * dealii::cross_product_3d(euler_pole,position_normalized) << std::endl;
-      return prefix * dealii::cross_product_3d(euler_pole,position_normalized);
-      return dim == 3 ? Point<dim>({prefix*(euler_pole[1]*position[2]-euler_pole[2]*position[1]),
-                                    prefix*(euler_pole[2]*position[0]-euler_pole[0]*position[2]),
-                                    prefix*(euler_pole[0]*position[1]-euler_pole[1]*position[0])
-                                   }) : Point<dim>({0,0});
+      return position_norm * dealii::cross_product_3d(euler_pole,position_normalized);
+      //return dim == 3 ? Point<dim>({prefix*(euler_pole[1]*position[2]-euler_pole[2]*position[1]),
+      //                              prefix*(euler_pole[2]*position[0]-euler_pole[0]*position[2]),
+      //                              prefix*(euler_pole[0]*position[1]-euler_pole[1]*position[0])
+      //                             }) : Point<dim>({0,0});
+      //return dim == 3 ? Point<dim>({position_norm*(euler_pole[1]*position[2]-euler_pole[2]*position[1]),
+      //                              position_norm*(euler_pole[2]*position[0]-euler_pole[0]*position[2]),
+      //                              position_norm*(euler_pole[0]*position[1]-euler_pole[1]*position[0])
+      //                             }) : Point<dim>({0,0});
     }
   }
 }

@@ -45,28 +45,33 @@ namespace aspect
                             std::vector<Vector<double>> &computed_quantities) const
       {
         Assert ((computed_quantities[0].size() == dim), ExcInternalError());
-        auto cell = input_data.template get_cell<dim>();
+        //auto cell = input_data.template get_cell<dim>();
 
         for (unsigned int q=0; q<computed_quantities.size(); ++q)
           for (unsigned int d = 0; d < dim; ++d)
             computed_quantities[q](d)= 0.;
 
-        const double velocity_scaling_factor =
+        const double velocity_scaling_factor = 
           this->convert_output_to_years() ? year_in_seconds : 1.0;
 
         for (unsigned int q=0; q<computed_quantities.size(); ++q)
           {
             // reference: https://www.sciencedirect.com/science/article/pii/S0012821X18301432
-            std::array<double,3> euler_pole;
-            const double longitude = 60.583*M_PI;
-            const double lattitude = -37.886*M_PI;
-            const double angular_speed = (1e-6/year_in_seconds)*sin(1.1401/180.*M_PI);
+            //std::array<double,3> euler_pole;
+            Point<dim> euler_pole;
+            const double longitude = (60.583/180.)*M_PI;
+            const double lattitude = (-37.886/180.)*M_PI;
+            const double angular_speed = (1e-6/year_in_seconds)*sin((1.1401/180.)*M_PI);
             euler_pole[0] = angular_speed*cos(lattitude)*cos(longitude);
             euler_pole[1] = angular_speed*cos(lattitude)*sin(longitude);
             euler_pole[2] = angular_speed*sin(lattitude);
 
+            const double position_norm = input_data.evaluation_points[q].norm();
+            const auto  position_normalized = input_data.evaluation_points[q]/position_norm;
+	    const auto euler_velocity = position_norm * dealii::cross_product_3d(euler_pole,position_normalized);
+
             for (unsigned int d = 0; d < dim; ++d)
-              computed_quantities[q](d) = euler_pole[d] - input_data.solution_values[q][d] * velocity_scaling_factor;
+              computed_quantities[q](d) = (input_data.solution_values[q][d] - euler_velocity[d]) * velocity_scaling_factor;
           }
 
       }
