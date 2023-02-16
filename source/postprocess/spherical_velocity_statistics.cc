@@ -23,6 +23,7 @@
 #include <aspect/postprocess/spherical_velocity_statistics.h>
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/geometry_model/sphere.h>
+#include <aspect/geometry_model/two_merged_chunks.h>
 #include <aspect/global.h>
 
 #include <deal.II/base/quadrature_lib.h>
@@ -39,7 +40,8 @@ namespace aspect
     SphericalVelocityStatistics<dim>::execute (TableHandler &statistics)
     {
       Assert (Plugins::plugin_type_matches<const GeometryModel::SphericalShell<dim>> (this->get_geometry_model()) ||
-              Plugins::plugin_type_matches<const GeometryModel::Sphere<dim>> (this->get_geometry_model()),
+              Plugins::plugin_type_matches<const GeometryModel::Sphere<dim>> (this->get_geometry_model()) ||
+              Plugins::plugin_type_matches<const GeometryModel::TwoMergedChunks<dim>> (this->get_geometry_model()),
               ExcMessage ("This postprocessor can only be used if the geometry "
                           "is a sphere or spherical shell."));
 
