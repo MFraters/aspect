@@ -91,7 +91,7 @@ namespace aspect
         // E: activation energy, P: pressure,
         // V; activation volume, n: stress exponent, R: gas constant, T: temperature.
         double viscosity_dislocation = 0.5 * std::pow(p.prefactor,-1/p.stress_exponent) *
-                                       std::exp((p.activation_energy + pressure*p.activation_volume)/
+                                       std::exp((p.activation_energy + std::max(0.0,pressure)*p.activation_volume)/
                                                 (constants::gas_constant*temperature*p.stress_exponent)) *
                                        std::pow(strain_rate,((1. - p.stress_exponent)/p.stress_exponent));
 
