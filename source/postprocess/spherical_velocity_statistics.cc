@@ -25,6 +25,7 @@
 #include <aspect/geometry_model/chunk.h>
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/geometry_model/sphere.h>
+#include <aspect/geometry_model/two_merged_chunks.h>
 #include <aspect/global.h>
 
 #include <deal.II/base/quadrature_lib.h>
