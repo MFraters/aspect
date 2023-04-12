@@ -430,6 +430,39 @@ namespace aspect
                                                             const bool use_picard)
   {
     /**
+     * Eisenstat Walker method for determining the tolerance
+     */
+    if (nonlinear_iteration > 0)
+      {
+        if (!use_picard || newton_handler->parameters.use_Eisenstat_Walker_method_for_Picard_iterations)
+          {
+            //const bool EisenstatWalkerChoiceOne = true;
+            parameters.linear_stokes_solver_tolerance = std::min(1./(std::pow(0.55,log(dcr.residual/dcr.initial_residual))),newton_handler->parameters.maximum_linear_stokes_solver_tolerance);
+            /*parameters.linear_stokes_solver_tolerance = compute_Eisenstat_Walker_linear_tolerance(EisenstatWalkerChoiceOne,
+                                                        newton_handler->parameters.maximum_linear_stokes_solver_tolerance,
+                                                        parameters.linear_stokes_solver_tolerance,
+                                                        dcr.stokes_residuals.second,
+                                                        dcr.residual,
+                                                        dcr.residual_old);*/
+
+            pcout << "   The linear solver tolerance is set to "
+                  << parameters.linear_stokes_solver_tolerance
+                  << ". "; 
+                  //<< "1: " << dcr.residual << "-" << dcr.stokes_residuals.second << ")/" << dcr.residual_old << " = " << (dcr.residual-dcr.stokes_residuals.second)/dcr.residual_old 
+                  //<< ",2: " << dcr.residual_old << "-" << dcr.stokes_residuals.second << ")/" << dcr.residual << " = " << (dcr.residual_old-dcr.stokes_residuals.second)/dcr.residual 
+                  //<< ", powerterm = " << (1+std::sqrt(5))*0.5;
+            if (!use_picard)
+              {
+                pcout << "Stabilization Preconditioner is "
+                      << Newton::to_string(newton_handler->parameters.preconditioner_stabilization)
+                      << " and A block is "
+                      << Newton::to_string(newton_handler->parameters.velocity_block_stabilization)
+                      << '.';
+              }
+            pcout << std::endl;
+          }
+      }
+    /**
      * copied from solver.cc
      */
 
@@ -511,35 +544,7 @@ namespace aspect
         return;
       }
 
-    /**
-     * Eisenstat Walker method for determining the tolerance
-     */
-    if (nonlinear_iteration > 1)
-      {
-        if (!use_picard || newton_handler->parameters.use_Eisenstat_Walker_method_for_Picard_iterations)
-          {
-            const bool EisenstatWalkerChoiceOne = true;
-            parameters.linear_stokes_solver_tolerance = compute_Eisenstat_Walker_linear_tolerance(EisenstatWalkerChoiceOne,
-                                                        newton_handler->parameters.maximum_linear_stokes_solver_tolerance,
-                                                        parameters.linear_stokes_solver_tolerance,
-                                                        dcr.stokes_residuals.second,
-                                                        dcr.residual,
-                                                        dcr.residual_old);
 
-            pcout << "   The linear solver tolerance is set to "
-                  << parameters.linear_stokes_solver_tolerance
-                  << ". ";
-            if (!use_picard)
-              {
-                pcout << "Stabilization Preconditioner is "
-                      << Newton::to_string(newton_handler->parameters.preconditioner_stabilization)
-                      << " and A block is "
-                      << Newton::to_string(newton_handler->parameters.velocity_block_stabilization)
-                      << '.';
-              }
-            pcout << std::endl;
-          }
-      }
 
     if (stokes_matrix_free)
       stokes_matrix_free->build_preconditioner();
@@ -591,7 +596,7 @@ namespace aspect
             /**
              * Eisenstat Walker method for determining the tolerance
              */
-            if (nonlinear_iteration > 1)
+            if (nonlinear_iteration > 0)
               {
                 dcr.residual_old = dcr.residual;
                 dcr.velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
@@ -600,15 +605,17 @@ namespace aspect
 
                 if (!use_picard)
                   {
-                    const bool EisenstatWalkerChoiceOne = true;
-                    parameters.linear_stokes_solver_tolerance = compute_Eisenstat_Walker_linear_tolerance(EisenstatWalkerChoiceOne,
+                    //const bool EisenstatWalkerChoiceOne = true;
+                    parameters.linear_stokes_solver_tolerance = std::min(1./(std::pow(0.55,log(dcr.residual/dcr.initial_residual))),newton_handler->parameters.maximum_linear_stokes_solver_tolerance);
+                                                                /*compute_Eisenstat_Walker_linear_tolerance(EisenstatWalkerChoiceOne,
                                                                 newton_handler->parameters.maximum_linear_stokes_solver_tolerance,
                                                                 parameters.linear_stokes_solver_tolerance,
                                                                 dcr.stokes_residuals.second,
                                                                 dcr.residual,
-                                                                dcr.residual_old);
+                                                                dcr.residual_old);*/
 
-                    pcout << "   The linear solver tolerance is set to " << parameters.linear_stokes_solver_tolerance << std::endl;
+                    pcout << "   The linear solver tolerance is set to " << parameters.linear_stokes_solver_tolerance
+                  << ". (" << dcr.residual << "-" << dcr.stokes_residuals.second << ")/" << dcr.residual_old << " = " << (dcr.residual-dcr.stokes_residuals.second)/dcr.residual_old << ", powerterm = " << (1+std::sqrt(5))*0.5 << ", new=" << 1./(std::pow(0.5,log(dcr.stokes_residuals.first/dcr.initial_residual))) << std::endl;
                   }
               }
 
