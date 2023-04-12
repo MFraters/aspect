@@ -2111,13 +2111,14 @@ namespace aspect
         const double version = 1.0;
 
         // partial indexes of transitions
-        const int partial_index_410 = 0;
-        const int partial_index_520 = 1;
-        const int partial_index_560 = 2;
-        const int partial_index_660 = 3;
-        const int partial_index_660_gt = 4;
-        const int partial_index_660_gt1 = 5;
-        const int partial_index_660_gt_combined = 6;
+        const int partial_index_80 = 0;
+        const int partial_index_410 = 1;
+        const int partial_index_520 = 2;
+        const int partial_index_560 = 3;
+        const int partial_index_660 = 4;
+        const int partial_index_660_gt = 5;
+        const int partial_index_660_gt1 = 6;
+        const int partial_index_660_gt_combined = 7;
 
         // initiate varibles
         double function_value = 0.0;
@@ -2136,6 +2137,15 @@ namespace aspect
             // add one to the relative index within the pyrolite phases if we haven't
             phase_index_pyrolite++;
           }
+
+        // 80
+        const int phase_index_80 = in.phase_index - phase_index_pyrolite + partial_index_80;
+        const double d80 = transition_depths[phase_index_80];
+        const double T80 = transition_temperatures[phase_index_80];
+        const double W80 = transition_widths[phase_index_80];
+        const double slope80 = transition_slopes[phase_index_80];
+        std::pair<bool, double> result80 = compute_point_to_line(in, T80, d80, W80, slope80/in.pressure_depth_derivative, true, false, false);
+
 
         // 410
         const int phase_index_410 = in.phase_index - phase_index_pyrolite + partial_index_410;
@@ -2197,6 +2207,12 @@ namespace aspect
         const double slope660_gt_combined = transition_slopes[phase_index_660_gt_combined];
         std::pair<bool, double> result660_gt_combined = compute_point_to_line(in, T660_gt_combined, d660_gt_combined, W660_gt_combined, slope660_gt_combined/in.pressure_depth_derivative, true, false, false);
 
+        if (result80.first)
+          {
+            // 80 for pyrolite
+            if (phase_index_pyrolite == partial_index_80)
+              function_value += 0.5*(1.0 + std::tanh(result80.second/W80));
+          }
         if (result410.first)
           {
             // 410 for pyrolite
