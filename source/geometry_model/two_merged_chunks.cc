@@ -65,39 +65,42 @@ namespace aspect
     TwoMergedChunks<dim>::
     create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const
     {
-      if(two_mergd_grids){
-        // The two triangulations that will be merged into coarse_grid.
-        Triangulation<dim> lower_coarse_grid;
-        Triangulation<dim> upper_coarse_grid;
+      if (two_mergd_grids)
+        {
+          // The two triangulations that will be merged into coarse_grid.
+          Triangulation<dim> lower_coarse_grid;
+          Triangulation<dim> upper_coarse_grid;
 
-        // Create the lower box.
-        GridGenerator::subdivided_hyper_rectangle (lower_coarse_grid,
-                                                   lower_repetitions,
-                                                   point1,
-                                                   point4,
-                                                   false);
+          // Create the lower box.
+          GridGenerator::subdivided_hyper_rectangle (lower_coarse_grid,
+                                                     lower_repetitions,
+                                                     point1,
+                                                     point4,
+                                                     false);
 
-        // Create the upper box.
-        GridGenerator::subdivided_hyper_rectangle (upper_coarse_grid,
-                                                   upper_repetitions,
-                                                   point3,
-                                                   point2,
-                                                   false);
+          // Create the upper box.
+          GridGenerator::subdivided_hyper_rectangle (upper_coarse_grid,
+                                                     upper_repetitions,
+                                                     point3,
+                                                     point2,
+                                                     false);
 
-        // Merge the lower and upper mesh into one coarse_grid.
-        // Now we have at least two cells.
-        GridGenerator::merge_triangulations(lower_coarse_grid,
-                                            upper_coarse_grid,
-                                            coarse_grid);
-      } else {
-        // Create the lower box.
-        GridGenerator::subdivided_hyper_rectangle (coarse_grid,
-                                                   lower_repetitions,
-                                                   point1,
-                                                   point2,
-                                                   false);
-       }
- 
+          // Merge the lower and upper mesh into one coarse_grid.
+          // Now we have at least two cells.
+          GridGenerator::merge_triangulations(lower_coarse_grid,
+                                              upper_coarse_grid,
+                                              coarse_grid);
+        }
+      else
+        {
+          // Create the lower box.
+          GridGenerator::subdivided_hyper_rectangle (coarse_grid,
+                                                     lower_repetitions,
+                                                     point1,
+                                                     point2,
+                                                     false);
+        }
+
       // Transform box into spherical chunk
       GridTools::transform (
         [&](const Point<dim> &p) -> Point<dim>
@@ -158,22 +161,24 @@ namespace aspect
           if (dim==3)
             {
               // Set the upper part of the southern boundary to indicator 2*dim+2.
-              if (cell->face(4)->at_boundary()){
-                if ((cell->vertex(cell->face(4)->n_vertices()-1).norm() + cell->vertex(0).norm()) / 2.0 > point3[0])
-                  if (manifold.pull_back(cell->face(4)->center(true))[1] < (point2[1]+point1[1])/2.0)
-                    cell->face(4)->set_boundary_id (2 * dim); // set to western
-                  else if (manifold.pull_back(cell->face(4)->center(true))[1] > (point2[1]+point1[1])/2.0+std::fabs(point2[1]-point1[1])/4.0)
-                    cell->face(4)->set_boundary_id (2 * dim + 1); // set to easter
-                  else
-                    cell->face(4)->set_boundary_id (2*dim+2);
-              }
+              if (cell->face(4)->at_boundary())
+                {
+                  if ((cell->vertex(cell->face(4)->n_vertices()-1).norm() + cell->vertex(0).norm()) / 2.0 > point3[0])
+                    if (manifold.pull_back(cell->face(4)->center(true))[1] < (point2[1]+point1[1])/2.0)
+                      cell->face(4)->set_boundary_id (2 * dim); // set to western
+                    else if (manifold.pull_back(cell->face(4)->center(true))[1] > (point2[1]+point1[1])/2.0+std::fabs(point2[1]-point1[1])/4.0)
+                      cell->face(4)->set_boundary_id (2 * dim + 1); // set to easter
+                    else
+                      cell->face(4)->set_boundary_id (2*dim+2);
+                }
               // Set the upper part of the northern boundary to indicator 2*dim+3.
-              if (cell->face(5)->at_boundary()){
-                if ((cell->vertex((cell->face(5)->n_vertices()-1)/2).norm()  + cell->vertex(0).norm()) / 2.0 > point3[0])
-                  if (manifold.pull_back(cell->face(5)->center(true))[1] > (point2[1]+point1[1])/2.0-std::fabs(point2[1]-point1[1])/4.0)
-                    cell->face(5)->set_boundary_id (2 * dim + 1); // set to eastern
-                  else
-                    cell->face(5)->set_boundary_id (2*dim+3);
+              if (cell->face(5)->at_boundary())
+                {
+                  if ((cell->vertex((cell->face(5)->n_vertices()-1)/2).norm()  + cell->vertex(0).norm()) / 2.0 > point3[0])
+                    if (manifold.pull_back(cell->face(5)->center(true))[1] > (point2[1]+point1[1])/2.0-std::fabs(point2[1]-point1[1])/4.0)
+                      cell->face(5)->set_boundary_id (2 * dim + 1); // set to eastern
+                    else
+                      cell->face(5)->set_boundary_id (2*dim+3);
                 }
             }
 
@@ -604,7 +609,7 @@ namespace aspect
               AssertThrow (point2[2] < 0.5*numbers::PI,
                            ExcMessage ("Maximum latitude needs to be less than 90 degrees."));
             }
-         two_mergd_grids = false;
+          two_mergd_grids = false;
 
         }
         prm.leave_subsection();

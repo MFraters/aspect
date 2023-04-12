@@ -98,16 +98,16 @@ namespace aspect
                                      std::pow(grain_size, p.grain_size_exponent);
 
         AssertThrow (viscosity_diffusion > 0.0,
-                ExcMessage ("Negative diffusion viscosity detected. This is unphysical and should not happen. "
-                            "Check for negative parameters. Temperature and pressure are "
-                            + Utilities::to_string(temperature) + " K, " + Utilities::to_string(pressure) + " Pa. "
-                            + "viscosity_diffusion is " + Utilities::to_string(viscosity_diffusion) + "."
-                            + "exp = " + Utilities::to_string(std::exp((p.activation_energy +
-                              pressure*p.activation_volume)/(constants::gas_constant*temperature))) + " and if p=0: "
- 		            + Utilities::to_string(std::exp((p.activation_energy +
-                               0.0*p.activation_volume)/(constants::gas_constant*temperature))) + "."
+                     ExcMessage ("Negative diffusion viscosity detected. This is unphysical and should not happen. "
+                                 "Check for negative parameters. Temperature and pressure are "
+                                 + Utilities::to_string(temperature) + " K, " + Utilities::to_string(pressure) + " Pa. "
+                                 + "viscosity_diffusion is " + Utilities::to_string(viscosity_diffusion) + "."
+                                 + "exp = " + Utilities::to_string(std::exp((p.activation_energy +
+                                                                             pressure*p.activation_volume)/(constants::gas_constant*temperature))) + " and if p=0: "
+                                 + Utilities::to_string(std::exp((p.activation_energy +
+                                                                  0.0*p.activation_volume)/(constants::gas_constant*temperature))) + "."
 
-));
+                                ));
 
         // Creep viscosities become extremely large at low
         // temperatures and can therefore provoke floating-point overflow errors. In

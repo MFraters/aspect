@@ -68,7 +68,7 @@ namespace aspect
 
             const double position_norm = input_data.evaluation_points[q].norm();
             const auto  position_normalized = input_data.evaluation_points[q]/position_norm;
-	    const auto euler_velocity = position_norm * dealii::cross_product_3d(euler_pole,position_normalized);
+            const auto euler_velocity = position_norm * dealii::cross_product_3d(euler_pole,position_normalized);
 
             for (unsigned int d = 0; d < dim; ++d)
               computed_quantities[q](d) = (input_data.solution_values[q][d] - euler_velocity[d]) * velocity_scaling_factor;

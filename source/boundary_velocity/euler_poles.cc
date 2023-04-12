@@ -51,10 +51,10 @@ namespace aspect
         point_spherical[1] = 0.0;
 
       Point<dim> euler_pole;
-      std::vector<Point<2>> polygon = {{(-117./180.)*M_PI, (30./180.)*M_PI},
-        {(-100./180.)*M_PI, (30./180.)*M_PI},
-        {(-100./180.)*M_PI, (60./180.)*M_PI},
-        {(-137./180.)*M_PI, (60./180.)*M_PI}
+      std::vector<Point<2>> polygon = {{(-117./180.) *M_PI, (30./180.) *M_PI},
+        {(-100./180.) *M_PI, (30./180.) *M_PI},
+        {(-100./180.) *M_PI, (60./180.) *M_PI},
+        {(-137./180.) *M_PI, (60./180.) *M_PI}
       };
       //std::cout << "point_spherical = " << point_spherical << std::endl;
       // need to use absolute plate motions, because otherwise I get large flows in the mantle. This is because there is no resitance from the lower mantle

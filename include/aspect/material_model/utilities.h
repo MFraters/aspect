@@ -738,7 +738,7 @@ namespace aspect
            */
           unsigned int n_phases_total;
 
-          //std::unique_ptr<std::vector<unsigned int> > n_phase_transitions_per_composition;
+          //std::unique_ptr<std::vector<unsigned int>> n_phase_transitions_per_composition;
 
           /**
            * A method define the composition which uses self-defined way to compute crustal phase value

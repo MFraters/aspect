@@ -51,7 +51,7 @@ namespace aspect
           for (unsigned int d = 0; d < dim; ++d)
             computed_quantities[q](d)= 0.;
 
-        const double velocity_scaling_factor = 
+        const double velocity_scaling_factor =
           this->convert_output_to_years() ? year_in_seconds : 1.0;
 
         for (unsigned int q=0; q<computed_quantities.size(); ++q)
@@ -68,7 +68,7 @@ namespace aspect
 
             const double position_norm = input_data.evaluation_points[q].norm();
             const auto  position_normalized = input_data.evaluation_points[q]/position_norm;
-	    const auto euler_velocity = position_norm * dealii::cross_product_3d(euler_pole,position_normalized);
+            const auto euler_velocity = position_norm * dealii::cross_product_3d(euler_pole,position_normalized);
 
             for (unsigned int d = 0; d < dim; ++d)
               computed_quantities[q](d) = (input_data.solution_values[q][d] - euler_velocity[d]) * velocity_scaling_factor;
