@@ -162,13 +162,15 @@ namespace aspect
                 if ((cell->vertex(cell->face(4)->n_vertices()-1).norm() + cell->vertex(0).norm()) / 2.0 > point3[0])
                   if (manifold.pull_back(cell->face(4)->center(true))[1] < (point2[1]+point1[1])/2.0)
                     cell->face(4)->set_boundary_id (2 * dim); // set to western
+                  else if (manifold.pull_back(cell->face(4)->center(true))[1] > (point2[1]+point1[1])/2.0+std::fabs(point2[1]-point1[1])/4.0)
+                    cell->face(4)->set_boundary_id (2 * dim + 1); // set to easter
                   else
                     cell->face(4)->set_boundary_id (2*dim+2);
               }
               // Set the upper part of the northern boundary to indicator 2*dim+3.
               if (cell->face(5)->at_boundary()){
                 if ((cell->vertex((cell->face(5)->n_vertices()-1)/2).norm()  + cell->vertex(0).norm()) / 2.0 > point3[0])
-                  if (manifold.pull_back(cell->face(5)->center(true))[1] > (point2[1]+point1[1])/2.0)
+                  if (manifold.pull_back(cell->face(5)->center(true))[1] > (point2[1]+point1[1])/2.0-std::fabs(point2[1]-point1[1])/4.0)
                     cell->face(5)->set_boundary_id (2 * dim + 1); // set to eastern
                   else
                     cell->face(5)->set_boundary_id (2*dim+3);
