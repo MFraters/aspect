@@ -173,6 +173,10 @@ namespace aspect
         prm.declare_entry ("Strain healing temperature dependent prefactor", "15.", Patterns::Double(0),
                            "Prefactor for temperature dependent "
                            "strain healing. Units: None");
+      
+        prm.declare_entry ("Accumulate strain", "true", Patterns::Bool(),
+                           "Whether or not to accumulate and heal strain over time "
+                           "Units: None");
       }
 
       template <int dim>
@@ -181,6 +185,11 @@ namespace aspect
       {
         // number of required compositional fields for full finite strain tensor
         const unsigned int s = Tensor<2,dim>::n_independent_components;
+         
+         if (prm.get("Accumulate strain") == "True")
+           accumulate_strain = true;
+         else
+           accumulate_strain = false;
 
         // Strain weakening parameters
         if (prm.get ("Strain weakening mechanism") == "none")
@@ -526,7 +535,7 @@ namespace aspect
             Assert(std::isfinite(in.strain_rate[i].norm()),
                    ExcMessage("Invalid strain_rate in the MaterialModelInputs. This is likely because it was "
                               "not filled by the caller."));
-
+            if(accumulate_strain){
             const double edot_ii = std::max(std::sqrt(std::max(-second_invariant(deviator(in.strain_rate[i])), 0.)),
                                             min_strain_rate);
             double delta_e_ii = edot_ii*this->get_timestep();
@@ -671,6 +680,7 @@ namespace aspect
                                                                -composition_evaluators[strain_index]->get_value(0));
               }
           }
+       }
       }
 
 

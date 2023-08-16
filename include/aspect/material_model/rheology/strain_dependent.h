@@ -161,6 +161,7 @@ namespace aspect
 
         private:
 
+          bool accumulate_strain;
           WeakeningMechanism weakening_mechanism;
 
           HealingMechanism healing_mechanism;
