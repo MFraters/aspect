@@ -22,6 +22,11 @@
 #define _aspect_particle_property_cpo_h
 
 #include <aspect/particle/property/interface.h>
+#include <aspect/material_model/rheology/diffusion_creep.h>
+#include <aspect/material_model/rheology/dislocation_creep.h>
+#include <aspect/material_model/rheology/visco_plastic.h>
+#include <aspect/material_model/utilities.h>
+#include <aspect/material_model/interface.h>
 #include <aspect/simulator_access.h>
 #include <array>
 
@@ -80,10 +85,11 @@ namespace aspect
        *
        * spin_tensor: Rotates the CPO properties soly with the rotation of the particle itself.
        * drex_2004: Rotates the CPO properties based on the D-Rex 2004 algorithm.
+       * drexpp (drex ++): Rotates the CPO properties accounting for a realistic evolution of the microstructural properties
        */
       enum class CPODerivativeAlgorithm
       {
-        spin_tensor, drex_2004
+        spin_tensor, drex_2004, drexpp
       };
 
       /**
@@ -259,6 +265,28 @@ namespace aspect
                                         const Tensor<2,3> &velocity_gradient_tensor,
                                         const std::array<double,4> ref_resolved_shear_stress,
                                         const bool prevent_nondimensionalization = false) const;
+          
+          std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
+          compute_derivatives_drexpp(const unsigned int cpo_index,
+                                     const ArrayView<double> &data,
+                                     const unsigned int mineral_i,
+                                     const SymmetricTensor<2,3> &strain_rate_3d,
+                                     const Tensor<2,3> &velocity_gradient_tensor,
+                                     const std::array<double,4> ref_resolved_shear_stress,
+                                     const double recrystalized_grain_size,
+                                     const double aggregate_recrystalization_increment,
+                                     const std::vector<double> &volume_fractions,
+                                     const std::vector<double> &diffusion_pre_viscosities,
+                                     const std::vector<double> &diffusion_grain_size_exponent,
+                                     const std::vector<double> &dislocation_viscosities)const;
+
+          void
+          recrystalize_grains(const unsigned int cpo_index,
+                              const ArrayView<double> &data,
+                              const unsigned int mineral_i,
+                              const double recrystalized_grainsize,
+                              const std::vector<double> &recrystalized_fraction,
+                              std::vector<double> &strain_energy) const;
 
 
           /**
@@ -594,17 +622,21 @@ namespace aspect
            * Stress exponent
            */
           double stress_exponent;
+          std::vector<double> drexpp_stress_exponent;
+
 
           /**
            * efficiency of nucleation parameter.
            * lambda_m in equation 8 of Kaminski et al. (2004, Geophys. J. Int)
            */
           double nucleation_efficiency;
+          std::vector<double> drexpp_nucleation_efficiency;
 
           /**
            * An exponent described in equation 10 of Kaminski and Ribe (2001, EPSL)
            */
           double exponent_p;
+          std::vector<double> drexpp_exponent_p;
 
           /**
            * The Dimensionless Grain Boundary Sliding (GBS) threshold.
@@ -618,6 +650,27 @@ namespace aspect
            * in Kaminski and Ribe (2001, EPSL).
            */
           double mobility;
+          std::vector<double> drexpp_mobility;
+
+          std::unique_ptr<MaterialModel::Rheology::DiffusionCreep<dim>> rheology_diff;
+          std::unique_ptr<MaterialModel::Rheology::DislocationCreep<dim>> rheology_disl;
+          std::unique_ptr<MaterialModel::Rheology::ViscoPlastic<dim>> rheology_vipl;
+          double min_strain_rate;
+          std::vector<double> thermal_diffusivities;
+
+          /**
+           * Whether to use user-defined thermal conductivities instead of thermal diffusivities.
+           */
+
+          bool define_conductivities;
+
+          std::vector<double> thermal_conductivities;
+
+          /**
+           * Object that handles phase transitions.
+           */
+
+          MaterialModel::MaterialUtilities::PhaseFunction<dim> phase_function;
 
           /** @} */
 

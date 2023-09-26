@@ -20,6 +20,8 @@
 
 #include <aspect/particle/property/crystal_preferred_orientation.h>
 #include <aspect/geometry_model/interface.h>
+#include <aspect/gravity_model/interface.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <world_builder/grains.h>
 #include <world_builder/world.h>
 
@@ -86,7 +88,10 @@ namespace aspect
 
         double theta = 2.0 * M_PI * one; // Rotation about the pole (Z)
         double phi = 2.0 * M_PI * two; // For direction of pole deflection.
-        double z = 2.0* three; //For magnitude of pole deflection.
+        double z = 2.0* three; //For magnitude of pole deflection. 
+        
+        // SV : have to come up with a solution to create a misorientation of 10 degrees or more for olivine new grains.
+        // SV : maybe write a separate block of code in the recrystalize_grains function to initialize the new grains with a misorientation wrt to the parent grain.
 
         // Compute a vector V used for distributing points over the sphere
         // via the reflection I - V Transpose(V).  This formulation of V
@@ -175,16 +180,36 @@ namespace aspect
 #endif
               }
             else
-              {
+           {
                 // set volume fraction
-                const double initial_volume_fraction = 1.0/n_grains;
+
+                /*
+                To use D-Rex uncomment the first statement, setting the initial volume fraction = 1/n_grains
+                To use D-Rex ++ uncomment the other lines
+                */
+
+                //const double initial_volume_fraction = 1.0/n_grains;
+                const double large_grains_size = 1e-6;
+                const double small_grain_size = large_grains_size/100000.;
+                const double initial_volume_fraction_large = (4./3.)*numbers::PI*pow(0.5*large_grains_size,3);
+                const double initial_volume_fraction_small = (4./3.)*numbers::PI*pow(0.5*small_grain_size,3);
+
+                std::cout<<"initial volume = "<<initial_volume_fraction_large<<"\t"<< initial_volume_fraction_small<<std::endl;
 
                 for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
                   {
-                    // set volume fraction
-                    volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction;
+                    //set volume fraction
+                    if (grain_i < n_grains/10.)
+                      {
+                        volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction_large;
+                      }
+                    else
+                      {
+                        volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction_small;
+                      }
 
                     // set a uniform random rotation_matrix per grain
+                    // volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction;
                     this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
                   }
               }
@@ -330,7 +355,7 @@ namespace aspect
               }
 
             // normalize the volume fractions back to a total of 1 for each mineral
-            const double inv_sum_volume_mineral = 1.0/sum_volume_mineral;
+            const double inv_sum_volume_mineral = 1.0/sum_volume_mineral; // SV: would we need to do this for D-Rex ++? what would it mean
 
             Assert(std::isfinite(inv_sum_volume_mineral),
                    ExcMessage("inv_sum_volume_mineral is not finite. sum_volume_enstatite = "
@@ -589,6 +614,208 @@ namespace aspect
                                                    ref_resolved_shear_stress);
               break;
             }
+            case CPODerivativeAlgorithm::drexpp:
+            {
+              const double pressure = 2e09;
+              const DeformationType deformation_type = determine_deformation_type(deformation_type_selector[mineral_i],
+                                                                                  position,
+                                                                                  temperature,
+                                                                                  pressure,
+                                                                                  velocity,
+                                                                                  compositions,
+                                                                                  strain_rate,
+                                                                                  deviatoric_strain_rate,
+                                                                                  water_content);
+            
+             set_deformation_type(cpo_index,data,mineral_i,static_cast<unsigned int>(deformation_type));
+             const double t =this-> get_time();
+             /*
+
+                The following part of the algorithm describes the rate of recrystalization of new strain-free grains. This is done by using the 
+                Johnson-Avrami-Mehl-Kolmogodorov thoery of transformation. The equations and the values for the variables are taken from Cross and Skemer (2019).
+
+                Incremental recrystalization fraction = n * beta * (strain - critical strain)^(n - 1) * exp( - beta * (strain - critical strain) ^ n )
+                where 
+                n -> avrami exponent
+                beta -> rate of transformation
+                beta -> C * exp( g * ( T / T_melt ) )
+                C and g are experimental constants
+                critical strain -> strain at which dynamic recrystalization starts
+
+             */
+
+            const double strain = this->get_time() *std::sqrt(std::max(-second_invariant(deviatoric_strain_rate), 0.));
+            const double const_C = exp(-10.0);
+            const double const_g = 13.8;
+            const double T_melt = 1770 + 273.15; // Have to get a better constrain from Katz et al (2203)
+            const double avrami_exponent = 1.48;
+            const double strain_critical = 0.25;
+            const double rate_of_transformation = const_C * exp( const_g * (temperature/T_melt) );
+            double aggregate_recrystalization_increment;
+            std::cout<<"Strain at timestep = "<<strain<<"\n";
+
+            if (strain_critical < strain)
+              aggregate_recrystalization_increment = avrami_exponent * rate_of_transformation * std::pow( strain - strain_critical , avrami_exponent - 1 ) * exp(-1 * rate_of_transformation * std::pow( strain-strain_critical , avrami_exponent ));
+            
+            else
+              aggregate_recrystalization_increment = 0;
+            
+            const std::array<double,4> ref_resolved_shear_stress = reference_resolved_shear_stress_from_deformation_type(deformation_type);
+
+            //Compute the diffusion strain with the diffusion viscosity
+
+            const double gravity_norm = this -> get_gravity_model().gravity_vector(position).norm();
+            const double reference_density = (this->get_adiabatic_conditions().is_initialized())
+                                             ?
+                                             this->get_adiabatic_conditions().density(position)
+                                             :
+                                             3300.;
+            
+            // The phase index is set to invalid_unsigned_int, because it is only used internally
+            // in phase_average_equation_of_state_outputs to loop over all existing phases
+            MaterialModel::MaterialUtilities::PhaseFunctionInputs<dim> phase_inputs(temperature,
+                                                                                    pressure,
+                                                                                    this->get_geometry_model().depth(position),
+                                                                                    gravity_norm * reference_density,
+                                                                                    numbers::invalid_unsigned_int);
+            
+            std::vector<double> phase_function_values(phase_function.n_phase_transitions(), 0.0);
+            
+            // Compute value of phase fucntions
+            
+            for (unsigned int j = 0; j < phase_function.n_phase_transitions(); j++)
+            {
+              phase_inputs.phase_index = j;
+              phase_function_values[j] = phase_function.compute_value(phase_inputs);
+            }
+
+            const std::vector<double> volume_fractions = MaterialModel::MaterialUtilities::compute_composition_fractions(compositions);
+            // the diffusion_pre_viscosities is the diffusion viscosity without the grainsize
+
+            std::vector<double> diffusion_pre_viscosities(volume_fractions.size(), std::numeric_limits<double>::quiet_NaN());
+            std::vector<double> diffusion_grain_size_exponent(volume_fractions.size(), std::numeric_limits<double>::quiet_NaN());
+            std::vector<double> dislocation_viscosities(volume_fractions.size(), std::numeric_limits<double>::quiet_NaN());
+            const double strain_rate_inv = std::max(std::sqrt(std::max(-second_invariant(deviatoric_strain_rate), 0.)), min_strain_rate);
+
+            for (unsigned int composition = 0; composition < volume_fractions.size(); composition++)
+              {
+                const MaterialModel::Rheology::DiffusionCreepParameters p_dif = rheology_diff->compute_creep_parameters(composition,
+                                                                                                                        phase_function_values,
+                                                                                                                        phase_function.n_phase_transitions_for_each_composition());
+              
+              /*
+                Power law creep equation
+                viscosity = 0.5 * A^(-1) * d^(m) * exp(( E + P * V ) / ( R * T ))
+                A : prefactor
+                d : grain size 
+                m : grain size exponent
+                E : activation energy
+                P : pressure
+                V : activation volume 
+                R : gas constant
+                T : temperature
+              */
+               diffusion_pre_viscosities[composition] = 0.5 / p_dif.prefactor *
+                                                           std::exp((p_dif.activation_energy +
+                                                                     pressure*p_dif.activation_volume)/
+                                                                    (constants::gas_constant*temperature));
+
+                  diffusion_grain_size_exponent[composition] = p_dif.grain_size_exponent;
+
+                  const MaterialModel::Rheology::DislocationCreepParameters p_dis = rheology_disl->compute_creep_parameters(composition,
+                                                                                    phase_function_values,
+                                                                                    phase_function.n_phase_transitions_for_each_composition());
+               dislocation_viscosities[composition] = 0.5 * std::pow(p_dis.prefactor, -1/p_dis.stress_exponent)*
+                                                      std::exp((p_dis.activation_energy + pressure * p_dis.activation_volume)/
+                                                               (constants::gas_constant * temperature * p_dis.stress_exponent)) *
+                                                      std::pow(strain_rate_inv,((1. - p_dis.stress_exponent)/p_dis.stress_exponent));
+              }
+            
+            // now compute the normal viscosity to be able to compute the stress
+            // Create the material model inputs and outputs to
+            // retrieve the current viscosity.
+
+            MaterialModel::MaterialModelInputs<dim> in = MaterialModel::MaterialModelInputs<dim>(1, compositions.size());
+            in.pressure[0] = pressure;
+            in.temperature[0] = temperature;
+            in.position[0] = position;
+            in.strain_rate[0] = strain_rate;
+            in.composition[0] = compositions;
+
+            in.requested_properties = MaterialModel::MaterialProperties::viscosity;
+
+            MaterialModel::MaterialModelOutputs<dim> out(1.,
+                                                        this -> n_compositional_fields());
+
+            this -> get_material_model().evaluate(in,out);
+            
+            // Compressive stress is positive in geosciences applications.
+            SymmetricTensor<2, dim> stress = pressure * unit_symmetric_tensor<dim>();
+
+            // Add elastic stresses if existent.
+            AssertThrow(this->get_parameters().enable_elasticity == false, ExcMessage("Elasticity not supported when computing the CPO stress"));
+
+            const double eta = out.viscosities[0];
+
+            stress += -2. * eta * deviatoric_strain_rate;
+
+            // Compute the deviatoric stress tensor after elastic stresses were added.
+            const SymmetricTensor<2, dim> deviatoric_stress = deviator(stress);
+
+            // Compute the second moment invariant of the deviatoric stress
+            // in the same way as the second moment invariant of the deviatoric
+            // strain rate is computed in the viscoplastic material model.
+            // TODO to check if this is valid for the compressible case.
+            
+            const std::array<double, dim> eigenvalues = dealii::eigenvalues(deviatoric_stress);
+            double differential_stress = eigenvalues[0] - eigenvalues[dim -1];
+            const double dislocation_creep_strain_rate = differential_stress/(2.* dislocation_viscosities[0]);
+
+            /*
+              Calculation of the recrystallized grain size is done using the piezometer proposed by Van der Waal (1993).
+              d_{recrystallized} = A * \sigma^{m}
+              where
+              A - prefactor 
+              m - stress exponent
+
+              The values for olivine is taken from Van der Waal (1993)
+              The values for pyroxene is taken from Speciale et al (2021)
+            */
+
+           std::array<double, 2> recrystalized_grain_size;
+           std::array<double, 2> half_recrystalized_grain_size;
+           std::array<double, 2> recrystalized_grain_volume;
+           std::array<double, 2> A = {{0.015,std::pow(10,3.8)}};
+           std::array<double, 2> m = {{-1.33, 1-28}};
+
+           if ( t != 0 )
+           {
+            recrystalized_grain_size[mineral_i] = A[mineral_i] * std::pow(differential_stress/1e6, m[mineral_i]);
+           }
+           else
+           {
+            recrystalized_grain_size[mineral_i] = 0.5;
+           }
+
+           half_recrystalized_grain_size[mineral_i] = 0.5 * recrystalized_grain_size[mineral_i];
+           recrystalized_grain_volume[mineral_i] = (4./3.) * numbers::PI * half_recrystalized_grain_size[mineral_i] * half_recrystalized_grain_size[mineral_i] * half_recrystalized_grain_size[mineral_i];
+
+           std::cout<<"Recrystalized grain volume for mineral "<<mineral_i<<" = "<<recrystalized_grain_volume[mineral_i]<<std::endl;
+
+           return compute_derivatives_drexpp(cpo_index,
+                                             data,
+                                             mineral_i,
+                                             strain_rate_3d,
+                                             velocity_gradient_tensor,
+                                             ref_resolved_shear_stress,
+                                             recrystalized_grain_volume[mineral_i],
+                                             aggregate_recrystalization_increment,
+                                             volume_fractions,
+                                             diffusion_pre_viscosities,
+                                             diffusion_grain_size_exponent,
+                                             dislocation_viscosities);
+           break;
+          }
             default:
               AssertThrow(false, ExcMessage("Internal error."));
               break;
@@ -808,6 +1035,381 @@ namespace aspect
         return std::pair<std::vector<double>, std::vector<Tensor<2,3>>>(deriv_volume_fractions, deriv_a_cosine_matrices);
       }
 
+      template <int dim>
+      void
+      CrystalPreferredOrientation<dim>::recrystalize_grains(const unsigned int cpo_index,
+                                                            const ArrayView<double> &data,
+                                                            const unsigned int mineral_i,
+                                                            const double recrystalized_grain_volume,
+                                                            const std::vector<double> &recrystalization_fractions,
+                                                            std::vector<double> &strain_energy) const
+      {
+
+        // make a vector for which the first entry contains the index of the smallest vector, the second entry contains the 
+        // index of the second smallest vector, etc.
+
+        std::vector<std::size_t> permutation_vector(n_grains);
+        std::iota(permutation_vector.begin(), permutation_vector.end(), 0);
+        std::sort(permutation_vector.begin(), permutation_vector.end(),
+                  [&](std::size_t grain_i, std::size_t grain_j)
+                  {
+                    return get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) < get_volume_fractions_grains(cpo_index,data,mineral_i,grain_j);
+                  });
+        
+        unsigned int permutation_vector_counter = 0;
+        Tensor<2,3> main_rotation_matrix = get_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[permutation_vector_counter]);
+
+        
+        for (size_t i = 0; i < 3; i++)
+          for (size_t j = 0; j < 3; j++)
+            Assert(abs(main_rotation_matrix[i][j]) <= 1.0,
+                   ExcMessage("rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
+                              "] is larger than one: " + std::to_string(main_rotation_matrix[i][j]) + " (" + std::to_string(main_rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
+                              + std::to_string(main_rotation_matrix[0][0]) + " " + std::to_string(main_rotation_matrix[0][1]) + " " + std::to_string(main_rotation_matrix[0][2]) + "\n"
+                              + std::to_string(main_rotation_matrix[1][0]) + " " + std::to_string(main_rotation_matrix[1][1]) + " " + std::to_string(main_rotation_matrix[1][2]) + "\n"
+                              + std::to_string(main_rotation_matrix[2][0]) + " " + std::to_string(main_rotation_matrix[2][1]) + " " + std::to_string(main_rotation_matrix[2][2])));
+        
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+        {
+          const double grain_volume = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+          double temp_total_volume = 0;
+          for (unsigned int i = 0; i < permutation_vector.size(); ++i)
+          {
+            temp_total_volume += get_volume_fractions_grains(cpo_index, data, mineral_i, grain_i);
+          }
+          
+          size_t n_recrystalized_grains;
+          
+          if (recrystalized_grain_volume !=0)  
+          n_recrystalized_grains = std::floor((recrystalization_fractions[grain_i] * grain_volume) / recrystalized_grain_volume);
+          else
+          n_recrystalized_grains = 0;
+
+
+          if (n_recrystalized_grains !=0)
+          {
+            std::cout<<"No. of recrystalized grains from grain "<<grain_i<<" = "<<n_recrystalized_grains<<std::endl;
+          }
+
+          if (n_recrystalized_grains > 0)
+          {
+
+            const double grain_volume_left = grain_volume - n_recrystalized_grains * recrystalized_grain_volume;
+            set_volume_fractions_grains(cpo_index, data, mineral_i, grain_i, grain_volume_left);
+
+            // compute the volume of n_recrystalized_grains+1 smallest grains
+
+            double replaced_grains_volume = 0.0;
+            for (unsigned int recrystalize_grain_i = 0; recrystalize_grain_i < n_recrystalized_grains+1; ++recrystalize_grain_i)
+            {
+              replaced_grains_volume += get_volume_fractions_grains(cpo_index,data,mineral_i,permutation_vector[permutation_vector_counter+recrystalize_grain_i]);
+            }
+            
+            set_volume_fractions_grains(cpo_index,data,mineral_i,permutation_vector[permutation_vector_counter],replaced_grains_volume);
+
+            Tensor<2,3> random_rotation_matrix;
+            this -> compute_random_rotation_matrix(random_rotation_matrix);
+            for (size_t i = 0; i < 3; i++)
+              for (size_t j = 0; j < 3; j++)
+                Assert(abs(random_rotation_matrix[i][j]) <= 1.0,
+                           ExcMessage("rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
+                                      "] is larger than one: " + std::to_string(random_rotation_matrix[i][j]) + " (" + std::to_string(random_rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
+                                      + std::to_string(random_rotation_matrix[0][0]) + " " + std::to_string(random_rotation_matrix[0][1]) + " " + std::to_string(random_rotation_matrix[0][2]) + "\n"
+                                      + std::to_string(random_rotation_matrix[1][0]) + " " + std::to_string(random_rotation_matrix[1][1]) + " " + std::to_string(random_rotation_matrix[1][2]) + "\n"
+                                      + std::to_string(random_rotation_matrix[2][0]) + " " + std::to_string(random_rotation_matrix[2][1]) + " " + std::to_string(random_rotation_matrix[2][2])));
+                set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[permutation_vector_counter],random_rotation_matrix);
+                strain_energy[permutation_vector[permutation_vector_counter]] = 0.0;
+
+                permutation_vector_counter++;
+                Tensor<2,3> random_deflection;
+
+           for (unsigned int recrystalize_grain_i = 0; recrystalize_grain_i < n_recrystalized_grains; ++recrystalize_grain_i)
+                  {
+                    set_volume_fractions_grains(cpo_index,data,mineral_i,permutation_vector[permutation_vector_counter],recrystalized_grain_volume);
+
+                    // TODO: compute random rotation matrix between two degrees and apply it
+                    // Have to test this to ensure that the misorientation between the two tensors is only 10 degrees
+
+                    this->compute_random_rotation_matrix(random_deflection);
+                    main_rotation_matrix = main_rotation_matrix*random_deflection;
+                    for (size_t i = 0; i < 3; i++)
+                      for (size_t j = 0; j < 3; j++)
+                        Assert(abs(main_rotation_matrix[i][j]) <= 1.0,
+                               ExcMessage("rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
+                                          "] is larger than one: " + std::to_string(main_rotation_matrix[i][j]) + " (" + std::to_string(main_rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
+                                          + std::to_string(main_rotation_matrix[0][0]) + " " + std::to_string(main_rotation_matrix[0][1]) + " " + std::to_string(main_rotation_matrix[0][2]) + "\n"
+                                          + std::to_string(main_rotation_matrix[1][0]) + " " + std::to_string(main_rotation_matrix[1][1]) + " " + std::to_string(main_rotation_matrix[1][2]) + "\n"
+                                          + std::to_string(main_rotation_matrix[2][0]) + " " + std::to_string(main_rotation_matrix[2][1]) + " " + std::to_string(main_rotation_matrix[2][2])));
+
+                    set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[permutation_vector_counter],main_rotation_matrix*random_deflection);
+
+                    strain_energy[permutation_vector[permutation_vector_counter]] = 0.0;
+                    permutation_vector_counter++;
+                  }
+              }
+
+            temp_total_volume = 0.;
+            for (unsigned int i = 0; i < permutation_vector.size(); ++i)
+              {
+                temp_total_volume += get_volume_fractions_grains(cpo_index,data,mineral_i,i);
+              }
+          }
+      }
+
+      template <int dim>
+      std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
+      CrystalPreferredOrientation<dim>::compute_derivatives_drexpp(const unsigned int cpo_index,
+                                                                   const ArrayView<double> &data,
+                                                                   const unsigned int mineral_i,
+                                                                   const SymmetricTensor<2,3> &strain_rate,
+                                                                   const Tensor<2,3> &velocity_gradient_tensor,
+                                                                   const std::array<double,4> ref_resolved_shear_stress,
+                                                                   const double recrystalized_grain_volume,
+                                                                   const double aggregate_recrystalization_increment,
+                                                                   const std::vector<double> &volume_fractions,
+                                                                   const std::vector<double> &diffusion_pre_viscosities,
+                                                                   const std::vector<double> &diffusion_grain_size_exponent,
+                                                                   const std::vector<double> &dislocation_viscosities) const
+      {
+        // create output variables
+        std::vector<double> deriv_volume_fractions(n_grains);
+        std::vector<Tensor<2,3>> deriv_a_cosine_matrices(n_grains);
+
+        // create shorcuts
+        const std::array<double, 4> &tau = ref_resolved_shear_stress;
+
+        std::vector<double> strain_energy(n_grains);
+        std::vector<double> recrystalized_fractions(n_grains);
+        std::vector<double> subgrain_rotation_fractions(n_grains);
+        std::vector<double> grain_boundary_sliding_fractions(n_grains);
+        std::vector<Tensor<1,3>> spin_vectors(n_grains);
+        double total_subgrain_rotation_fraction = 0.0;
+        double total_grain_boundary_sliding_fraction = 0.0;
+
+        // first compute the strain energy and G for all grains
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            // Compute the Schmidt tensor for this grain (nu), s is the slip system.
+            // We first compute beta_s,nu (equation 5, Kaminski & Ribe, 2001)
+            // Then we use the beta to calculate the Schmidt tensor G_{ij} (Eq. 5, Kaminski & Ribe, 2001)
+            //Tensor<2,3> G;
+            Tensor<1,4> beta({1.0, 1.0, 1.0, 1.0});
+            std::array<Tensor<1,3>,4> slip_normal_reference {{Tensor<1,3>({0,1,0}),Tensor<1,3>({0,0,1}),Tensor<1,3>({0,1,0}),Tensor<1,3>({1,0,0})}};
+            std::array<Tensor<1,3>,4> slip_direction_reference {{Tensor<1,3>({1,0,0}),Tensor<1,3>({1,0,0}),Tensor<1,3>({0,0,1}),Tensor<1,3>({0,0,1})}};
+
+            // these are variables we only need for olivine, but we need them for both
+            // within this if block and the next ones
+            // Ordered vector where the first entry is the max/weakest and the last entry is the inactive slip system.
+            std::array<unsigned int,4> indices {};
+
+            // compute G and beta
+            Tensor<1,4> bigI;
+            const Tensor<2,3> rotation_matrix = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
+            for (size_t i = 0; i < 3; i++)
+              for (size_t j = 0; j < 3; j++)
+                Assert(abs(rotation_matrix[i][j]) <= 1.0,
+                       ExcMessage("rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
+                                  "] is larger than one: " + std::to_string(rotation_matrix[i][j]) + " (" + std::to_string(rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
+                                  + std::to_string(rotation_matrix[0][0]) + " " + std::to_string(rotation_matrix[0][1]) + " " + std::to_string(rotation_matrix[0][2]) + "\n"
+                                  + std::to_string(rotation_matrix[1][0]) + " " + std::to_string(rotation_matrix[1][1]) + " " + std::to_string(rotation_matrix[1][2]) + "\n"
+                                  + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
+            const Tensor<2,3> rotation_matrix_transposed = transpose(rotation_matrix);
+            for (unsigned int slip_system_i = 0; slip_system_i < 4; ++slip_system_i)
+              {
+                const Tensor<1,3> slip_normal_global = rotation_matrix_transposed*slip_normal_reference[slip_system_i];
+                const Tensor<1,3> slip_direction_global = rotation_matrix_transposed*slip_direction_reference[slip_system_i];
+                const Tensor<2,3> slip_cross_product = outer_product(slip_direction_global,slip_normal_global);
+                bigI[slip_system_i] = scalar_product(slip_cross_product,strain_rate);
+              }
+
+            Tensor<2,3> schmidt_tensor;
+
+            // The value in this if statement is arbitrary. Has to be further checked out to for a more "realistic value".
+            if (bigI.norm() < 1e-15)
+              {
+                // In this case there is no shear, only (possibly) a rotation. So \gamma_y and/or G should be zero.
+                // Which is the default value, so do nothing.
+              }
+            else
+              {
+                // compute the element wise absolute value of the element wise
+                // division of BigI by tau (tau = ref_resolved_shear_stress).
+                std::array<double,4> q_abs;
+                for (unsigned int i = 0; i < 4; ++i)
+                  {
+                    q_abs[i] = std::abs(bigI[i] / tau[i]);
+                  }
+
+                // here we find the indices starting at the largest value and ending at the smallest value
+                // and assign them to special variables. Because all the variables are absolute values,
+                // we can set them to a negative value to ignore them. This should be faster then deleting
+                // the element, which would require allocation. (not tested)
+                for (unsigned int slip_system_i = 0; slip_system_i < 4; ++slip_system_i)
+                  {
+                    indices[slip_system_i] = std::distance(q_abs.begin(),std::max_element(q_abs.begin(), q_abs.end()));
+                    q_abs[indices[slip_system_i]] = -1;
+                  }
+
+                // compute the ordered beta vector, which is the relative slip rates of the active slip systems.
+                // Test whether the max element is not equal to zero.
+                Assert(bigI[indices[0]] != 0.0, ExcMessage("Internal error: bigI is zero."));
+                beta[indices[0]] = 1.0; // max q_abs, weak system (most deformation) "s=1"
+
+                const double ratio = tau[indices[0]]/bigI[indices[0]];
+                for (unsigned int slip_system_i = 1; slip_system_i < 4-1; ++slip_system_i)
+                  {
+                    beta[indices[slip_system_i]] = std::pow(std::abs(ratio * (bigI[indices[slip_system_i]]/tau[indices[slip_system_i]])), drexpp_stress_exponent[mineral_i]);
+                  }
+                beta[indices.back()] = 0.0;
+
+
+                // Now compute the crystal rate of deformation tensor.
+
+                for (unsigned int i = 0; i < 3; ++i)
+                  {
+                    for (unsigned int j = 0; j < 3; j++)
+                      {
+                        schmidt_tensor[i][j] = 2.0 * (beta[0] * rotation_matrix[0][i] * rotation_matrix[1][j]
+                                                      + beta[1] * rotation_matrix[0][i] * rotation_matrix[2][j]
+                                                      + beta[2] * rotation_matrix[2][i] * rotation_matrix[1][j]
+                                                      + beta[3] * rotation_matrix[2][i] * rotation_matrix[0][j]);
+
+                      }
+
+                  }
+              }
+
+
+            // Now calculate the analytic solution to the deformation minimization problem
+            // compute gamma (equation 7, Kaminiski & Ribe, 2001)
+
+            // Top is the numerator and bottom is the denominator in equation 7.
+            double top = 0;
+            double bottom = 0;
+            for (unsigned int i = 0; i < 3; ++i)
+              {
+                // Following the actual Drex implementation we use i+2, which differs
+                // from the EPSL paper, which says gamma_nu depends on i+1
+                const unsigned int i_offset = (i==0) ? (i+2) : (i-1);
+
+                top = top - (velocity_gradient_tensor[i][i_offset]-velocity_gradient_tensor[i_offset][i])*(schmidt_tensor[i][i_offset]-schmidt_tensor[i_offset][i]);
+                bottom = bottom - (schmidt_tensor[i][i_offset]-schmidt_tensor[i_offset][i])*(schmidt_tensor[i][i_offset]-schmidt_tensor[i_offset][i]);
+
+                for (unsigned int j = 0; j < 3; ++j)
+                  {
+                    top = top + 2.0 * schmidt_tensor[i][j]*velocity_gradient_tensor[i][j];
+                    bottom = bottom + 2.0* schmidt_tensor[i][j] * schmidt_tensor[i][j];
+                  }
+              }
+            // see comment on if all BigI are zero. In that case gamma should be zero.
+            const double gamma = (bottom != 0.0) ? top/bottom : 0.0;
+
+            // compute w (equation 8, Kaminiski & Ribe, 2001)
+            // w is the Rotation rate vector of the crystallographic axes of grain
+            spin_vectors[grain_i] = Tensor<1,3>
+                                    (
+            {
+              0.5*(velocity_gradient_tensor[2][1]-velocity_gradient_tensor[1][2]) - 0.5*(schmidt_tensor[2][1]-schmidt_tensor[1][2]) *gamma,
+              0.5*(velocity_gradient_tensor[0][2]-velocity_gradient_tensor[2][0]) - 0.5*(schmidt_tensor[0][2]-schmidt_tensor[2][0]) *gamma,
+              0.5*(velocity_gradient_tensor[1][0]-velocity_gradient_tensor[0][1]) - 0.5*(schmidt_tensor[1][0]-schmidt_tensor[0][1]) *gamma
+            });
+
+            // Compute strain energy for this grain (abbreviated Estr)
+            // For olivine: DREX only sums over 1-3. But Christopher Thissen's matlab
+            // code (https://github.com/cthissen/Drex-MATLAB) corrected
+            // this and writes each term using the indices created when calculating bigI.
+            // Note tau = RRSS = (tau_m^s/tau_o), this why we get tau^(p-n)
+            long double alpha = 0.0;
+            subgrain_rotation_fractions[grain_i] = 4.0;
+            for (unsigned int slip_system_i = 0; slip_system_i < 4; ++slip_system_i)
+              {
+                const double rhos = std::pow(tau[indices[slip_system_i]],drexpp_exponent_p[mineral_i]-drexpp_stress_exponent[mineral_i]) *
+                                    std::pow(std::abs(gamma*beta[indices[slip_system_i]]),drexpp_exponent_p[mineral_i]/drexpp_stress_exponent[mineral_i]);
+                strain_energy[grain_i] += rhos;
+                alpha += std::exp(-drexpp_nucleation_efficiency[mineral_i] * rhos * rhos);
+                Assert(isfinite(strain_energy[grain_i]), ExcMessage("strain_energy[" + std::to_string(grain_i) + "] is not finite: " + std::to_string(strain_energy[grain_i])
+                                                                    + ", rhos (" + std::to_string(slip_system_i) + ") = " + std::to_string(rhos)
+                                                                    + ", nucleation_efficiency = " + std::to_string(nucleation_efficiency) + "."));
+
+                Assert(isfinite(alpha), ExcMessage("alpha is not finite: " + std::to_string(alpha)
+                                                   + ", rhos (" + std::to_string(slip_system_i) + ") = " + std::to_string(rhos)
+                                                   + ", nucleation_efficiency = " + std::to_string(nucleation_efficiency) + "."));
+              }
+
+            subgrain_rotation_fractions[grain_i] = 4.0-alpha;
+            total_subgrain_rotation_fraction += subgrain_rotation_fractions[grain_i];
+          }
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            // compute the diffusion viscosity
+            // get grain_size
+            const double grain_volume = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+            const double grain_size = 2.0*std::cbrt(grain_volume * 3.0/(4.0*numbers::PI));
+
+            // compute the viscosities
+            std::vector<double> diffusion_viscosities(volume_fractions.size(),std::numeric_limits<double>::quiet_NaN());
+            std::vector<double> composite_viscosities(volume_fractions.size(),std::numeric_limits<double>::quiet_NaN());
+            for (unsigned int composition = 0; composition < volume_fractions.size(); ++composition)
+              {
+                diffusion_viscosities[composition] = diffusion_pre_viscosities[composition] * std::pow(grain_size, diffusion_grain_size_exponent[composition]);
+                composite_viscosities[composition] = diffusion_viscosities[composition]+dislocation_viscosities[composition];
+              }
+            const double diffusion_viscosity = MaterialModel::MaterialUtilities::average_value(volume_fractions, diffusion_viscosities, MaterialModel::MaterialUtilities::harmonic);
+            const double composite_viscosity = MaterialModel::MaterialUtilities::average_value(volume_fractions, composite_viscosities, MaterialModel::MaterialUtilities::harmonic);
+
+            grain_boundary_sliding_fractions[grain_i] = diffusion_viscosity/composite_viscosity;
+            AssertThrow(grain_boundary_sliding_fractions[grain_i]>0.0, ExcMessage("diffusion strain-rate larger than total strain-rate. "
+                                                                                  "composite_viscosity = " + std::to_string(composite_viscosity)
+                                                                                  + ", diffusion_viscosity = " + std::to_string(diffusion_viscosity)
+                                                                                  + ", grain_boundary_sliding_fractions[grain_i] = " + std::to_string(grain_boundary_sliding_fractions[grain_i])
+                                                                                 ));
+            total_grain_boundary_sliding_fraction += grain_boundary_sliding_fractions[grain_i];
+          }
+
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            recrystalized_fractions[grain_i] = total_grain_boundary_sliding_fraction != 0 && total_subgrain_rotation_fraction !=0 ?
+                                               (grain_boundary_sliding_fractions[grain_i]/total_grain_boundary_sliding_fraction)
+                                               * (subgrain_rotation_fractions[grain_i]/total_subgrain_rotation_fraction)
+                                               * aggregate_recrystalization_increment
+                                               :
+                                               0.0;
+          }
+
+        this->recrystalize_grains(cpo_index,
+                                  data,
+                                  mineral_i,
+                                  recrystalized_grain_volume,
+                                  recrystalized_fractions,
+                                  strain_energy);
+
+        double mean_strain_energy = 0.0;
+        // Change of volume fraction of grains by grain boundary migration
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          {
+            // compute the derivative of the rotation matrix: \frac{\partial a_{ij}}{\partial t}
+            // (Eq. 9, Kaminski & Ribe 2001)
+            deriv_a_cosine_matrices[grain_i] = 0;
+            const double volume_fraction_grain = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                deriv_a_cosine_matrices[grain_i] = (1- grain_boundary_sliding_fractions[grain_i]) * Utilities::Tensors::levi_civita<3>() * spin_vectors[grain_i];
+
+                // volume averaged strain energy
+                mean_strain_energy += volume_fraction_grain * strain_energy[grain_i];
+
+                Assert(isfinite(mean_strain_energy), ExcMessage("mean_strain_energy when adding grain " + std::to_string(grain_i) + " is not finite: " + std::to_string(mean_strain_energy)
+                                                                + ", volume_fraction_grain = " + std::to_string(volume_fraction_grain) + "."));
+            
+
+            // Different than D-Rex. Here we actually only compute the derivative and do not multiply it with the volume_fractions. We do that when we advect.
+            deriv_volume_fractions[grain_i] = get_volume_fraction_mineral(cpo_index,data,mineral_i) * ( 1- grain_boundary_sliding_fractions[grain_i] ) * drexpp_mobility[mineral_i] * (mean_strain_energy - strain_energy[grain_i]);
+
+            Assert(isfinite(deriv_volume_fractions[grain_i]),
+                   ExcMessage("deriv_volume_fractions[" + std::to_string(grain_i) + "] is not finite: "
+                              + std::to_string(deriv_volume_fractions[grain_i])));
+          }
+
+        return std::pair<std::vector<double>, std::vector<Tensor<2,3>>>(deriv_volume_fractions, deriv_a_cosine_matrices);
+      }
 
       template<int dim>
       DeformationType
@@ -995,7 +1597,7 @@ namespace aspect
 
 
 
-      template <int dim>
+          template <int dim>
       void
       CrystalPreferredOrientation<dim>::declare_parameters (ParameterHandler &prm)
       {
@@ -1035,7 +1637,7 @@ namespace aspect
 
               prm.declare_entry ("CPO derivatives algorithm", "Spin tensor",
                                  Patterns::List(Patterns::Anything()),
-                                 "Options: Spin tensor");
+                                 "Options: Spin tensor, D-Rex 2004, D-Rex++");
 
               prm.enter_subsection("Initial grains");
               {
@@ -1052,7 +1654,6 @@ namespace aspect
                                    "Karato 2008 selector selects a fabric based on stress and water content as defined in "
                                    "figure 4 of the Karato 2008 review paper (doi: 10.1146/annurev.earth.36.031207.124120).");
 
-
                 prm.declare_entry ("Volume fractions minerals", "0.7, 0.3",
                                    Patterns::List(Patterns::Double(0)),
                                    "The volume fractions for the different minerals. "
@@ -1064,8 +1665,7 @@ namespace aspect
 
               prm.enter_subsection("D-Rex 2004");
               {
-
-                prm.declare_entry ("Mobility", "50",
+                prm.declare_entry ("Mobility", "125",
                                    Patterns::Double(0),
                                    "The dimensionless intrinsic grain boundary mobility for both olivine and enstatite.");
 
@@ -1085,6 +1685,39 @@ namespace aspect
 
                 prm.declare_entry ("Nucleation efficiency", "5",
                                    Patterns::Double(0),
+                                   "This is the dimensionless nucleation rate as defined in equation 8 of "
+                                   "Kaminski et al., 2004. ");
+
+                prm.declare_entry ("Threshold GBS", "0.3",
+                                   Patterns::Double(0),
+                                   "The Dimensionless Grain Boundary Sliding (GBS) threshold. "
+                                   "This is a grain size threshold below which grain deform by GBS and "
+                                   "become strain-free grains.");
+              }
+              prm.leave_subsection();
+
+              prm.enter_subsection("D-Rex++");
+              {
+                prm.declare_entry ("Mobility", "125",
+                                   Patterns::List(Patterns::Double(0)),
+                                   "The dimensionless intrinsic grain boundary mobility for both olivine and enstatite.");
+
+                prm.declare_entry ("Volume fractions minerals", "0.5, 0.5",
+                                   Patterns::List(Patterns::Double(0)),
+                                   "The volume fraction for the different minerals. "
+                                   "There need to be the same amount of values as there are minerals");
+
+                prm.declare_entry ("Stress exponents", "3.5",
+                                   Patterns::List(Patterns::Double(0)),
+                                   "This is the power law exponent that characterizes the rheology of the "
+                                   "slip systems. It is used in equation 11 of Kaminski et al., 2004.");
+
+                prm.declare_entry ("Exponents p", "1.5",
+                                   Patterns::List(Patterns::Double(0)),
+                                   "This is exponent p as defined in equation 11 of Kaminski et al., 2004. ");
+
+                prm.declare_entry ("Nucleation efficiency", "5",
+                                   Patterns::List(Patterns::Double(0)),
                                    "This is the dimensionless nucleation rate as defined in equation 8 of "
                                    "Kaminski et al., 2004. ");
 
@@ -1135,6 +1768,10 @@ namespace aspect
                 {
                   cpo_derivative_algorithm = CPODerivativeAlgorithm::drex_2004;
                 }
+              else if (temp_cpo_derivative_algorithm ==  "D-Rex++")
+                {
+                  cpo_derivative_algorithm = CPODerivativeAlgorithm::drexpp;
+                }
               else
                 {
                   AssertThrow(false,
@@ -1162,8 +1799,9 @@ namespace aspect
                 AssertThrow(model_name == "Uniform grains and random uniform rotations",
                             ExcMessage("No model named " + model_name + "for CPO particle property initialization. "
                                        + "Only the model \"Uniform grains and random uniform rotations\" is available."));
-
                 const std::vector<std::string> temp_deformation_type_selector = dealii::Utilities::split_string_list(prm.get("Minerals"));
+                //prm.enter_subsection("Uniform grains and random uniform rotations");
+                //{
                 n_minerals = temp_deformation_type_selector.size();
                 deformation_type_selector.resize(n_minerals);
 
@@ -1219,6 +1857,8 @@ namespace aspect
 
                 AssertThrow(abs(volume_fractions_minerals_sum-1.0) < 2.0 * std::numeric_limits<double>::epsilon(),
                             ExcMessage("The sum of the CPO volume fractions should be one."));
+                //}
+                //prm.leave_subsection();
               }
               prm.leave_subsection();
 
@@ -1232,12 +1872,68 @@ namespace aspect
                 threshold_GBS = prm.get_double("Threshold GBS");
               }
               prm.leave_subsection();
+
+              prm.enter_subsection("D-Rex++");
+              {
+                drexpp_mobility = Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Mobility")));
+                volume_fractions_minerals = Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Volume fractions minerals")));
+                drexpp_stress_exponent = Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Stress exponents")));
+                drexpp_exponent_p =  Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Exponents p")));
+                drexpp_nucleation_efficiency =  Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Nucleation efficiency")));
+                threshold_GBS = prm.get_double("Threshold GBS");
+              }
+              prm.leave_subsection();
             }
             prm.leave_subsection ();
           }
           prm.leave_subsection ();
         }
         prm.leave_subsection ();
+
+
+        prm.enter_subsection("Material model");
+        {
+          prm.enter_subsection ("Visco Plastic");
+          {
+            // Phase transition parameters
+            phase_function.initialize_simulator (this->get_simulator());
+            phase_function.parse_parameters (prm);
+
+            // Retrieve the list of composition names
+            const std::vector<std::string> list_of_composition_names = this->introspection().get_composition_names();
+
+            // Establish that a background field is required here
+            const bool has_background_field = true;
+
+            thermal_diffusivities = Utilities::parse_map_to_double_array (prm.get("Thermal diffusivities"),
+                                                                          list_of_composition_names,
+                                                                          has_background_field,
+                                                                          "Thermal diffusivities");
+
+            define_conductivities = prm.get_bool ("Define thermal conductivities");
+
+            thermal_conductivities = Utilities::parse_map_to_double_array (prm.get("Thermal conductivities"),
+                                                                           list_of_composition_names,
+                                                                           has_background_field,
+                                                                           "Thermal conductivities");
+
+            rheology_diff = std::make_unique<MaterialModel::Rheology::DiffusionCreep<dim>>();
+            rheology_diff->initialize_simulator (this->get_simulator());
+            rheology_diff->parse_parameters(prm, std::make_unique<std::vector<unsigned int>>(phase_function.n_phases_for_each_composition()));
+
+            rheology_disl = std::make_unique<MaterialModel::Rheology::DislocationCreep<dim>>();
+            rheology_disl->initialize_simulator (this->get_simulator());
+            rheology_disl->parse_parameters(prm, std::make_unique<std::vector<unsigned int>>(phase_function.n_phases_for_each_composition()));
+
+            rheology_vipl = std::make_unique<MaterialModel::Rheology::ViscoPlastic<dim>>();
+            rheology_vipl->initialize_simulator (this->get_simulator());
+            rheology_vipl->parse_parameters(prm, std::make_unique<std::vector<unsigned int>>(phase_function.n_phases_for_each_composition()));
+            min_strain_rate = rheology_vipl->min_strain_rate;
+          }
+          prm.leave_subsection();
+        }
+        prm.leave_subsection();
+
       }
     }
   }
