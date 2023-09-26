@@ -180,40 +180,48 @@ namespace aspect
 #endif
               }
             else
-           {
-                // set volume fraction
+              {
 
-                /*
-                To use D-Rex uncomment the first statement, setting the initial volume fraction = 1/n_grains
-                To use D-Rex ++ uncomment the other lines
-                */
-
-                //const double initial_volume_fraction = 1.0/n_grains;
-                const double large_grains_size = 1e-6;
-                const double small_grain_size = large_grains_size/100000.;
-                const double initial_volume_fraction_large = (4./3.)*numbers::PI*pow(0.5*large_grains_size,3);
-                const double initial_volume_fraction_small = (4./3.)*numbers::PI*pow(0.5*small_grain_size,3);
-
-                std::cout<<"initial volume = "<<initial_volume_fraction_large<<"\t"<< initial_volume_fraction_small<<std::endl;
-
-                for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
+                switch (cpo_derivative_algorithm)
+                {
+                  case CPODerivativeAlgorithm::drexpp:
                   {
-                    //set volume fraction
-                    if (grain_i < n_grains/10.)
-                      {
-                        volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction_large;
-                      }
-                    else
-                      {
-                        volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction_small;
-                      }
-
-                    // set a uniform random rotation_matrix per grain
-                    // volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction;
-                    this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
-                  }
+                    const double initial_volume_fraction = 1e-6;
+                    
+                    for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
+                     {
+                        //set volume fraction
+                        if (grain_i < n_grains/10.)
+                          {
+                            volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow(0.5*initial_volume_fraction,3);
+                            //std::cout<<volume_fractions_grains[mineral_i][grain_i]<<std::endl;
+                          }
+                        else
+                         {
+                           volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow(0.5*(initial_volume_fraction/100000),3);
+                         }
+                        
+                        this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
+                      } 
+                  break;
+                  }                
+                  case CPODerivativeAlgorithm::drex_2004:
+                {
+                  for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
+                    {
+                      const double initial_volume_fraction = 1.0/n_grains;
+                      volume_fractions_grains[mineral_i][grain_i] = initial_volume_fraction;
+                      this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
+                    }
+                
+                  break;
+                }
+                default:
+                   break;
+                }
               }
           }
+
 
         for (unsigned int mineral_i = 0; mineral_i < n_minerals; ++mineral_i)
           {
@@ -222,6 +230,7 @@ namespace aspect
             for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
               {
                 data.emplace_back(volume_fractions_grains[mineral_i][grain_i]);
+                //std::cout<<volume_fractions_grains[mineral_i][grain_i]<<"\n";
                 for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
                   {
                     const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
