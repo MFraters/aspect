@@ -265,6 +265,14 @@ namespace aspect
           } yield_mechanism;
 
           /**
+           * // TODO  
+           * Whether to allow negative pressures to be used in the computation
+           * of plastic yield stresses and viscosities. If false, the minimum
+           * pressure in the plasticity formulation will be set to zero.
+           */
+          bool use_adiabatic_pressure_in_plasticity;
+
+          /**
            * Whether to allow negative pressures to be used in the computation
            * of plastic yield stresses and viscosities. If false, the minimum
            * pressure in the plasticity formulation will be set to zero.
