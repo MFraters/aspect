@@ -303,6 +303,8 @@ namespace aspect
             // than the lithostatic pressure.
 
             double pressure_for_plasticity = in.pressure[i];
+            if (use_adiabatic_pressure_in_plasticity)
+              pressure_for_plasticity = this->get_adiabatic_conditions().pressure(in.position[i]);
             if (allow_negative_pressures_in_plasticity == false)
               pressure_for_plasticity = std::max(in.pressure[i],0.0);
 
@@ -553,6 +555,9 @@ namespace aspect
                            Patterns::Selection("drucker|limiter"),
                            "Select what type of yield mechanism to use between Drucker Prager "
                            "and stress limiter options.");
+        prm.declare_entry ("Use adiabatic pressure in plasticity", "false",
+                           Patterns::Bool (),
+                           "");
         prm.declare_entry ("Allow negative pressures in plasticity", "false",
                            Patterns::Bool (),
                            "Whether to allow negative pressures to be used in the computation "
@@ -687,6 +692,7 @@ namespace aspect
                                "'drucker prager' plasticity option."));
 
         allow_negative_pressures_in_plasticity = prm.get_bool ("Allow negative pressures in plasticity");
+        use_adiabatic_pressure_in_plasticity = prm.get_bool ("Use adiabatic pressure in plasticity");
         use_adiabatic_pressure_in_creep = prm.get_bool("Use adiabatic pressure in creep viscosity");
 
         // Diffusion creep parameters

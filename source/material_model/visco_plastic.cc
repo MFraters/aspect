@@ -130,9 +130,13 @@ namespace aspect
     template <int dim>
     void
     ViscoPlastic<dim>::
-    evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+    evaluate(const MaterialModel::MaterialModelInputs<dim> &in_original,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
+      MaterialModel::MaterialModelInputs<dim> in = in_original;
+      for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
+              in.pressure[i] = this->get_adiabatic_conditions().pressure(in.position[i]);
+
       // Store which components do not represent volumetric compositions (e.g. strain components).
       const ComponentMask volumetric_compositions = rheology->get_volumetric_composition_mask();
 
@@ -161,7 +165,7 @@ namespace aspect
           // The phase index is set to invalid_unsigned_int, because it is only used internally
           // in phase_average_equation_of_state_outputs to loop over all existing phases
           MaterialUtilities::PhaseFunctionInputs<dim> phase_inputs(in.temperature[i],
-                                                                   in.pressure[i],
+                                                                   this->get_adiabatic_conditions().pressure(in.position[i]), //in.pressure[i],
                                                                    this->get_geometry_model().depth(in.position[i]),
                                                                    gravity_norm*reference_density,
                                                                    numbers::invalid_unsigned_int);
@@ -179,9 +183,21 @@ namespace aspect
                                                   n_phase_transitions_for_each_chemical_composition,
                                                   eos_outputs);
 
+          // We only want to compute mass/volume fractions for fields that are chemical compositions.
+          std::vector<double> chemical_compositions(in.composition[i].size(),0.);
+          const std::vector<typename Parameters<dim>::CompositionalFieldDescription> composition_descriptions = this->introspection().get_composition_descriptions();
+
+          for (unsigned int c=0; c<in.composition[i].size(); ++c)
+            if (composition_descriptions[c].type == Parameters<dim>::CompositionalFieldDescription::chemical_composition
+                || composition_descriptions[c].type == Parameters<dim>::CompositionalFieldDescription::unspecified)
+              chemical_compositions[c] = in.composition[i][c];
+
+          const std::vector<double> volume_fractions_for_rheology = MaterialUtilities::compute_composition_fractions(chemical_compositions, volumetric_compositions);
+          //const std::vector<double> volume_fractions = MaterialUtilities::compute_composition_fractions(in.composition[i], volumetric_compositions);
+
           // TODO: Update rheology to only compute viscosity for chemical compositional fields
           // Then remove volume_fractions_for_rheology
-          const std::vector<double> volume_fractions_for_rheology = MaterialUtilities::compute_composition_fractions(in.composition[i], volumetric_compositions);
+          //const std::vector<double> volume_fractions_for_rheology = MaterialUtilities::compute_composition_fractions(in.composition[i], volumetric_compositions);
           const std::vector<double> volume_fractions = MaterialUtilities::compute_only_composition_fractions(in.composition[i], this->introspection().chemical_composition_field_indices());
 
           // not strictly correct if thermal expansivities are different, since we are interpreting
