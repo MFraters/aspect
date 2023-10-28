@@ -629,6 +629,7 @@ namespace aspect
            * efficiency of nucleation parameter.
            * lambda_m in equation 8 of Kaminski et al. (2004, Geophys. J. Int)
            */
+          double initial_grain_size;
           double nucleation_efficiency;
           std::vector<double> drexpp_nucleation_efficiency;
 

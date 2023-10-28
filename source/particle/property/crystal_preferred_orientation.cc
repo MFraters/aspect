@@ -186,19 +186,17 @@ namespace aspect
                 {
                   case CPODerivativeAlgorithm::drexpp:
                   {
-                    const double initial_volume_fraction = 1e-6;
                     
                     for (unsigned int grain_i = 0; grain_i < n_grains ; ++grain_i)
                      {
                         //set volume fraction
                         if (grain_i < n_grains/10.)
                           {
-                            volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow(0.5*initial_volume_fraction,3);
-                            //std::cout<<volume_fractions_grains[mineral_i][grain_i]<<std::endl;
+                            volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow( 0.5 * initial_grain_size ,3);
                           }
                         else
                          {
-                           volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow(0.5*(initial_volume_fraction/100000),3);
+                           volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow( 0.5 * 2e-11 ,3);
                          }
                         
                         this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
@@ -1361,10 +1359,11 @@ namespace aspect
             for (unsigned int composition = 0; composition < volume_fractions.size(); ++composition)
               {
                 diffusion_viscosities[composition] = diffusion_pre_viscosities[composition] * std::pow(grain_size, diffusion_grain_size_exponent[composition]);
-                composite_viscosities[composition] = diffusion_viscosities[composition]+dislocation_viscosities[composition];
+                composite_viscosities[composition] = (diffusion_viscosities[composition]*dislocation_viscosities[composition])/(diffusion_viscosities[composition]+dislocation_viscosities[composition]);
+                std::cout<<diffusion_viscosities[composition]<<"\t"<<diffusion_viscosities[composition]+dislocation_viscosities[composition]<<"\t"<<composite_viscosities[composition]<<std::endl;
               }
             const double diffusion_viscosity = MaterialModel::MaterialUtilities::average_value(volume_fractions, diffusion_viscosities, MaterialModel::MaterialUtilities::harmonic);
-            const double composite_viscosity = MaterialModel::MaterialUtilities::average_value(volume_fractions, composite_viscosities, MaterialModel::MaterialUtilities::harmonic);
+            const double composite_viscosity = MaterialModel::MaterialUtilities::average_value(volume_fractions, composite_viscosities, MaterialModel::MaterialUtilities::harmonic);            
 
             grain_boundary_sliding_fractions[grain_i] = diffusion_viscosity/composite_viscosity;
             AssertThrow(grain_boundary_sliding_fractions[grain_i]>0.0, ExcMessage("diffusion strain-rate larger than total strain-rate. "
@@ -1400,7 +1399,7 @@ namespace aspect
             // (Eq. 9, Kaminski & Ribe 2001)
             deriv_a_cosine_matrices[grain_i] = 0;
             const double volume_fraction_grain = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-                deriv_a_cosine_matrices[grain_i] = (1- grain_boundary_sliding_fractions[grain_i]) * Utilities::Tensors::levi_civita<3>() * spin_vectors[grain_i];
+                deriv_a_cosine_matrices[grain_i] =  Utilities::Tensors::levi_civita<3>() * spin_vectors[grain_i];
 
                 // volume averaged strain energy
                 mean_strain_energy += volume_fraction_grain * strain_energy[grain_i];
@@ -1724,6 +1723,11 @@ namespace aspect
                 prm.declare_entry ("Exponents p", "1.5",
                                    Patterns::List(Patterns::Double(0)),
                                    "This is exponent p as defined in equation 11 of Kaminski et al., 2004. ");
+                
+                prm.declare_entry ("Initial grain size", "1e-6",
+                                   Patterns::List(Patterns::Double(0)),
+                                   "This is intial grain size we choose to prescribe to Drex ++ ");
+
 
                 prm.declare_entry ("Nucleation efficiency", "5",
                                    Patterns::List(Patterns::Double(0)),
@@ -1890,6 +1894,7 @@ namespace aspect
                 drexpp_exponent_p =  Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Exponents p")));
                 drexpp_nucleation_efficiency =  Utilities::string_to_double(dealii::Utilities::split_string_list(prm.get("Nucleation efficiency")));
                 threshold_GBS = prm.get_double("Threshold GBS");
+                initial_grain_size = prm.get_double("Initial grain size");
               }
               prm.leave_subsection();
             }
