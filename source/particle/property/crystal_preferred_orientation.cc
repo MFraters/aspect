@@ -1274,8 +1274,6 @@ namespace aspect
           if (recrystalized_grain_volume !=0) 
           {
            n_recrystalized_grains = std::floor((recrystalization_fractions[grain_i] * t_grain_volume) / t_recrystalized_grain_volume);
-           if (t_grain_volume !=0)
-           //std::cout<<"recrystalization fractions = "<<recrystalization_fractions[grain_i]<<"\tnumerator"<<(recrystalization_fractions[grain_i] * t_grain_volume)<<"\tvalue = "<<(recrystalization_fractions[grain_i] * t_grain_volume) / t_recrystalized_grain_volume<<std::endl;
           }
           else
           n_recrystalized_grains = 0;
