@@ -192,11 +192,13 @@ namespace aspect
                         //set volume fraction
                         if (grain_i < n_grains/10.)
                           {
-                            volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow( 0.5 * initial_grain_size ,3);
+                            //volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow( 0.5 * initial_grain_size ,3);
+                            volume_fractions_grains[mineral_i][grain_i] = initial_grain_size;
                           }
                         else
                          {
-                           volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow( 0.5 * 2e-11 ,3);
+                           //volume_fractions_grains[mineral_i][grain_i] = (4./3.)*numbers::PI*pow( 0.5 * 2e-11 ,3);
+                           volume_fractions_grains[mineral_i][grain_i] = 0;
                          }
                         
                         this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
@@ -367,53 +369,118 @@ namespace aspect
             Assert(std::isfinite(inv_sum_volume_mineral),
                    ExcMessage("inv_sum_volume_mineral is not finite. sum_volume_enstatite = "
                               + std::to_string(sum_volume_mineral)));
-
-            for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-              {
-                const double volume_fraction_grains = get_volume_fractions_grains(data_position,data,mineral_i,grain_i)*inv_sum_volume_mineral;
-                set_volume_fractions_grains(data_position,data,mineral_i,grain_i,volume_fraction_grains);
-                Assert(isfinite(get_volume_fractions_grains(data_position,data,mineral_i,grain_i)),
-                       ExcMessage("volume_fractions_grains[mineral_i]" + std::to_string(grain_i) + "] is not finite: "
+            
+            switch (cpo_derivative_algorithm)
+            {
+               case CPODerivativeAlgorithm::drex_2004:
+               {
+                 for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                   {
+                    const double volume_fraction_grains = get_volume_fractions_grains(data_position,data,mineral_i,grain_i)*inv_sum_volume_mineral;
+                    set_volume_fractions_grains(data_position,data,mineral_i,grain_i,volume_fraction_grains);
+                    Assert(isfinite(get_volume_fractions_grains(data_position,data,mineral_i,grain_i)),
+                           ExcMessage("volume_fractions_grains[mineral_i]" + std::to_string(grain_i) + "] is not finite: "
                                   + std::to_string(get_volume_fractions_grains(data_position,data,mineral_i,grain_i)) + ", inv_sum_volume_mineral = "
                                   + std::to_string(inv_sum_volume_mineral) + "."));
 
-                /**
-                 * Correct direction rotation matrices numerical error (orthnormality) after integration
-                 * Follows same method as in matlab version from Thissen (see https://github.com/cthissen/Drex-MATLAB/)
-                 * of finding the nearest orthonormal matrix using the SVD
-                 */
-                Tensor<2,3> rotation_matrix = get_rotation_matrix_grains(data_position,data,mineral_i,grain_i);
-                for (size_t i = 0; i < 3; ++i)
-                  {
-                    for (size_t j = 0; j < 3; ++j)
-                      {
-                        Assert(!std::isnan(rotation_matrix[i][j]), ExcMessage("rotation_matrix is nan before orthogonalization."));
-                      }
-                  }
-
-                rotation_matrix = dealii::project_onto_orthogonal_tensors(rotation_matrix);
-                for (size_t i = 0; i < 3; ++i)
-                  for (size_t j = 0; j < 3; ++j)
+                    /**
+                    * Correct direction rotation matrices numerical error (orthnormality) after integration
+                    * Follows same method as in matlab version from Thissen (see https://github.com/cthissen/Drex-MATLAB/)
+                    * of finding the nearest orthonormal matrix using the SVD
+                    */
+                    Tensor<2,3> rotation_matrix = get_rotation_matrix_grains(data_position,data,mineral_i,grain_i);
+                    for (size_t i = 0; i < 3; ++i)
                     {
-                      // I don't think this should happen with the projection, but D-Rex
-                      // does not do the orthogonal projection, but just clamps the values
-                      // to 1 and -1.
-                      Assert(std::fabs(rotation_matrix[i][j]) <= 1.0,
-                             ExcMessage("The rotation_matrix has a entry larger than 1."));
-
-                      Assert(!std::isnan(rotation_matrix[i][j]),
-                             ExcMessage("rotation_matrix is nan after orthoganalization: "
-                                        + std::to_string(rotation_matrix[i][j])));
-
-                      Assert(abs(rotation_matrix[i][j]) <= 1.0,
-                             ExcMessage("3. rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
-                                        "] is larger than one: "
-                                        + std::to_string(rotation_matrix[i][j]) + " (" + std::to_string(rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
-                                        + std::to_string(rotation_matrix[0][0]) + " " + std::to_string(rotation_matrix[0][1]) + " " + std::to_string(rotation_matrix[0][2]) + "\n"
-                                        + std::to_string(rotation_matrix[1][0]) + " " + std::to_string(rotation_matrix[1][1]) + " " + std::to_string(rotation_matrix[1][2]) + "\n"
-                                        + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
+                      for (size_t j = 0; j < 3; ++j)
+                        {
+                          Assert(!std::isnan(rotation_matrix[i][j]), ExcMessage("rotation_matrix is nan before orthogonalization."));
+                        }
                     }
-              }
+
+                    rotation_matrix = dealii::project_onto_orthogonal_tensors(rotation_matrix);
+                    for (size_t i = 0; i < 3; ++i)
+                      for (size_t j = 0; j < 3; ++j)
+                        {
+                          // I don't think this should happen with the projection, but D-Rex
+                          // does not do the orthogonal projection, but just clamps the values
+                          // to 1 and -1.
+                          Assert(std::fabs(rotation_matrix[i][j]) <= 1.0,
+                               ExcMessage("The rotation_matrix has a entry larger than 1."));
+
+                          Assert(!std::isnan(rotation_matrix[i][j]),
+                               ExcMessage("rotation_matrix is nan after orthoganalization: "
+                                          + std::to_string(rotation_matrix[i][j])));
+
+                          Assert(abs(rotation_matrix[i][j]) <= 1.0,
+                               ExcMessage("3. rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
+                                            "] is larger than one: "
+                                            + std::to_string(rotation_matrix[i][j]) + " (" + std::to_string(rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
+                                            + std::to_string(rotation_matrix[0][0]) + " " + std::to_string(rotation_matrix[0][1]) + " " + std::to_string(rotation_matrix[0][2]) + "\n"
+                                            + std::to_string(rotation_matrix[1][0]) + " " + std::to_string(rotation_matrix[1][1]) + " " + std::to_string(rotation_matrix[1][2]) + "\n"
+                                            + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
+                          }
+                    }
+                    break;
+               }
+              
+               case CPODerivativeAlgorithm::drexpp:
+               {
+                 for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                   {
+                    const double volume_fraction_grains = get_volume_fractions_grains(data_position,data,mineral_i,grain_i);
+                    set_volume_fractions_grains(data_position,data,mineral_i,grain_i,volume_fraction_grains);
+                    Assert(isfinite(get_volume_fractions_grains(data_position,data,mineral_i,grain_i)),
+                           ExcMessage("volume_fractions_grains[mineral_i]" + std::to_string(grain_i) + "] is not finite: "
+                                  + std::to_string(get_volume_fractions_grains(data_position,data,mineral_i,grain_i)) + ", inv_sum_volume_mineral = "
+                                  + std::to_string(inv_sum_volume_mineral) + "."));
+
+                    /**
+                    * Correct direction rotation matrices numerical error (orthnormality) after integration
+                    * Follows same method as in matlab version from Thissen (see https://github.com/cthissen/Drex-MATLAB/)
+                    * of finding the nearest orthonormal matrix using the SVD
+                    */
+                    Tensor<2,3> rotation_matrix = get_rotation_matrix_grains(data_position,data,mineral_i,grain_i);
+                    for (size_t i = 0; i < 3; ++i)
+                    {
+                      for (size_t j = 0; j < 3; ++j)
+                        {
+                          Assert(!std::isnan(rotation_matrix[i][j]), ExcMessage("rotation_matrix is nan before orthogonalization."));
+                        }
+                    }
+
+                    rotation_matrix = dealii::project_onto_orthogonal_tensors(rotation_matrix);
+                    for (size_t i = 0; i < 3; ++i)
+                      for (size_t j = 0; j < 3; ++j)
+                        {
+                          // I don't think this should happen with the projection, but D-Rex
+                          // does not do the orthogonal projection, but just clamps the values
+                          // to 1 and -1.
+                          Assert(std::fabs(rotation_matrix[i][j]) <= 1.0,
+                               ExcMessage("The rotation_matrix has a entry larger than 1."));
+
+                          Assert(!std::isnan(rotation_matrix[i][j]),
+                               ExcMessage("rotation_matrix is nan after orthoganalization: "
+                                          + std::to_string(rotation_matrix[i][j])));
+
+                          Assert(abs(rotation_matrix[i][j]) <= 1.0,
+                               ExcMessage("3. rotation_matrix[" + std::to_string(i) + "][" + std::to_string(j) +
+                                            "] is larger than one: "
+                                            + std::to_string(rotation_matrix[i][j]) + " (" + std::to_string(rotation_matrix[i][j]-1.0) + "). rotation_matrix = \n"
+                                            + std::to_string(rotation_matrix[0][0]) + " " + std::to_string(rotation_matrix[0][1]) + " " + std::to_string(rotation_matrix[0][2]) + "\n"
+                                            + std::to_string(rotation_matrix[1][0]) + " " + std::to_string(rotation_matrix[1][1]) + " " + std::to_string(rotation_matrix[1][2]) + "\n"
+                                            + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
+                          }
+                    }
+                    break;
+               }
+
+               default:
+                  break;
+
+
+            }
+
+            
           }
       }
 
@@ -481,30 +548,71 @@ namespace aspect
                                                              const double dt,
                                                              const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives) const
       {
-        double sum_volume_fractions = 0;
-        Tensor<2,3> rotation_matrix;
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            // Do the volume fraction of the grain
-            Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite before it is set."));
-            double volume_fraction_grains = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-            volume_fraction_grains =  volume_fraction_grains + dt * volume_fraction_grains * derivatives.first[grain_i];
-            set_volume_fractions_grains(cpo_index,data,mineral_i,grain_i, volume_fraction_grains);
-            Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite. grain_i = "
-                   + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
-                   + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
+        switch (cpo_derivative_algorithm)
+            {
+               case CPODerivativeAlgorithm::drex_2004:
+               {
+                double sum_volume_fractions = 0;
+                Tensor<2,3> rotation_matrix;
+                for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                  {
+                    // Do the volume fraction of the grain
+                    Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite before it is set."));
+                    double volume_fraction_grains = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                    volume_fraction_grains =  volume_fraction_grains + dt * volume_fraction_grains * derivatives.first[grain_i];
+                    set_volume_fractions_grains(cpo_index,data,mineral_i,grain_i, volume_fraction_grains);
+                    Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite. grain_i = "
+                            + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
+                            + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
 
-            sum_volume_fractions += get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                    sum_volume_fractions += get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
 
-            // Do the rotation matrix for this grain
-            rotation_matrix = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
-            rotation_matrix += dt * rotation_matrix * derivatives.second[grain_i];
-            set_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i,rotation_matrix);
-          }
+                    // Do the rotation matrix for this grain
+                    rotation_matrix = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
+                    rotation_matrix += dt * rotation_matrix * derivatives.second[grain_i];
+                    set_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i,rotation_matrix);
+                  }
 
-        Assert(sum_volume_fractions != 0, ExcMessage("The sum of all grain volume fractions of a mineral is equal to zero. This should not happen."));
-        return sum_volume_fractions;
-      }
+                Assert(sum_volume_fractions != 0, ExcMessage("The sum of all grain volume fractions of a mineral is equal to zero. This should not happen."));
+                return sum_volume_fractions;
+                
+                break;
+               }
+              
+               case CPODerivativeAlgorithm::drexpp:
+               {
+                double sum_volume_fractions = 0;
+                Tensor<2,3> rotation_matrix;
+                for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                  {
+                    // Do the volume fraction of the grain
+                    Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite before it is set."));
+                    double volume_fraction_grains = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                    //volume_fraction_grains =  volume_fraction_grains + dt * volume_fraction_grains * derivatives.first[grain_i];
+                    volume_fraction_grains =  volume_fraction_grains + dt * derivatives.first[grain_i];
+                    set_volume_fractions_grains(cpo_index,data,mineral_i,grain_i, volume_fraction_grains);
+                    Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite. grain_i = "
+                            + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
+                            + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
+
+                    sum_volume_fractions += get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+
+                    // Do the rotation matrix for this grain
+                    rotation_matrix = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
+                    rotation_matrix += dt * rotation_matrix * derivatives.second[grain_i];
+                    set_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i,rotation_matrix);
+                  }
+
+                Assert(sum_volume_fractions != 0, ExcMessage("The sum of all grain volume fractions of a mineral is equal to zero. This should not happen."));
+                return sum_volume_fractions;
+                
+                break;
+               }
+
+               default:
+                  break;
+            }
+       }
 
 
 
@@ -516,58 +624,130 @@ namespace aspect
                                                               const double dt,
                                                               const std::pair<std::vector<double>, std::vector<Tensor<2,3>>> &derivatives) const
       {
-        double sum_volume_fractions = 0;
-        Tensor<2,3> cosine_ref;
-        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-          {
-            // Do the volume fraction of the grain
-            double vf_old = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-            double vf_new = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-            Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set."));
-            for (size_t iteration = 0; iteration < property_advection_max_iterations; ++iteration)
-              {
-                Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set. grain_i = "
+        switch (cpo_derivative_algorithm)
+            {
+               case CPODerivativeAlgorithm::drex_2004:
+               {
+                 double sum_volume_fractions = 0;
+                 Tensor<2,3> cosine_ref;
+                 for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                  {
+                    // Do the volume fraction of the grain
+                    double vf_old = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                    double vf_new = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                    //std::cout<<"vf_new = "<<vf_new<<std::endl;
+                    Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set."));
+                    for (size_t iteration = 0; iteration < property_advection_max_iterations; ++iteration)
+                      {
+                        Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set. grain_i = "
                                                         + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
                                                         + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
 
-                vf_new = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) + dt * vf_new * derivatives.first[grain_i];
+                        vf_new = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) + dt * vf_new * derivatives.first[grain_i];
 
-                Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite. grain_i = "
-                       + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
-                       + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
-                if (std::fabs(vf_new-vf_old) < property_advection_tolerance)
-                  {
-                    break;
+                        Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite. grain_i = "
+                                                        + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
+                                                        + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
+                        if (std::fabs(vf_new-vf_old) < property_advection_tolerance)
+                          {
+                            break;
+                           }
+                      vf_old = vf_new;
+                    }
+
+                    set_volume_fractions_grains(cpo_index,data,mineral_i,grain_i,vf_new);
+                    sum_volume_fractions += vf_new;
+
+                    // Do the rotation matrix for this grain
+                    cosine_ref = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
+                    Tensor<2,3> cosine_old = cosine_ref;
+                    Tensor<2,3> cosine_new = cosine_ref;
+
+                    for (size_t iteration = 0; iteration < property_advection_max_iterations; ++iteration)
+                      {
+                        cosine_new = cosine_ref + dt * cosine_new * derivatives.second[grain_i];
+                        if ((cosine_new-cosine_old).norm() < property_advection_tolerance)
+                          {
+                            break;
+                          }
+                        cosine_old = cosine_new;
+                      }
+
+                    set_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i,cosine_new);
+
                   }
-                vf_old = vf_new;
+                Assert(sum_volume_fractions != 0, ExcMessage("The sum of all grain volume fractions of a mineral is equal to zero. This should not happen."));
+                return sum_volume_fractions;
+                break;
               }
+              
+               case CPODerivativeAlgorithm::drexpp:
+               {
+                 double sum_volume_fractions = 0;
+                 double sum_of_volumes = 0;
+                 Tensor<2,3> cosine_ref;
 
-            set_volume_fractions_grains(cpo_index,data,mineral_i,grain_i,vf_new);
-            sum_volume_fractions += vf_new;
+                 for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+                 {
+                  sum_of_volumes += get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                 }
+                
+                 //std::cout<<"Sum of volumes = "<<sum_of_volumes<<std::endl;
 
-            // Do the rotation matrix for this grain
-            cosine_ref = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
-            Tensor<2,3> cosine_old = cosine_ref;
-            Tensor<2,3> cosine_new = cosine_ref;
-
-            for (size_t iteration = 0; iteration < property_advection_max_iterations; ++iteration)
-              {
-                cosine_new = cosine_ref + dt * cosine_new * derivatives.second[grain_i];
-
-                if ((cosine_new-cosine_old).norm() < property_advection_tolerance)
+                 for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
                   {
-                    break;
+                    // Do the volume fraction of the grain
+                    double vf_old = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                    double vf_new = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+                    Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set."));
+                    for (size_t iteration = 0; iteration < property_advection_max_iterations; ++iteration)
+                      {
+                        Assert(std::isfinite(vf_new),ExcMessage("vf_new is not finite before it is set. grain_i = "
+                                                        + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
+                                                        + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
+
+                        //vf_new = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) + dt * (vf_new/sum_of_volumes) *  derivatives.first[grain_i];
+                        vf_new = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) + dt  *  derivatives.first[grain_i];
+
+
+                        Assert(std::isfinite(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)),ExcMessage("volume_fractions[grain_i] is not finite. grain_i = "
+                                                        + std::to_string(grain_i) + ", volume_fractions[grain_i] = " + std::to_string(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i))
+                                                        + ", derivatives.first[grain_i] = " + std::to_string(derivatives.first[grain_i])));
+                        if (std::fabs(vf_new-vf_old) < property_advection_tolerance)
+                          {
+                            break;
+                           }
+                      vf_old = vf_new;
+                    }
+
+                    set_volume_fractions_grains(cpo_index,data,mineral_i,grain_i,vf_new);
+                    sum_volume_fractions += vf_new;
+
+                    // Do the rotation matrix for this grain
+                    cosine_ref = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
+                    Tensor<2,3> cosine_old = cosine_ref;
+                    Tensor<2,3> cosine_new = cosine_ref;
+
+                    for (size_t iteration = 0; iteration < property_advection_max_iterations; ++iteration)
+                      {
+                        cosine_new = cosine_ref + dt * cosine_new * derivatives.second[grain_i];
+                        if ((cosine_new-cosine_old).norm() < property_advection_tolerance)
+                          {
+                            break;
+                          }
+                        cosine_old = cosine_new;
+                      }
+
+                    set_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i,cosine_new);
+
                   }
-                cosine_old = cosine_new;
+                Assert(sum_volume_fractions != 0, ExcMessage("The sum of all grain volume fractions of a mineral is equal to zero. This should not happen."));
+                return sum_volume_fractions;
+                break;
               }
-
-            set_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i,cosine_new);
-
-          }
-
-
-        Assert(sum_volume_fractions != 0, ExcMessage("The sum of all grain volume fractions of a mineral is equal to zero. This should not happen."));
-        return sum_volume_fractions;
+               default:
+                  break;
+            }
       }
 
 
@@ -662,7 +842,7 @@ namespace aspect
             std::cout<<"Strain at timestep = "<<strain<<"\n";
 
             if (strain_critical < strain)
-              aggregate_recrystalization_increment = avrami_exponent * rate_of_transformation * std::pow( strain - strain_critical , avrami_exponent - 1 ) * exp(-1 * rate_of_transformation * std::pow( strain-strain_critical , avrami_exponent ));
+              aggregate_recrystalization_increment = avrami_exponent * rate_of_transformation * std::pow( strain - strain_critical , avrami_exponent - 1 ) * exp(-1 * (rate_of_transformation * std::pow( strain-strain_critical , avrami_exponent )));
             
             else
               aggregate_recrystalization_increment = 0;
@@ -776,7 +956,7 @@ namespace aspect
             
             const std::array<double, dim> eigenvalues = dealii::eigenvalues(deviatoric_stress);
             double differential_stress = eigenvalues[0] - eigenvalues[dim -1];
-            const double dislocation_creep_strain_rate = differential_stress/(2.* dislocation_viscosities[0]);
+            std::cout<<"differential stress = "<<differential_stress<<std::endl;
 
             /*
               Calculation of the recrystallized grain size is done using the piezometer proposed by Van der Waal (1993).
@@ -793,7 +973,7 @@ namespace aspect
            std::array<double, 2> half_recrystalized_grain_size;
            std::array<double, 2> recrystalized_grain_volume;
            std::array<double, 2> A = {{0.015,std::pow(10,3.8)}};
-           std::array<double, 2> m = {{-1.33, 1-28}};
+           std::array<double, 2> m = {{-1.33, -1.28}};
 
            if ( t != 0 )
            {
@@ -805,7 +985,8 @@ namespace aspect
            }
 
            half_recrystalized_grain_size[mineral_i] = 0.5 * recrystalized_grain_size[mineral_i];
-           recrystalized_grain_volume[mineral_i] = (4./3.) * numbers::PI * half_recrystalized_grain_size[mineral_i] * half_recrystalized_grain_size[mineral_i] * half_recrystalized_grain_size[mineral_i];
+           recrystalized_grain_volume[mineral_i] = recrystalized_grain_size[mineral_i];
+           //recrystalized_grain_volume[mineral_i] = (4./3.) * numbers::PI * half_recrystalized_grain_size[mineral_i] * half_recrystalized_grain_size[mineral_i] * half_recrystalized_grain_size[mineral_i];
 
            std::cout<<"Recrystalized grain volume for mineral "<<mineral_i<<" = "<<recrystalized_grain_volume[mineral_i]<<std::endl;
 
@@ -1079,6 +1260,9 @@ namespace aspect
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
         {
           const double grain_volume = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+          const double t_grain_volume = (4/3)*numbers::PI*std::pow(grain_volume,3);
+          const double t_recrystalized_grain_volume = (4/3)*numbers::PI*std::pow(recrystalized_grain_volume,3);
+
           double temp_total_volume = 0;
           for (unsigned int i = 0; i < permutation_vector.size(); ++i)
           {
@@ -1087,8 +1271,12 @@ namespace aspect
           
           size_t n_recrystalized_grains;
           
-          if (recrystalized_grain_volume !=0)  
-          n_recrystalized_grains = std::floor((recrystalization_fractions[grain_i] * grain_volume) / recrystalized_grain_volume);
+          if (recrystalized_grain_volume !=0) 
+          {
+           n_recrystalized_grains = std::floor((recrystalization_fractions[grain_i] * t_grain_volume) / t_recrystalized_grain_volume);
+           if (t_grain_volume !=0)
+           //std::cout<<"recrystalization fractions = "<<recrystalization_fractions[grain_i]<<"\tnumerator"<<(recrystalization_fractions[grain_i] * t_grain_volume)<<"\tvalue = "<<(recrystalization_fractions[grain_i] * t_grain_volume) / t_recrystalized_grain_volume<<std::endl;
+          }
           else
           n_recrystalized_grains = 0;
 
@@ -1115,7 +1303,9 @@ namespace aspect
             set_volume_fractions_grains(cpo_index,data,mineral_i,permutation_vector[permutation_vector_counter],replaced_grains_volume);
 
             Tensor<2,3> random_rotation_matrix;
-            this -> compute_random_rotation_matrix(random_rotation_matrix);
+            random_rotation_matrix = main_rotation_matrix;
+            //this -> compute_random_rotation_matrix(random_rotation_matrix);
+            
             for (size_t i = 0; i < 3; i++)
               for (size_t j = 0; j < 3; j++)
                 Assert(abs(random_rotation_matrix[i][j]) <= 1.0,
@@ -1137,8 +1327,8 @@ namespace aspect
                     // TODO: compute random rotation matrix between two degrees and apply it
                     // Have to test this to ensure that the misorientation between the two tensors is only 10 degrees
 
-                    this->compute_random_rotation_matrix(random_deflection);
-                    main_rotation_matrix = main_rotation_matrix*random_deflection;
+                    //this->compute_random_rotation_matrix(random_deflection);
+                    main_rotation_matrix = main_rotation_matrix;
                     for (size_t i = 0; i < 3; i++)
                       for (size_t j = 0; j < 3; j++)
                         Assert(abs(main_rotation_matrix[i][j]) <= 1.0,
@@ -1232,7 +1422,7 @@ namespace aspect
             Tensor<2,3> schmidt_tensor;
 
             // The value in this if statement is arbitrary. Has to be further checked out to for a more "realistic value".
-            if (bigI.norm() < 1e-15)
+            if (bigI.norm() < 1e-20)
               {
                 // In this case there is no shear, only (possibly) a rotation. So \gamma_y and/or G should be zero.
                 // Which is the default value, so do nothing.
@@ -1326,7 +1516,7 @@ namespace aspect
             // code (https://github.com/cthissen/Drex-MATLAB) corrected
             // this and writes each term using the indices created when calculating bigI.
             // Note tau = RRSS = (tau_m^s/tau_o), this why we get tau^(p-n)
-            long double alpha = 0.0;
+            double alpha = 0.0;
             subgrain_rotation_fractions[grain_i] = 4.0;
             for (unsigned int slip_system_i = 0; slip_system_i < 4; ++slip_system_i)
               {
@@ -1343,34 +1533,44 @@ namespace aspect
                                                    + ", nucleation_efficiency = " + std::to_string(nucleation_efficiency) + "."));
               }
 
-            subgrain_rotation_fractions[grain_i] = 4.0-alpha;
+            subgrain_rotation_fractions[grain_i] =alpha;
             total_subgrain_rotation_fraction += subgrain_rotation_fractions[grain_i];
           }
+          
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
             // compute the diffusion viscosity
             // get grain_size
             const double grain_volume = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-            const double grain_size = 2.0*std::cbrt(grain_volume * 3.0/(4.0*numbers::PI));
+            const double grain_size =  grain_volume;
 
             // compute the viscosities
+            if (grain_size > 0)
+            {
             std::vector<double> diffusion_viscosities(volume_fractions.size(),std::numeric_limits<double>::quiet_NaN());
             std::vector<double> composite_viscosities(volume_fractions.size(),std::numeric_limits<double>::quiet_NaN());
             for (unsigned int composition = 0; composition < volume_fractions.size(); ++composition)
               {
                 diffusion_viscosities[composition] = diffusion_pre_viscosities[composition] * std::pow(grain_size, diffusion_grain_size_exponent[composition]);
                 composite_viscosities[composition] = (diffusion_viscosities[composition]*dislocation_viscosities[composition])/(diffusion_viscosities[composition]+dislocation_viscosities[composition]);
-                std::cout<<diffusion_viscosities[composition]<<"\t"<<diffusion_viscosities[composition]+dislocation_viscosities[composition]<<"\t"<<composite_viscosities[composition]<<std::endl;
+                //std::cout<<diffusion_viscosities[composition]<<"\t"<<diffusion_viscosities[composition]+dislocation_viscosities[composition]<<"\t"<<composite_viscosities[composition]<<std::endl;
               }
             const double diffusion_viscosity = MaterialModel::MaterialUtilities::average_value(volume_fractions, diffusion_viscosities, MaterialModel::MaterialUtilities::harmonic);
             const double composite_viscosity = MaterialModel::MaterialUtilities::average_value(volume_fractions, composite_viscosities, MaterialModel::MaterialUtilities::harmonic);            
 
             grain_boundary_sliding_fractions[grain_i] = diffusion_viscosity/composite_viscosity;
+
             AssertThrow(grain_boundary_sliding_fractions[grain_i]>0.0, ExcMessage("diffusion strain-rate larger than total strain-rate. "
                                                                                   "composite_viscosity = " + std::to_string(composite_viscosity)
                                                                                   + ", diffusion_viscosity = " + std::to_string(diffusion_viscosity)
                                                                                   + ", grain_boundary_sliding_fractions[grain_i] = " + std::to_string(grain_boundary_sliding_fractions[grain_i])
                                                                                  ));
+            }
+            else 
+            {
+              grain_boundary_sliding_fractions[grain_i] = 0;
+            } 
+
             total_grain_boundary_sliding_fraction += grain_boundary_sliding_fractions[grain_i];
           }
 
@@ -1383,7 +1583,7 @@ namespace aspect
                                                :
                                                0.0;
           }
-
+        
         this->recrystalize_grains(cpo_index,
                                   data,
                                   mineral_i,
@@ -1392,6 +1592,7 @@ namespace aspect
                                   strain_energy);
 
         double mean_strain_energy = 0.0;
+        double sum_volume = 0;
         // Change of volume fraction of grains by grain boundary migration
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
@@ -1399,21 +1600,34 @@ namespace aspect
             // (Eq. 9, Kaminski & Ribe 2001)
             deriv_a_cosine_matrices[grain_i] = 0;
             const double volume_fraction_grain = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
+            if ((volume_fraction_grain > 0) && (grain_boundary_sliding_fractions[grain_i] > 0.5))
+             {
                 deriv_a_cosine_matrices[grain_i] =  Utilities::Tensors::levi_civita<3>() * spin_vectors[grain_i];
-
+                sum_volume += volume_fraction_grain;
                 // volume averaged strain energy
                 mean_strain_energy += volume_fraction_grain * strain_energy[grain_i];
 
                 Assert(isfinite(mean_strain_energy), ExcMessage("mean_strain_energy when adding grain " + std::to_string(grain_i) + " is not finite: " + std::to_string(mean_strain_energy)
                                                                 + ", volume_fraction_grain = " + std::to_string(volume_fraction_grain) + "."));
-            
-
-            // Different than D-Rex. Here we actually only compute the derivative and do not multiply it with the volume_fractions. We do that when we advect.
-            deriv_volume_fractions[grain_i] = get_volume_fraction_mineral(cpo_index,data,mineral_i) * ( 1- grain_boundary_sliding_fractions[grain_i] ) * drexpp_mobility[mineral_i] * (mean_strain_energy - strain_energy[grain_i]);
-
-            Assert(isfinite(deriv_volume_fractions[grain_i]),
-                   ExcMessage("deriv_volume_fractions[" + std::to_string(grain_i) + "] is not finite: "
-                              + std::to_string(deriv_volume_fractions[grain_i])));
+              }
+            else 
+            { 
+                strain_energy[grain_i] = 0;         
+            }
+          }
+          mean_strain_energy = mean_strain_energy/sum_volume;
+          //std::cout<<"mean strain energy = "<<mean_strain_energy<<std::endl;
+        for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
+          { 
+            double volume_fraction_grain = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);      
+            if (volume_fraction_grain > 0) 
+            {            
+		            // Different than D-Rex. Here we actually only compute the derivative and do not multiply it with the volume_fractions. We do that when we advect.<
+           	    deriv_volume_fractions[grain_i] = get_volume_fraction_mineral(cpo_index,data,mineral_i) *  drexpp_mobility[mineral_i] * (mean_strain_energy - strain_energy[grain_i]);
+                //std::cout<<"deriv_volume_fractions = "<<deriv_volume_fractions[grain_i]<<"\tdifference in strain energy = "<<mean_strain_energy- strain_energy[grain_i]<<"\tstrain energy = "<<strain_energy[grain_i]<<std::endl;
+            }
+            else 
+              deriv_volume_fractions[grain_i] = 0;               
           }
 
         return std::pair<std::vector<double>, std::vector<Tensor<2,3>>>(deriv_volume_fractions, deriv_a_cosine_matrices);
