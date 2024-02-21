@@ -620,11 +620,14 @@ namespace aspect
     density (const double temperature,
              const double pressure,
              const std::vector<double> &compositional_fields, /*composition*/
-             const Point<dim> &) const
+             const Point<dim> &point) const
     {
       if (!use_table_properties)
         {
-          return reference_rho * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()))
+          const double depth = this->get_geometry_model().depth(point);
+          //const double reference_rho_local = (point[0]>(std::min(this->get_time() / year_in_seconds,148e6)*6.0e-2)+(820e3/std::tan(30./180.*M_PI)-point[1]/std::tan(30./180.*M_PI)) & point[1]>820e3-120e3 ? (830e3-point[1] < 40e3 ? reference_rho-300. : reference_rho-75.) : reference_rho);
+          const double reference_rho_local = (depth < 660e3 ? (compositional_fields[1] > 0.5 ? reference_rho-75. : (compositional_fields[2] > 0.5 ? reference_rho-300. : reference_rho)) : reference_rho+0.);
+          return reference_rho_local * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()))
                  * (1 - thermal_alpha * (temperature - reference_T));
         }
       else
@@ -811,8 +814,10 @@ namespace aspect
       AssertThrow( (grain_size_evolution_formulation != Formulation::paleopiezometer || !this->get_heating_model_manager().shear_heating_enabled()),
                    ExcMessage("Shear heating output should not be used with the Paleopiezometer grain damage formulation."));
 
+      constexpr double weakzone_time = 54e6;
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
+          const double depth = this->get_geometry_model().depth(in.position[i]);
           // Use the adiabatic pressure instead of the real one, because of oscillations
           const double pressure = (this->get_adiabatic_conditions().is_initialized())
                                   ?
@@ -905,15 +910,49 @@ namespace aspect
                                                                 second_strain_rate_invariant,
                                                                 in.position[i]);
 
+	      const double yield_stress = 10e6*std::cos(30.*M_PI/180.)+adiabatic_pressure*std::sin(30.*M_PI/180.);
+	      const double plastic_viscosity = yield_stress/(2.0*second_strain_rate_invariant);
               if (std::abs(second_strain_rate_invariant) > 1e-30)
                 {
                   disl_viscosity = dislocation_viscosity(in.temperature[i], adiabatic_temperature, adiabatic_pressure, in.strain_rate[i], in.position[i], diff_viscosity);
-                  effective_viscosity = disl_viscosity * diff_viscosity / (disl_viscosity + diff_viscosity);
+                  effective_viscosity = std::min(plastic_viscosity,disl_viscosity * diff_viscosity  / (disl_viscosity + diff_viscosity));
                 }
               else
                 effective_viscosity = diff_viscosity;
 
-              out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
+              if(depth > 660e3){
+              effective_viscosity *= 10;
+              }
+
+	      if(this->get_time() / year_in_seconds > weakzone_time && in.composition[i][3] > 0.5) {
+	           out.viscosities[i] = std::min(std::max(min_eta,1e19),max_eta);
+	      } else {
+		   const double angle_internal_friction = (30./180)*M_PI;
+		   const double cohesion = 20e6;
+                   const double sin_phi = std::sin(angle_internal_friction);
+                   const double cos_phi = std::cos(angle_internal_friction);
+                   const double stress_inv_part = 1. / (std::sqrt(3.0) * (3.0 + sin_phi));
+
+                   // Initial yield stress (no stabilization terms)
+                   const double yield_stress = ( (dim==3)
+                                                 ?
+                                                 ( 6.0 * cohesion * cos_phi + 6.0 * adiabatic_pressure * sin_phi) * stress_inv_part
+                                                 :
+                                                 cohesion * cos_phi + pressure * sin_phi);//adiabatic_pressure * sin_phi);
+
+                   //const double yield_stress_eff = yield_stress;//std::min(yield_stress, max_yield_stress);
+		   const double current_edot_ii = second_strain_rate_invariant;
+                   const double current_stress = 2. * effective_viscosity * current_edot_ii;
+		   
+		   if (current_stress >= yield_stress)
+		   {
+		       const double effective_strain_rate = second_strain_rate_invariant;
+                       effective_viscosity = yield_stress / (2. * effective_strain_rate);
+		   }
+                   
+		   out.viscosities[i] = std::min(std::max(min_eta,effective_viscosity),max_eta);
+		   
+              }
 
               if (DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim>>())
                 {
@@ -939,6 +978,9 @@ namespace aspect
             }
 
           out.densities[i] = density(in.temperature[i], pressure, in.composition[i], in.position[i]);
+	  if(this->get_time() / year_in_seconds > weakzone_time && in.composition[i][3] > 0.5) {
+            out.densities[i] -= 25;
+	  }
           out.thermal_conductivities[i] = k_value;
           out.compressibilities[i] = compressibility(in.temperature[i], pressure, composition, in.position[i]);
 
