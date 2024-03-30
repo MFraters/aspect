@@ -304,6 +304,8 @@ namespace aspect
             // than the lithostatic pressure.
 
             double pressure_for_plasticity = in.pressure[i];
+	    if(true)
+	      pressure_for_plasticity = this->get_adiabatic_conditions().pressure(in.position[i]);
             if (allow_negative_pressures_in_plasticity == false)
               pressure_for_plasticity = std::max(in.pressure[i],0.0);
 
