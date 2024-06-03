@@ -512,10 +512,10 @@ namespace aspect
       {
         dcr.initial_residual = compute_initial_newton_residual(linearized_stokes_initial_guess);
         dcr.switch_initial_residual = dcr.initial_residual;
-        std::cout << "Flag 1 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", "  << std::endl;
+        pcout << "Flag 1 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", "  << std::endl;
         dcr.residual_old = dcr.initial_residual;
         dcr.residual = dcr.initial_residual;
-        std::cout << "Flag 1 after:" << dcr.residual << ", residual_old = " << dcr.residual_old << ", " << std::endl;
+        pcout << "Flag 1 after:" << dcr.residual << ", residual_old = " << dcr.residual_old << ", " << std::endl;
       }
 
     assemble_newton_stokes_system = assemble_newton_stokes_matrix = true;
@@ -556,11 +556,11 @@ namespace aspect
     assemble_stokes_system();
 
     // recompute rhs
-    std::cout << "Flag 12 before:"  << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = " << dcr.pressure_residual<< std::endl;
+    pcout << "Flag 12 before:"  << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = " << dcr.pressure_residual<< std::endl;
     dcr.velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
     dcr.pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
     dcr.residual = std::sqrt(dcr.velocity_residual * dcr.velocity_residual + dcr.pressure_residual * dcr.pressure_residual);
-    std::cout << "Flag 12 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = " << dcr.pressure_residual << std::endl;
+    pcout << "Flag 12 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = " << dcr.pressure_residual << std::endl;
 
     // Test whether the rhs has dropped so much that we can assume that the iteration is done.
     if (dcr.residual < dcr.residual_old * 1e-8)
@@ -653,12 +653,12 @@ namespace aspect
              */
             if (nonlinear_iteration > 1)
               {
-                std::cout << "Flag 13 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", "  << std::endl;
+                pcout << "Flag 13 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", "  << std::endl;
                 dcr.residual_old = dcr.residual;
                 dcr.velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
                 dcr.pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
                 dcr.residual = std::sqrt(dcr.velocity_residual * dcr.velocity_residual + dcr.pressure_residual * dcr.pressure_residual);
-                std::cout << "Flag 13 after:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", "  << std::endl;
+                pcout << "Flag 13 after:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", "  << std::endl;
 
                 if (!use_picard)
                   {
@@ -684,11 +684,11 @@ namespace aspect
           }
       }
 
-    std::cout << "Flag 14 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = "<< dcr.pressure_residual << std::endl;
+    pcout << "Flag 14 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = "<< dcr.pressure_residual << std::endl;
     dcr.velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
     dcr.pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
     dcr.residual = std::sqrt(dcr.velocity_residual * dcr.velocity_residual + dcr.pressure_residual * dcr.pressure_residual);
-    std::cout << "Flag 14 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = "<< dcr.pressure_residual << std::endl;
+    pcout << "Flag 14 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", dcr.velocity_residual = " << dcr.velocity_residual << ", dcr.pressure_residual = "<< dcr.pressure_residual << std::endl;
 
     double test_residual = dcr.residual;
     if (nonlinear_iteration == 0)
@@ -700,10 +700,10 @@ namespace aspect
         current_linearization_point.block(introspection.block_indices.velocities) = solution.block(introspection.block_indices.velocities);
         current_linearization_point.block(introspection.block_indices.pressure) = solution.block(introspection.block_indices.pressure);
 
-        std::cout << "Flag 15 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
+        pcout << "Flag 15 before:" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
         dcr.residual = dcr.stokes_residuals.first;
 
-        std::cout << "Flag 15 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
+        pcout << "Flag 15 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
         pcout << "      Relative nonlinear residual (total Newton system) after nonlinear iteration " << nonlinear_iteration+1
               << ": " << dcr.stokes_residuals.first/dcr.initial_residual << ", norm of the rhs: " << dcr.stokes_residuals.first << std::endl;
       }
@@ -735,14 +735,14 @@ namespace aspect
          */
         do
           {
-            std::cout << "Flag 15.5 before:" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+            pcout << "Flag 15.5 before:" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
             assemble_stokes_system();
 
             test_velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
             test_pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
             test_residual = std::sqrt(test_velocity_residual * test_velocity_residual
                                       + test_pressure_residual * test_pressure_residual);
-            std::cout << "Flag 15.5 after :" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+            pcout << "Flag 15.5 after :" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
 
             // Reset the current linearization point and the search direction
             current_linearization_point.block(introspection.block_indices.pressure) = backup_linearization_point.block(introspection.block_indices.pressure);
@@ -780,13 +780,13 @@ namespace aspect
 
             assemble_stokes_system();
 
-            std::cout << "Flag 15.75 before:"  << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+            pcout << "Flag 15.75 before:"  << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
             test_velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
             test_pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
 
             test_residual = std::sqrt(test_velocity_residual * test_velocity_residual
                                       + test_pressure_residual * test_pressure_residual);
-            std::cout << "Flag 15.75 after :" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+            pcout << "Flag 15.75 after :" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
 
             // Determine if the decrease is sufficient.
 
@@ -804,9 +804,9 @@ namespace aspect
                       << ": " << test_residual/dcr.initial_residual << ", norm of the rhs: " << test_residual
                       << ", newton_derivative_scaling_factor: " << newton_handler->parameters.newton_derivative_scaling_factor
                       << std::endl;
-                std::cout << "Flag 16 before:" << dcr.residual << ", " << test_residual << std::endl;
+                pcout << "Flag 16 before:" << dcr.residual << ", " << test_residual << std::endl;
                 dcr.residual = test_residual;
-                std::cout << "Flag 16 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
+                pcout << "Flag 16 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
                 break;
               }
             else
@@ -933,9 +933,9 @@ namespace aspect
 
     dcr.velocity_residual = 0;
     dcr.pressure_residual = 0;
-    std::cout << "Flag 17 before:" << dcr.residual << ", "  << std::endl;
+    pcout << "Flag 17 before:" << dcr.residual << ", "  << std::endl;
     dcr.residual = 1;
-    std::cout << "Flag 17 after:" << dcr.residual << ", " << std::endl;
+    pcout << "Flag 17 after:" << dcr.residual << ", " << std::endl;
     dcr.residual_old = 1;
 
     dcr.switch_initial_residual = 1;
@@ -1002,9 +1002,9 @@ namespace aspect
 
     dcr.velocity_residual = 0;
     dcr.pressure_residual = 0;
-    std::cout << "Flag 18 before:" << dcr.residual << ", "<< std::endl;
+    pcout << "Flag 18 before:" << dcr.residual << ", "<< std::endl;
     dcr.residual = 1;
-    std::cout << "Flag 18 after:" << dcr.residual << ", " << std::endl;
+    pcout << "Flag 18 after:" << dcr.residual << ", " << std::endl;
     dcr.residual_old = 1;
 
     dcr.switch_initial_residual = 1;
@@ -1074,9 +1074,9 @@ namespace aspect
 
     dcr.velocity_residual = 0;
     dcr.pressure_residual = 0;
-    std::cout << "Flag 19 before:" << dcr.residual << ", "<< std::endl;
+    pcout << "Flag 19 before:" << dcr.residual << ", "<< std::endl;
     dcr.residual = 1;
-    std::cout << "Flag 19 after:" << dcr.residual << ", " << std::endl;
+    pcout << "Flag 19 after:" << dcr.residual << ", " << std::endl;
     dcr.residual_old = 1;
 
     dcr.switch_initial_residual = 1;
@@ -1358,18 +1358,20 @@ namespace aspect
   {
     // Now store the linear_tolerance we started out with, because we might change
     // it within this timestep.
-    const double begin_linear_tolerance = parameters.linear_stokes_solver_tolerance;
 
+    const double begin_linear_tolerance = parameters.linear_stokes_solver_tolerance;
+    double initial_temperature_residual = 0;
     std::vector<double> initial_composition_residual (parameters.n_compositional_fields,0);
+
 
     DefectCorrectionResiduals dcr;
     dcr.initial_residual = 1;
 
     dcr.velocity_residual = 0;
     dcr.pressure_residual = 0;
-    std::cout << "Flag 20 before:" << dcr.residual << ", "  << std::endl;
+    pcout << "Flag 20 before:" << dcr.residual << ", "  << std::endl;
     dcr.residual = 1;
-    std::cout << "Flag 20 after:" << dcr.residual << ", "  << std::endl;
+    pcout << "Flag 20 after:" << dcr.residual << ", "  << std::endl;
     dcr.residual_old = 1;
 
     dcr.switch_initial_residual = 1;
@@ -1420,8 +1422,20 @@ namespace aspect
             signals.post_restore_particles(*particle_world.get());
           }
 
-        assemble_and_solve_temperature();
-        assemble_and_solve_composition();
+
+        const double relative_temperature_residual =
+          assemble_and_solve_temperature(initial_temperature_residual,
+                                         nonlinear_iteration == 0 ? &initial_temperature_residual : nullptr);
+
+        const std::vector<double>  relative_composition_residual =
+          assemble_and_solve_composition(initial_composition_residual,
+                                         nonlinear_iteration == 0 ? &initial_composition_residual : nullptr);
+
+        // write the residual output in the same order as the solutions
+        pcout << "      Relative nonlinear residuals (temperature, compositional fields): " << relative_temperature_residual;
+        for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+          pcout << ", " << relative_composition_residual[c];
+        pcout << std::endl;
 
         if (use_picard == true &&
             nonlinear_solver_control_picard.check(nonlinear_iteration, relative_residual) != SolverControl::iterate)
@@ -1493,9 +1507,9 @@ namespace aspect
 
     dcr.velocity_residual = 0;
     dcr.pressure_residual = 0;
-    std::cout << "Flag 21 before:" << dcr.residual << ", " << std::endl;
+    pcout << "Flag 21 before:" << dcr.residual << ", " << std::endl;
     dcr.residual = 1;
-    std::cout << "Flag 21 after:" << dcr.residual << ", " << std::endl;
+    pcout << "Flag 21 after:" << dcr.residual << ", " << std::endl;
     dcr.residual_old = 1;
 
     dcr.switch_initial_residual = 1;
