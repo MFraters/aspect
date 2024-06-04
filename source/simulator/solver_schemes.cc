@@ -207,7 +207,10 @@ namespace aspect
         default:
           AssertThrow(false,ExcNotImplemented());
       }
-
+      LinearAlgebra::BlockVector diff_linearization_point(current_linearization_point);
+      diff_linearization_point.block(introspection.block_indices.temperature) -= solution.block(introspection.block_indices.temperature);
+    std::cout << "    Flag T: Temperature difference: " << (diff_linearization_point.block(introspection.block_indices.temperature)).l2_norm()/current_linearization_point.block(introspection.block_indices.temperature).l2_norm() 
+    << ", top: " << (diff_linearization_point.block(introspection.block_indices.temperature)).l2_norm() << ", bottom: " << current_linearization_point.block(introspection.block_indices.temperature).l2_norm()  << std::endl;
     current_linearization_point.block(introspection.block_indices.temperature)
       = solution.block(introspection.block_indices.temperature);
 
@@ -504,6 +507,15 @@ namespace aspect
     // create a completely distributed vector that will be used for
     // the scaled and denormalized solution and later used as a
     // starting guess for the linear solver
+    LinearAlgebra::BlockVector diff_linearization_point_velo(current_linearization_point);
+      diff_linearization_point_velo.block(introspection.block_indices.velocities) -= solution.block(introspection.block_indices.velocities);
+    std::cout << "    Flag -1: Velocity difference: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm()/current_linearization_point.block(introspection.block_indices.velocities).l2_norm() 
+    << "top: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm() << ", bottom " << current_linearization_point.block(introspection.block_indices.velocities).l2_norm()  << std::endl;
+        LinearAlgebra::BlockVector diff_linearization_point_pres(current_linearization_point);
+      diff_linearization_point_pres.block(introspection.block_indices.pressure) -= solution.block(introspection.block_indices.pressure);
+    std::cout << "    Flag -1: Pressure difference: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm()/current_linearization_point.block(introspection.block_indices.pressure).l2_norm() 
+    << "top: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm() << ", bottom " << current_linearization_point.block(introspection.block_indices.pressure).l2_norm()  << std::endl;
+    
     LinearAlgebra::BlockVector linearized_stokes_initial_guess(introspection.index_sets.stokes_partitioning, mpi_communicator);
     linearized_stokes_initial_guess.block(block_vel) = current_linearization_point.block(block_vel);
     linearized_stokes_initial_guess.block(block_p) = current_linearization_point.block(block_p);
@@ -807,6 +819,17 @@ namespace aspect
                 pcout << "Flag 16 before:" << dcr.residual << ", " << test_residual << std::endl;
                 dcr.residual = test_residual;
                 pcout << "Flag 16 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
+
+
+    LinearAlgebra::BlockVector diff_linearization_point_velo(backup_linearization_point);
+      diff_linearization_point_velo.block(introspection.block_indices.velocities) -= current_linearization_point.block(introspection.block_indices.velocities);
+    std::cout << "    Flag 16.5: Velocity difference: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm()/current_linearization_point.block(introspection.block_indices.velocities).l2_norm() 
+    << ", top: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm() << ", bottom: "<< current_linearization_point.block(introspection.block_indices.velocities).l2_norm() << std::endl;
+        LinearAlgebra::BlockVector diff_linearization_point_pres(backup_linearization_point);
+      diff_linearization_point_pres.block(introspection.block_indices.pressure) -= current_linearization_point.block(introspection.block_indices.pressure);
+    std::cout << "    Flag 16.5: Pressure difference: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm()/current_linearization_point.block(introspection.block_indices.pressure).l2_norm()
+    << ", top: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm() << ", bottom: " << current_linearization_point.block(introspection.block_indices.pressure).l2_norm() << std::endl;
+    
                 break;
               }
             else
@@ -859,6 +882,24 @@ namespace aspect
 
     if (nonlinear_iteration != 0)
       last_pressure_normalization_adjustment = normalize_pressure(current_linearization_point);
+
+
+            // Rebuild the rhs to determine the new residual.
+            assemble_newton_stokes_matrix = rebuild_stokes_preconditioner = false;
+            rebuild_stokes_matrix = (boundary_velocity_manager.get_active_boundary_velocity_conditions().empty()
+                                     == false);
+
+            assemble_stokes_system();
+
+            pcout << "Flag 17 before:"  << dcr.residual << ", test_residual = " << test_residual << std::endl;// << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+            double test_velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
+            double test_pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
+
+            test_residual = std::sqrt(test_velocity_residual * test_velocity_residual
+                                      + test_pressure_residual * test_pressure_residual);
+            pcout << "Flag 17 after :" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+
+
   }
 
 
