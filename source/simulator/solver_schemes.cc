@@ -207,12 +207,22 @@ namespace aspect
         default:
           AssertThrow(false,ExcNotImplemented());
       }
-      LinearAlgebra::BlockVector diff_linearization_point(current_linearization_point);
-      diff_linearization_point.block(introspection.block_indices.temperature) -= solution.block(introspection.block_indices.temperature);
-    std::cout << "    Flag T: Temperature difference: " << (diff_linearization_point.block(introspection.block_indices.temperature)).l2_norm()/current_linearization_point.block(introspection.block_indices.temperature).l2_norm() 
-    << ", top: " << (diff_linearization_point.block(introspection.block_indices.temperature)).l2_norm() << ", bottom: " << current_linearization_point.block(introspection.block_indices.temperature).l2_norm()  << std::endl;
-    current_linearization_point.block(introspection.block_indices.temperature)
-      = solution.block(introspection.block_indices.temperature);
+    LinearAlgebra::BlockVector diff_linearization_point(current_linearization_point);
+    diff_linearization_point.block(introspection.block_indices.temperature) -= solution.block(introspection.block_indices.temperature);
+    pcout << "    Flag T: Temperature difference: " << (diff_linearization_point.block(introspection.block_indices.temperature)).l2_norm()/current_linearization_point.block(introspection.block_indices.temperature).l2_norm()
+              << ", top: " << (diff_linearization_point.block(introspection.block_indices.temperature)).l2_norm() << ", bottom: " << current_linearization_point.block(introspection.block_indices.temperature).l2_norm()  << std::endl;
+    //if (this->timestep_number >= 41)
+    //  {
+    //    pcout << "dampen temperature" << std::endl;
+    //    current_linearization_point.block(introspection.block_indices.temperature) /= 2.0;
+    //    solution.block(introspection.block_indices.temperature) /= 2.0;
+    //    current_linearization_point.block(introspection.block_indices.temperature) += solution.block(introspection.block_indices.temperature);
+    //    solution.block(introspection.block_indices.temperature) *= 2.0;
+    //  }
+    //else
+    //  {
+        current_linearization_point.block(introspection.block_indices.temperature) = solution.block(introspection.block_indices.temperature);
+      //}
 
     if (initial_residual > 0)
       return current_residual / initial_residual;
@@ -508,14 +518,14 @@ namespace aspect
     // the scaled and denormalized solution and later used as a
     // starting guess for the linear solver
     LinearAlgebra::BlockVector diff_linearization_point_velo(current_linearization_point);
-      diff_linearization_point_velo.block(introspection.block_indices.velocities) -= solution.block(introspection.block_indices.velocities);
-    std::cout << "    Flag -1: Velocity difference: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm()/current_linearization_point.block(introspection.block_indices.velocities).l2_norm() 
-    << "top: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm() << ", bottom " << current_linearization_point.block(introspection.block_indices.velocities).l2_norm()  << std::endl;
-        LinearAlgebra::BlockVector diff_linearization_point_pres(current_linearization_point);
-      diff_linearization_point_pres.block(introspection.block_indices.pressure) -= solution.block(introspection.block_indices.pressure);
-    std::cout << "    Flag -1: Pressure difference: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm()/current_linearization_point.block(introspection.block_indices.pressure).l2_norm() 
-    << "top: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm() << ", bottom " << current_linearization_point.block(introspection.block_indices.pressure).l2_norm()  << std::endl;
-    
+    diff_linearization_point_velo.block(introspection.block_indices.velocities) -= solution.block(introspection.block_indices.velocities);
+    pcout << "    Flag -1: Velocity difference: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm()/current_linearization_point.block(introspection.block_indices.velocities).l2_norm()
+              << "top: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm() << ", bottom " << current_linearization_point.block(introspection.block_indices.velocities).l2_norm()  << std::endl;
+    LinearAlgebra::BlockVector diff_linearization_point_pres(current_linearization_point);
+    diff_linearization_point_pres.block(introspection.block_indices.pressure) -= solution.block(introspection.block_indices.pressure);
+    pcout << "    Flag -1: Pressure difference: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm()/current_linearization_point.block(introspection.block_indices.pressure).l2_norm()
+              << "top: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm() << ", bottom " << current_linearization_point.block(introspection.block_indices.pressure).l2_norm()  << std::endl;
+
     LinearAlgebra::BlockVector linearized_stokes_initial_guess(introspection.index_sets.stokes_partitioning, mpi_communicator);
     linearized_stokes_initial_guess.block(block_vel) = current_linearization_point.block(block_vel);
     linearized_stokes_initial_guess.block(block_p) = current_linearization_point.block(block_p);
@@ -821,15 +831,15 @@ namespace aspect
                 pcout << "Flag 16 after :" << dcr.residual << " residual_old = " << dcr.residual_old  << ", " << test_residual << std::endl;
 
 
-    LinearAlgebra::BlockVector diff_linearization_point_velo(backup_linearization_point);
-      diff_linearization_point_velo.block(introspection.block_indices.velocities) -= current_linearization_point.block(introspection.block_indices.velocities);
-    std::cout << "    Flag 16.5: Velocity difference: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm()/current_linearization_point.block(introspection.block_indices.velocities).l2_norm() 
-    << ", top: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm() << ", bottom: "<< current_linearization_point.block(introspection.block_indices.velocities).l2_norm() << std::endl;
-        LinearAlgebra::BlockVector diff_linearization_point_pres(backup_linearization_point);
-      diff_linearization_point_pres.block(introspection.block_indices.pressure) -= current_linearization_point.block(introspection.block_indices.pressure);
-    std::cout << "    Flag 16.5: Pressure difference: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm()/current_linearization_point.block(introspection.block_indices.pressure).l2_norm()
-    << ", top: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm() << ", bottom: " << current_linearization_point.block(introspection.block_indices.pressure).l2_norm() << std::endl;
-    
+                LinearAlgebra::BlockVector diff_linearization_point_velo(backup_linearization_point);
+                diff_linearization_point_velo.block(introspection.block_indices.velocities) -= current_linearization_point.block(introspection.block_indices.velocities);
+                pcout << "    Flag 16.5: Velocity difference: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm()/current_linearization_point.block(introspection.block_indices.velocities).l2_norm()
+                          << ", top: " << (diff_linearization_point_velo.block(introspection.block_indices.velocities)).l2_norm() << ", bottom: "<< current_linearization_point.block(introspection.block_indices.velocities).l2_norm() << std::endl;
+                LinearAlgebra::BlockVector diff_linearization_point_pres(backup_linearization_point);
+                diff_linearization_point_pres.block(introspection.block_indices.pressure) -= current_linearization_point.block(introspection.block_indices.pressure);
+                pcout << "    Flag 16.5: Pressure difference: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm()/current_linearization_point.block(introspection.block_indices.pressure).l2_norm()
+                          << ", top: " << (diff_linearization_point_pres.block(introspection.block_indices.pressure)).l2_norm() << ", bottom: " << current_linearization_point.block(introspection.block_indices.pressure).l2_norm() << std::endl;
+
                 break;
               }
             else
@@ -884,20 +894,20 @@ namespace aspect
       last_pressure_normalization_adjustment = normalize_pressure(current_linearization_point);
 
 
-            // Rebuild the rhs to determine the new residual.
-            assemble_newton_stokes_matrix = rebuild_stokes_preconditioner = false;
-            rebuild_stokes_matrix = (boundary_velocity_manager.get_active_boundary_velocity_conditions().empty()
-                                     == false);
+    // Rebuild the rhs to determine the new residual.
+    assemble_newton_stokes_matrix = rebuild_stokes_preconditioner = false;
+    rebuild_stokes_matrix = (boundary_velocity_manager.get_active_boundary_velocity_conditions().empty()
+                             == false);
 
-            assemble_stokes_system();
+    assemble_stokes_system();
 
-            pcout << "Flag 17 before:"  << dcr.residual << ", test_residual = " << test_residual << std::endl;// << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
-            double test_velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
-            double test_pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
+    pcout << "Flag 17 before:"  << dcr.residual << ", test_residual = " << test_residual << std::endl;// << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+    double test_velocity_residual = system_rhs.block(introspection.block_indices.velocities).l2_norm();
+    double test_pressure_residual = system_rhs.block(introspection.block_indices.pressure).l2_norm();
 
-            test_residual = std::sqrt(test_velocity_residual * test_velocity_residual
-                                      + test_pressure_residual * test_pressure_residual);
-            pcout << "Flag 17 after :" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
+    test_residual = std::sqrt(test_velocity_residual * test_velocity_residual
+                              + test_pressure_residual * test_pressure_residual);
+    pcout << "Flag 17 after :" << dcr.residual << ", test_residual = " << test_residual << ", test_velocity_residual = " << test_velocity_residual << ", test_pressure_residual = " << test_pressure_residual << std::endl;
 
 
   }
@@ -1463,20 +1473,28 @@ namespace aspect
             signals.post_restore_particles(*particle_world.get());
           }
 
+        double relative_temperature_residual = 0;
+        std::vector<double>  relative_composition_residual(introspection.n_compositional_fields,0.);
 
-        const double relative_temperature_residual =
+         relative_temperature_residual =
           assemble_and_solve_temperature(initial_temperature_residual,
                                          nonlinear_iteration == 0 ? &initial_temperature_residual : nullptr);
 
-        const std::vector<double>  relative_composition_residual =
+        //        if (this->timestep_number >= 41 && nonlinear_iteration > 1)
+        //{
+        //  // don't advect anything
+        //  std::cout << "   don't avect temperature" << std::endl;
+        //} else {
+        relative_composition_residual =
           assemble_and_solve_composition(initial_composition_residual,
                                          nonlinear_iteration == 0 ? &initial_composition_residual : nullptr);
-
+        //}
         // write the residual output in the same order as the solutions
         pcout << "      Relative nonlinear residuals (temperature, compositional fields): " << relative_temperature_residual;
         for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
           pcout << ", " << relative_composition_residual[c];
         pcout << std::endl;
+        
 
         if (use_picard == true &&
             nonlinear_solver_control_picard.check(nonlinear_iteration, relative_residual) != SolverControl::iterate)
