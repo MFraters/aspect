@@ -1263,6 +1263,8 @@ namespace aspect
         if (parameters.run_postprocessors_on_nonlinear_iterations)
           postprocess ();
 
+    this->material_model->update();
+
         ++nonlinear_iteration;
       }
     while (nonlinear_solver_control.check(nonlinear_iteration, relative_residual) == SolverControl::iterate);
