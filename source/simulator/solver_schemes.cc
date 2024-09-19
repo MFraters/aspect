@@ -1263,7 +1263,7 @@ namespace aspect
         if (parameters.run_postprocessors_on_nonlinear_iterations)
           postprocess ();
 
-    this->material_model->update();
+        this->material_model->update();
 
         ++nonlinear_iteration;
       }
