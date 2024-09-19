@@ -725,7 +725,15 @@ namespace aspect
         {
           // Evaluate the solution, but only if it is requested in the update_flags
           if (evaluation_flags_union & EvaluationFlags::values)
-            evaluator.get_solution(i, {&inputs.solution[i][0],inputs.solution[i].size()}, evaluation_flags);
+            {
+
+              std::cout << "flag a145"<< std::endl;
+              std::cout << "&inputs.solution[0] = " << &inputs.solution[0] << std::endl;
+              std::cout << "inputs.solution[0].size() = " << inputs.solution[0].size() << std::endl;
+              std::cout << "&inputs.solution[0][0] = " << &inputs.solution[0][0] << std::endl;
+              std::cout << "inputs.solution[0][0] = " << inputs.solution[0][0] << std::endl;
+              evaluator.get_solution(i, {&inputs.solution[i][0],inputs.solution[i].size()}, evaluation_flags);
+            }
 
           // Evaluate the gradients, but only if they are requested in the update_flags
           if (evaluation_flags_union & EvaluationFlags::gradients)

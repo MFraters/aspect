@@ -674,6 +674,13 @@ namespace aspect
             // as the values from the current linearization point are an extrapolation of the solution
             // from the old timesteps.
             // Prepare the field function and extract the old solution values at the current cell.
+            //std::cout << "i = " << i << ", position =" << in.position[i] << std::endl;
+
+            //if(in.position[i][1] > 92100){
+            //  std::cout << "breaking!!!" << std::endl;
+            //  AssertThrow(in.position[i][1] < 93100,ExcMessage(""));
+            //}
+
             std::vector<Point<dim>> quadrature_positions(1,this->get_mapping().transform_real_to_unit_cell(in.current_cell, in.position[i]));
 
             // Use a small_vector to avoid memory allocation if possible.
@@ -787,6 +794,11 @@ namespace aspect
                 composition_evaluators[strain_index]->reinit(in.current_cell, quadrature_positions);
                 composition_evaluators[strain_index]->evaluate({old_solution_values.data(),old_solution_values.size()},
                                                                EvaluationFlags::values);
+
+                //const double diff = 100.;
+                //if(in.position[i][0] > -1250.-diff && in.position[i][0] < -1250.+diff && in.position[i][1] > 96301.8-diff && in.position[i][1] < 96301.8+diff){
+                //std::cout << "edot_ii = " << edot_ii << ", delta_e_ii = " << delta_e_ii << ", delta_e_ii_plastic = " << delta_e_ii_plastic << ", -composition_evaluators[strain_index]->get_value(0) = " << -composition_evaluators[strain_index]->get_value(0) << ", timestep = " << this->get_timestep() << std::endl;
+                //}
                 out.reaction_terms[i][strain_index] = std::max(delta_e_ii_plastic,
                                                                -composition_evaluators[strain_index]->get_value(0));
               }

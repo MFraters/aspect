@@ -43,11 +43,22 @@ namespace aspect
       {
         const auto &property_information = this->get_particle_manager(this->get_particle_manager_index()).get_property_manager().get_data_info();
 
-        property_indices[0] = property_information.get_position_by_field_name("internal: integrator properties");
+        set(property_information.get_position_by_field_name("internal: integrator properties"));
+      }
+
+
+
+      template <int dim>
+      void
+      RK4<dim>::set (unsigned int property_index)
+      {
+        property_indices[0] = property_index;
         property_indices[1] = property_indices[0] + dim;
         property_indices[2] = property_indices[1] + dim;
         property_indices[3] = property_indices[2] + dim;
       }
+
+
 
 
 
@@ -64,7 +75,9 @@ namespace aspect
             Assert(static_cast<unsigned int> (std::distance(begin_particle, end_particle)) == old_velocities.size(),
                    ExcMessage("The particle integrator expects the old velocity vector to be of equal size "
                               "to the number of particles to advect. For some unknown reason they are different, "
-                              "most likely something went wrong in the calling function."));
+                              "most likely something went wrong in the calling function. particle distance = "
+                              + Utilities::int_to_string(static_cast<unsigned int> (std::distance(begin_particle, end_particle)))
+                              + ", old_velocities.size() = " + Utilities::int_to_string(old_velocities.size())));
           }
 
         if (integrator_substep >= 1 && integrator_substep < 4)
@@ -124,6 +137,7 @@ namespace aspect
 #if !DEAL_II_VERSION_GTE(9, 6, 0)
                 p.set_location(new_location);
 #endif
+
               }
             else if (integrator_substep == 1)
               {
