@@ -101,7 +101,9 @@ namespace aspect
       create_particle_integrator (ParameterHandler &prm)
       {
         std::string name;
-        name = prm.get ("Integration scheme");
+        //std::cout << prm.get_current_path() << std::endl;
+        name = "euler";//prm.get ("Integration scheme");
+        std::cout << "Integration scheme = " << name << std::endl;
 
         return std::get<dim>(registered_plugins).create_plugin (name,
                                                                 "Particle::Integrator name");
@@ -116,7 +118,7 @@ namespace aspect
         // declare the entry in the parameter file
         const std::string pattern_of_names
           = std::get<dim>(registered_plugins).get_pattern_of_names ();
-
+        //std::cout << prm.get_current_path() << std::endl;
         prm.declare_entry ("Integration scheme", "rk2",
                            Patterns::Selection (pattern_of_names),
                            "This parameter is used to decide which method to "
