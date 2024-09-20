@@ -97,7 +97,7 @@ namespace aspect
         std::unique_ptr<aspect::Particle::Integrator::Interface<dim>> particle_integrator;
         bool particle_lost;
 
-        void set_particle_lost();
+        void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell);
         /**
          * Parsed function that specifies the region and amount of
          * material that is injected into the model.
