@@ -40,7 +40,10 @@ namespace aspect
       base_model->initialize();
 
       particle_handler = std::make_unique<Particles::ParticleHandler<dim>>(this->get_triangulation(), this->get_mapping());
-                         particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell){this->set_particle_lost();});
+      particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
+      {
+        this->set_particle_lost();
+      });
     }
 
     template <int dim>
@@ -380,7 +383,7 @@ namespace aspect
               //  new_dike_array[i] = new_dike_point[i];
               //}
 
-                  Utilities::MPI::sum(new_dike_point,this->get_mpi_communicator(),new_dike_point);
+              Utilities::MPI::sum(new_dike_point,this->get_mpi_communicator(),new_dike_point);
               //for (size_t i = 0; i < dim; i++)
               //  {
               //    MPI_Bcast(&new_dike_point[i], 1, MPI_DOUBLE, cell_global_rank, this->get_mpi_communicator());
