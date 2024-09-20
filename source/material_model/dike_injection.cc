@@ -39,17 +39,13 @@ namespace aspect
     {
       base_model->initialize();
 
-      particle_handler = std::make_unique<Particles::ParticleHandler<dim>>(this->get_triangulation(), this->get_mapping());
-      particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
-      {
-        this->set_particle_lost();
-      });
     }
 
     template <int dim>
     void
-    DikeInjection<dim>::set_particle_lost()
+    DikeInjection<dim>::set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
     {
+      std::cout << "lost particle here!!!!: " << particle->get_location() << std::endl;
       particle_lost = true;
     }
 
@@ -58,6 +54,14 @@ namespace aspect
     DikeInjection<dim>::update()
     {
       base_model->update();
+
+      if(!particle_handler){
+        particle_handler = std::make_unique<Particles::ParticleHandler<dim>>(this->get_triangulation(), this->get_mapping());
+        particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
+        {
+          this->set_particle_lost(particle, cell);
+        });
+      }
 
       // find_active_cell_around_point(mapping, tria, point);
       // dealii tests: particle_handler_03 -> inefficient particle inser
@@ -86,7 +90,7 @@ namespace aspect
       bool enable_diking = true;
       particle_lost = false;
       dike_location.resize(0);
-      dike_location.emplace_back(Point<dim>(0,50e3));
+      dike_location.emplace_back(Point<dim>(0,50225));
       std::pair<const typename parallel::distributed::Triangulation<dim>::active_cell_iterator,Point<dim>> cell_it = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_location.back());
 
       // If we found the correct cell on this MPI process, we have found the right cell.
@@ -106,13 +110,8 @@ namespace aspect
 
           unsigned int next_free_id = particle_handler->get_next_free_particle_index();
           particle_handler->insert_particle(dike_location.back(),cell_it.second,next_free_id, cell_it.first);
-          particle_handler->update_cached_numbers();
+          //particle_handler->update_cached_numbers();
           particle_handler->sort_particles_into_subdomains_and_cells();
-          //particle_handler->insert_particle(dike_location.back(),reference_position);
-          // find which mpi rank owns this point
-          // TODO: this doesn't work because find_point_owner_rank is not a const function and this->get_triangulation() returns a const triangulation.
-          //if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == this->get_triangulation().find_point_owner_rank(dike_location.back()))
-          //  {
           // get the stress at the point
           // get the solutions and gradients
           std::vector<Point<dim>> positions = {dike_location.back()};
@@ -124,92 +123,20 @@ namespace aspect
           // loop untill point is no longer in any cell;
           // todo: or max number?
           int iteration = 0;
-          while (!this->particle_lost || iteration < 10)
+          while (!this->particle_lost && iteration < 10)
             {
               iteration++;
-              // Loop over all cells and update the particles cell-wise
-              /*typename DoFHandler<dim>::active_cell_iterator
-              cell = this->get_dof_handler().begin_active(),
-              endc = this->get_dof_handler().end();
-              int cell_found = -1;
-              for (; cell!=endc; ++cell)
-                //for (const auto &cell : this->get_dof_handler().active_cell_iterators())
-                {
-                  if (cell->is_locally_owned()) // probably not needed, because this is only run on the rank which owns the point
-                    {
-                      bool found_in_cell = false;
-                      try
-                        {
-                          Point<dim> reference_position = this->get_mapping.transform_real_to_unit_cell(cell, position);
 
-                          if (cell->reference_cell().contains_point(reference_position))
-                            found_in_cell = true;
-                        }
-                      catch (typename Mapping<dim>::ExcTransformationFailed &)
-                        {
-                          // The point is not in this cell. Do nothing, just try again.
-                        }
-                      //auto unit_cell = this->get_mapping->tranform_real_to_unit_cell(cell,dike_location.back();
-                      //
-                      if(found_in_cell)                                                            if (GeometryInfo::is_inside_unit_cell(unit_cell)))//cell->point_inside(dike_location.back()))
-                        {
-                          cell_found = world_rank;
-                          std::cout << "point " << dike_location.back() << " found in cell ("<< cell->id() << ") found on rank " << world_rank << ", vertices = "
-                                    << cell->vertex(0) << ":" << cell->vertex(1) << ":" << cell->vertex(2) << ":" << cell->vertex(3) << std::endl;
-                          break;
-                        }
-                    }
-                }
-              std::cout << iteration << ": cell_found = " << cell_found << std::endl;
-
-              // for now first check if no mpi process has found a owning cell.
-              // If no mpi process has found a cell, break the loop (we are hopfully at the surface).
-
-              // Get the number of processes
-
-              std::vector<int> found_vector(world_size, -1  );
-              MPI_Allgather(&cell_found, 1, MPI_INT, &found_vector[world_rank], 1, MPI_INT, MPI_COMM_WORLD);
-
-              bool cell_found_global = false;
-              int cell_global_rank = -1;
-              for (auto &&found : found_vector)
-                {
-                  std::cout << "found = " << found << std::endl;
-                  if (found >= 0)
-                    {
-                      cell_found_global = true;
-                      cell_global_rank = found;
-                      // TODO: keep checking to make sure that there arn't more processors which found a cell? That would be a bug though
-                      break;
-                    }
-                }
-
-              if (!cell_found_global)
-                {
-                  // If no mpi process has found a cell, break the loop (we are hopfully at the surface).
-                  std::cout << "no cell found: " << cell_found_global << ", cell_global_rank = " << cell_global_rank << std::endl;
-                  break;
-                }
-              else
-                {
-
-                  std::cout << "Cell found: " << cell_found_global << ", cell_global_rank = " << cell_global_rank  << std::endl;
-                }
-                */
-              //cell_it = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_location.back());
+          std::cout << iteration << "(1): particle lost = " << particle_lost << std::endl;
+          particle_handler->sort_particles_into_subdomains_and_cells();
+          std::cout << iteration << "(2): particle lost = " << particle_lost << std::endl;
               if (particle_handler->n_locally_owned_particles() == 0)
                 {
                   continue;
                 }
+          std::cout << iteration << "(3): particle lost = " << particle_lost << std::endl;
 
-              //cell_it.first = typename parallel::distributed::Triangulation<dim>::active_cell_iterator(particle_handler->begin()->get_surrounding_cell());
               auto cell = typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler()));
-              // If we found the correct cell on this MPI process, we have found the right cell.
-              //cell_found_local = false;
-              //if (cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned())
-              //  {
-              //    cell_found_local = true;
-              //  }
 
 
               Point<dim> new_dike_point = Point<dim>();
@@ -221,27 +148,25 @@ namespace aspect
                 cell->get_dof_values(this->get_solution(),
                                      solution_values.begin(),
                                      solution_values.end());
+                                     std::cout << "solution values = " << solution_values[0] << ":" << solution_values[1] << std::endl;
 
-                //if (update_flags & (update_values | update_gradients))
                 evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
 
                 std::vector<Vector<double>> solution;
-                //if (update_flags & update_values)
                 solution.resize(1,Vector<double>(this->introspection().n_components));
 
                 std::vector<std::vector<Tensor<1,dim>>> gradients;
-                //if (update_flags & update_gradients)
                 gradients.resize(1,std::vector<Tensor<1,dim>>(this->introspection().n_components));
 
-                for (unsigned int i = 0; i<1; ++i)
+                //for (unsigned int i = 0; i<1; ++i)
                   {
                     // Evaluate the solution, but only if it is requested in the update_flags
                     //if (update_flags & update_values)
-                    evaluator->get_solution(i, {&solution[i][0],solution[i].size()});
+                    evaluator->get_solution(0, {&solution[0][0],solution[0].size()});
 
                     // Evaluate the gradients, but only if they are requested in the update_flags
                     //if (update_flags & update_gradients)
-                    evaluator->get_gradients(i, gradients[i]);
+                    evaluator->get_gradients(0, gradients[0]);
                   }
 
                 // get presure, temp, etc
@@ -318,6 +243,8 @@ namespace aspect
                 material_model_inputs.composition[0] = compositions;
                 material_model_inputs.strain_rate[0] = strain_rate;
                 material_model_inputs.current_cell = cell;
+                std::cout << "position = " << positions[0] << ", temperature = " << temperature << ", pressure = " << pressure 
+                << ", velocity = " << velocity << ", strain_rate = " << strain_rate << std::endl;
 
                 MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
                 this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
@@ -346,18 +273,20 @@ namespace aspect
 
                 double angle = stress_largest_eigenvectors * gravity_vector;
                 std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
-                          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << std::endl;
+                          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
                 if (std::fabs(angle) < 0.5*numbers::PI)
                   {
                     stress_largest_eigenvectors *= -1;
                   }
                 std::vector<Tensor<1,dim>> solution_stress = {stress_largest_eigenvectors};
                 std::vector<Tensor<1,dim>> current_linerization_point_stress = {};
-                particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, dt);
+
                 // set the new point at half the cell size away from the current point and check if that is still in the domain.
                 const double distance = cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
+                particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
+                
 
-                new_dike_point = dike_location.back()+stress_largest_eigenvectors*distance;
+                new_dike_point = particle_handler->begin()->get_location();
 
                 std::cout << "new_dike_point = " << new_dike_point << ", dike_location.back() = " << dike_location.back()
                           << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ", distance = " << distance << std::endl;
@@ -929,6 +858,7 @@ namespace aspect
 
       // After parsing the parameters for averaging, it is essential
       // to parse parameters related to the base model.
+      base_model->parse_parameters(prm);
       this->model_dependence = base_model->get_model_dependence();
     }
 
