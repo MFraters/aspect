@@ -102,7 +102,7 @@ namespace aspect
       {
         std::string name;
         //std::cout << prm.get_current_path() << std::endl;
-        name = "euler";//prm.get ("Integration scheme");
+        name = "rk4";//prm.get ("Integration scheme");
         std::cout << "Integration scheme = " << name << std::endl;
 
         return std::get<dim>(registered_plugins).create_plugin (name,

@@ -25,10 +25,10 @@
 #include <aspect/parameters.h>
 #include <aspect/solution_evaluator.h>
 #include <aspect/gravity_model/interface.h>
+#include <aspect/particle/integrator/rk_4.h>
 
 
 #include <deal.II/grid/grid_tools.h>
-
 namespace aspect
 {
   namespace MaterialModel
@@ -43,114 +43,24 @@ namespace aspect
 
     template <int dim>
     void
-    DikeInjection<dim>::set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
+    DikeInjection<dim>::set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &/*cell*/)
     {
       std::cout << "lost particle here!!!!: " << particle->get_location() << std::endl;
       particle_lost = true;
     }
 
     template <int dim>
-    void
-    DikeInjection<dim>::update()
-    {
-      base_model->update();
-
-      if(!particle_handler){
-        particle_handler = std::make_unique<Particles::ParticleHandler<dim>>(this->get_triangulation(), this->get_mapping());
-        particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
-        {
-          this->set_particle_lost(particle, cell);
-        });
-      }
-
-      // find_active_cell_around_point(mapping, tria, point);
-      // dealii tests: particle_handler_03 -> inefficient particle inser
-      // use instead: insert particle(posiiton, reference_positin, particle_index, cell)
-      //                                        ^ don't care, can be anything, ^ need to be unique if there are multiple particles at the same time
-      //                                                                       ^get_next_free_particle_index(), call updated chashed_numbers() after
-
-      // advection: local_integrate_step(b,e,solution, currently_lin_point, dt)
-      // call sort_particles_into_subdomains_and_cells() afterwards
-
-      // connect to signal if particle leaves the domain: signals.particle_lost
-      // let the function change a member variable of the class
-
-      // Maybe move to MaterialModel Utilities
-
-      // Use dealii mpi functions
+    std::vector<Tensor<1,dim>>
+    DikeInjection<dim>::compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>>& evaluator, 
+    typename Triangulation<dim>::active_cell_iterator &cell, 
+    std::vector<Point<dim>>& positions,
+    small_vector<double>& solution_values){
 
 
-      // we get time passed as seconds (always) but may want
-      // to reinterpret it in years
-      if (this->convert_output_to_years())
-        injection_function.set_time (this->get_time() / year_in_seconds);
-      else
-        injection_function.set_time (this->get_time());
+                //fe_values.reinit(cell);
 
-      bool enable_diking = true;
-      particle_lost = false;
-      dike_location.resize(0);
-      dike_location.emplace_back(Point<dim>(0,50225));
-      std::pair<const typename parallel::distributed::Triangulation<dim>::active_cell_iterator,Point<dim>> cell_it = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_location.back());
-
-      // If we found the correct cell on this MPI process, we have found the right cell.
-      //Assert(cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned(), ExcMessage("Internal error: could not find cell to place initial point."));
-
-
-
-
-      int world_rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-      int world_size;
-      MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-      if (enable_random_dike_generation && this->get_timestep_number() > 0 && cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned())
-        {
-
-          unsigned int next_free_id = particle_handler->get_next_free_particle_index();
-          particle_handler->insert_particle(dike_location.back(),cell_it.second,next_free_id, cell_it.first);
-          //particle_handler->update_cached_numbers();
-          particle_handler->sort_particles_into_subdomains_and_cells();
-          // get the stress at the point
-          // get the solutions and gradients
-          std::vector<Point<dim>> positions = {dike_location.back()};
-
-          const UpdateFlags update_flags = update_values | update_gradients;//property_manager->get_needed_update_flags();
-
-          std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,
-                                                               update_flags);
-          // loop untill point is no longer in any cell;
-          // todo: or max number?
-          int iteration = 0;
-          while (!this->particle_lost && iteration < 10)
-            {
-              iteration++;
-
-          std::cout << iteration << "(1): particle lost = " << particle_lost << std::endl;
-          particle_handler->sort_particles_into_subdomains_and_cells();
-          std::cout << iteration << "(2): particle lost = " << particle_lost << std::endl;
-              if (particle_handler->n_locally_owned_particles() == 0)
-                {
-                  continue;
-                }
-          std::cout << iteration << "(3): particle lost = " << particle_lost << std::endl;
-
-              auto cell = typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler()));
-
-
-              Point<dim> new_dike_point = Point<dim>();
-
-              //if (cell_found_local)
-              {
-                small_vector<double> solution_values(this->get_fe().dofs_per_cell);
-
-                cell->get_dof_values(this->get_solution(),
-                                     solution_values.begin(),
-                                     solution_values.end());
-                                     std::cout << "solution values = " << solution_values[0] << ":" << solution_values[1] << std::endl;
-
-                evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+                //const UpdateFlags update_flags = update_values | update_gradients;
+                //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
 
                 std::vector<Vector<double>> solution;
                 solution.resize(1,Vector<double>(this->introspection().n_components));
@@ -173,7 +83,9 @@ namespace aspect
 
                 // need access to the pressure, viscosity,
                 // get velocity
+                
                 Tensor<1,dim> velocity;
+
                 for (unsigned int i = 0; i < dim; ++i)
                   velocity[i] = solution[0][this->introspection().component_indices.velocities[i]];
 
@@ -192,7 +104,12 @@ namespace aspect
                      strain_rate);
 
                 const double pressure = solution[0][this->introspection().component_indices.pressure];
+
+            std::vector<double> temperature_values = {1};
+            //fe_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(), temperature_values);
                 const double temperature = solution[0][this->introspection().component_indices.temperature];
+                
+                std::cout << "fevalues temp = " << temperature_values[0] << ", old: " << solution[0][this->introspection().component_indices.temperature] << std::endl;
 
                 // get the composition of the particle
                 std::vector<double> compositions;
@@ -202,7 +119,7 @@ namespace aspect
                     compositions.push_back(solution[0][solution_component]);
                   }
 
-                const double dt = this->get_timestep();
+                //const double dt = this->get_timestep();
 
                 // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
                 // adding an extra dimension which is zero.
@@ -262,7 +179,7 @@ namespace aspect
 
                 // Compressive stress is positive in geoscience applications
                 const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
-                const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
+                //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
                 Tensor< 1, dim, double > stress_largest_eigenvectors = dealii::eigenvectors(stress)[0].second;
 
                 std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
@@ -278,21 +195,150 @@ namespace aspect
                   {
                     stress_largest_eigenvectors *= -1;
                   }
-                std::vector<Tensor<1,dim>> solution_stress = {stress_largest_eigenvectors};
-                std::vector<Tensor<1,dim>> current_linerization_point_stress = {};
+
+                  return {stress_largest_eigenvectors};
+                  
+    }
+
+    template <int dim>
+    void
+    DikeInjection<dim>::update()
+    {
+      base_model->update();
+
+      if(!particle_handler){
+        particle_handler = std::make_unique<Particles::ParticleHandler<dim>>(this->get_triangulation(), this->get_mapping(),Particle::Integrator::RK4<dim>::n_integrator_properties);
+        particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
+        {
+          this->set_particle_lost(particle, cell);
+        });
+      }
+
+      // find_active_cell_around_point(mapping, tria, point);
+      // dealii tests: particle_handler_03 -> inefficient particle inser
+      // use instead: insert particle(posiiton, reference_positin, particle_index, cell)
+      //                                        ^ don't care, can be anything, ^ need to be unique if there are multiple particles at the same time
+      //                                                                       ^get_next_free_particle_index(), call updated chashed_numbers() after
+
+      // advection: local_integrate_step(b,e,solution, currently_lin_point, dt)
+      // call sort_particles_into_subdomains_and_cells() afterwards
+
+      // connect to signal if particle leaves the domain: signals.particle_lost
+      // let the function change a member variable of the class
+
+      // Maybe move to MaterialModel Utilities
+
+      // Use dealii mpi functions
+
+
+      // we get time passed as seconds (always) but may want
+      // to reinterpret it in years
+      if (this->convert_output_to_years())
+        injection_function.set_time (this->get_time() / year_in_seconds);
+      else
+        injection_function.set_time (this->get_time());
+
+      //bool enable_diking = true;
+      particle_lost = false;
+      dike_location.resize(0);
+      dike_location.emplace_back(Point<dim>(-1370.4997314869,40489.36393586183));//(0,50225));
+      std::pair<const typename parallel::distributed::Triangulation<dim>::active_cell_iterator,Point<dim>> cell_it = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_location.back());
+
+      // If we found the correct cell on this MPI process, we have found the right cell.
+      //Assert(cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned(), ExcMessage("Internal error: could not find cell to place initial point."));
+
+      int world_rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+      int world_size;
+      MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+      if (enable_random_dike_generation && this->get_timestep_number() > 0 && cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned())
+        {
+
+          unsigned int next_free_id = particle_handler->get_next_free_particle_index();
+          particle_handler->insert_particle(dike_location.back(),cell_it.second,next_free_id, cell_it.first);
+          //particle_handler->update_cached_numbers();
+          particle_handler->sort_particles_into_subdomains_and_cells();
+          // get the stress at the point
+          // get the solutions and gradients
+
+          const UpdateFlags update_flags = update_values | update_gradients;//property_manager->get_needed_update_flags();
+
+          std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,
+                                                               update_flags);
+
+
+          std::vector<Point<dim>> positions = {particle_handler->begin()->get_reference_location()};
+      //const Quadrature<dim> quadrature_formula (std::vector<Point<dim>>(1,particle_handler->begin()->get_reference_location()));
+
+      //const unsigned int n_q_points =  quadrature_formula.size();
+      //FEValues<dim> fe_values (this->get_mapping(), this->get_fe(),  quadrature_formula,
+      //                         update_flags);
+
+          // loop untill point is no longer in any cell;
+          // todo: or max number?
+          int iteration = 0;
+          while (!this->particle_lost && iteration < 10)
+            {
+              iteration++;
+
+              Point<dim> new_dike_point = Point<dim>();
+
+                do {
+          std::cout << iteration << "(1): particle lost = " << particle_lost << std::endl;
+          particle_handler->sort_particles_into_subdomains_and_cells();
+          std::cout << iteration << "(2): particle lost = " << particle_lost << std::endl;
+              //if (particle_handler->n_locally_owned_particles() == 0)
+              //  {
+              //    continue;
+              //  }
+
+          std::cout << iteration << "(3): particle lost = " << particle_lost << std::endl;
+
+              typename DoFHandler<dim>::active_cell_iterator cell = typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler()));
+
+
+
+              //if (cell_found_local)
+              {
+                small_vector<double> solution_values(this->get_fe().dofs_per_cell);
+
+                cell->get_dof_values(this->get_solution(),
+                                     solution_values.begin(),
+                                     solution_values.end());
+
+
+
+                //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+
+
+                // function here
+                //Tensor<1,dim> solution_stress = 
+                std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);;
+
+                cell->get_dof_values(this->get_current_linearization_point(),
+                                     solution_values.begin(),
+                                     solution_values.end());
+
+                //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+
+                std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);
 
                 // set the new point at half the cell size away from the current point and check if that is still in the domain.
                 const double distance = cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
+
                 particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
-                
+                } 
+                } while(particle_integrator->new_integration_step()); 
 
                 new_dike_point = particle_handler->begin()->get_location();
 
-                std::cout << "new_dike_point = " << new_dike_point << ", dike_location.back() = " << dike_location.back()
-                          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ", distance = " << distance << std::endl;
+                //std::cout << "new_dike_point = " << new_dike_point << ", dike_location.back() = " << dike_location.back()
+                //          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ", distance = " << distance << std::endl;
                 // TODO: check if still is in domain, otherwise end loop
 
-              }
+              //}
               //else
               //  {
               //    //// receive new dike injection vector when the owning processor is done.
@@ -825,7 +871,7 @@ namespace aspect
           if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(particle_integrator.get()))
             sim->initialize_simulator (this->get_simulator());
           particle_integrator->parse_parameters(prm);
-          particle_integrator->initialize();
+          dynamic_cast<Particle::Integrator::RK4<dim>*>(particle_integrator.get())->set(0);
         }
         prm.leave_subsection();
       }

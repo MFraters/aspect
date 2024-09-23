@@ -43,11 +43,22 @@ namespace aspect
       {
         const auto &property_information = this->get_particle_manager(this->get_particle_manager_index()).get_property_manager().get_data_info();
 
-        property_indices[0] = property_information.get_position_by_field_name("internal: integrator properties");
+        set(property_information.get_position_by_field_name("internal: integrator properties"));
+      }
+
+
+
+      template <int dim>
+      void
+      RK4<dim>::set (unsigned int property_index)
+      {
+        property_indices[0] = property_index;
         property_indices[1] = property_indices[0] + dim;
         property_indices[2] = property_indices[1] + dim;
         property_indices[3] = property_indices[2] + dim;
       }
+
+
 
 
 
