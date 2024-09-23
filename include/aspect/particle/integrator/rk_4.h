@@ -50,6 +50,12 @@ namespace aspect
           initialize () override;
 
           /**
+           * todo
+           */
+          void 
+          set (unsigned int property_index);
+
+          /**
            * Perform an integration step of moving the particles of one cell
            * by the specified timestep dt. This class implements a Runge-Kutta
            * integration scheme that is fourth order accurate

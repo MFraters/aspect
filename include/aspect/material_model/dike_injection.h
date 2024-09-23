@@ -25,6 +25,8 @@
 #include <deal.II/matrix_free/fe_point_evaluation.h>
 #include <aspect/particle/integrator/interface.h>
 
+#include <aspect/solution_evaluator.h>
+
 namespace aspect
 {
   namespace MaterialModel
@@ -97,7 +99,13 @@ namespace aspect
         std::unique_ptr<aspect::Particle::Integrator::Interface<dim>> particle_integrator;
         bool particle_lost;
 
-        void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell);
+        void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, 
+        const typename Triangulation<dim>::active_cell_iterator &cell);
+
+        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>>& evaluator, 
+        typename Triangulation<dim>::active_cell_iterator &cell,
+        std::vector<Point<dim>>& positions,
+        small_vector<double>& solution_values);
         /**
          * Parsed function that specifies the region and amount of
          * material that is injected into the model.
