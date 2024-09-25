@@ -75,7 +75,9 @@ namespace aspect
             Assert(static_cast<unsigned int> (std::distance(begin_particle, end_particle)) == old_velocities.size(),
                    ExcMessage("The particle integrator expects the old velocity vector to be of equal size "
                               "to the number of particles to advect. For some unknown reason they are different, "
-                              "most likely something went wrong in the calling function."));
+                              "most likely something went wrong in the calling function. particle distance = "
+                              + Utilities::int_to_string(static_cast<unsigned int> (std::distance(begin_particle, end_particle)))
+                              + ", old_velocities.size() = " + Utilities::int_to_string(old_velocities.size())));
           }
 
         if (integrator_substep >= 1 && integrator_substep < 4)

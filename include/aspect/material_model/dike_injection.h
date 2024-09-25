@@ -98,14 +98,15 @@ namespace aspect
         std::unique_ptr<Particles::ParticleHandler<dim>> particle_handler;
         std::unique_ptr<aspect::Particle::Integrator::Interface<dim>> particle_integrator;
         bool particle_lost;
+        Point<dim> particle_lost_location;
 
-        void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, 
-        const typename Triangulation<dim>::active_cell_iterator &cell);
+        void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle,
+                               const typename Triangulation<dim>::active_cell_iterator &cell);
 
-        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>>& evaluator, 
-        typename Triangulation<dim>::active_cell_iterator &cell,
-        std::vector<Point<dim>>& positions,
-        small_vector<double>& solution_values);
+        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>> &evaluator,
+                                                                       typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                                       std::vector<Point<dim>> &positions,
+                                                                       small_vector<double> &solution_values);
         /**
          * Parsed function that specifies the region and amount of
          * material that is injected into the model.

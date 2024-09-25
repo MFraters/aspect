@@ -47,157 +47,158 @@ namespace aspect
     {
       std::cout << "lost particle here!!!!: " << particle->get_location() << std::endl;
       particle_lost = true;
+      particle_lost_location = particle->get_location();
     }
 
     template <int dim>
     std::vector<Tensor<1,dim>>
-    DikeInjection<dim>::compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>>& evaluator, 
-    typename Triangulation<dim>::active_cell_iterator &cell, 
-    std::vector<Point<dim>>& positions,
-    small_vector<double>& solution_values){
+    DikeInjection<dim>::compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>> &evaluator,
+                                                           typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                           std::vector<Point<dim>> &positions,
+                                                           small_vector<double> & /*solution_values*/)
+    {
 
 
-                //fe_values.reinit(cell);
 
-                //const UpdateFlags update_flags = update_values | update_gradients;
-                //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+      //const UpdateFlags update_flags = update_values | update_gradients;
+      //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
 
-                std::vector<Vector<double>> solution;
-                solution.resize(1,Vector<double>(this->introspection().n_components));
+      std::vector<Vector<double>> solution;
+      solution.resize(1,Vector<double>(this->introspection().n_components));
 
-                std::vector<std::vector<Tensor<1,dim>>> gradients;
-                gradients.resize(1,std::vector<Tensor<1,dim>>(this->introspection().n_components));
+      std::vector<std::vector<Tensor<1,dim>>> gradients;
+      gradients.resize(1,std::vector<Tensor<1,dim>>(this->introspection().n_components));
 
-                //for (unsigned int i = 0; i<1; ++i)
-                  {
-                    // Evaluate the solution, but only if it is requested in the update_flags
-                    //if (update_flags & update_values)
-                    evaluator->get_solution(0, {&solution[0][0],solution[0].size()});
+      //for (unsigned int i = 0; i<1; ++i)
+      {
+        // Evaluate the solution, but only if it is requested in the update_flags
+        //if (update_flags & update_values)
+        evaluator->get_solution(0, {&solution[0][0],solution[0].size()});
 
-                    // Evaluate the gradients, but only if they are requested in the update_flags
-                    //if (update_flags & update_gradients)
-                    evaluator->get_gradients(0, gradients[0]);
-                  }
+        // Evaluate the gradients, but only if they are requested in the update_flags
+        //if (update_flags & update_gradients)
+        evaluator->get_gradients(0, gradients[0]);
+      }
 
-                // get presure, temp, etc
+      // get presure, temp, etc
 
-                // need access to the pressure, viscosity,
-                // get velocity
-                
-                Tensor<1,dim> velocity;
+      // need access to the pressure, viscosity,
+      // get velocity
 
-                for (unsigned int i = 0; i < dim; ++i)
-                  velocity[i] = solution[0][this->introspection().component_indices.velocities[i]];
+      Tensor<1,dim> velocity;
 
-                // get velocity gradient tensor.
-                Tensor<2,dim> velocity_gradient;
-                for (unsigned int i = 0; i < dim; ++i)
-                  velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
+      for (unsigned int i = 0; i < dim; ++i)
+        velocity[i] = solution[0][this->introspection().component_indices.velocities[i]];
 
-                // Calculate strain rate from velocity gradients
-                const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
-                const SymmetricTensor<2,dim> deviatoric_strain_rate
-                  = (this->get_material_model().is_compressible()
-                     ?
-                     strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
-                     :
-                     strain_rate);
+      // get velocity gradient tensor.
+      Tensor<2,dim> velocity_gradient;
+      for (unsigned int i = 0; i < dim; ++i)
+        velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
 
-                const double pressure = solution[0][this->introspection().component_indices.pressure];
+      // Calculate strain rate from velocity gradients
+      const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
+      const SymmetricTensor<2,dim> deviatoric_strain_rate
+        = (this->get_material_model().is_compressible()
+           ?
+           strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
+           :
+           strain_rate);
 
-            std::vector<double> temperature_values = {1};
-            //fe_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(), temperature_values);
-                const double temperature = solution[0][this->introspection().component_indices.temperature];
-                
-                std::cout << "fevalues temp = " << temperature_values[0] << ", old: " << solution[0][this->introspection().component_indices.temperature] << std::endl;
+      const double pressure = solution[0][this->introspection().component_indices.pressure];
 
-                // get the composition of the particle
-                std::vector<double> compositions;
-                for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
-                  {
-                    const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
-                    compositions.push_back(solution[0][solution_component]);
-                  }
+      //std::vector<double> temperature_values = {1};
+      //fe_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(), temperature_values);
+      const double temperature = solution[0][this->introspection().component_indices.temperature];
 
-                //const double dt = this->get_timestep();
+      //std::cout << "fevalues temp = " << temperature_values[0] << ", old: " << solution[0][this->introspection().component_indices.temperature] << std::endl;
 
-                // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
-                // adding an extra dimension which is zero.
-                SymmetricTensor<2,3> strain_rate_3d;
-                strain_rate_3d[0][0] = strain_rate[0][0];
-                strain_rate_3d[0][1] = strain_rate[0][1];
-                //sym: strain_rate_3d[1][0] = strain_rate[1][0];
-                strain_rate_3d[1][1] = strain_rate[1][1];
+      // get the composition of the particle
+      std::vector<double> compositions;
+      for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
+        {
+          const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
+          compositions.push_back(solution[0][solution_component]);
+        }
 
-                if (dim == 3)
-                  {
-                    strain_rate_3d[0][2] = strain_rate[0][2];
-                    strain_rate_3d[1][2] = strain_rate[1][2];
-                    //sym: strain_rate_3d[2][0] = strain_rate[0][2];
-                    //sym: strain_rate_3d[2][1] = strain_rate[1][2];
-                    strain_rate_3d[2][2] = strain_rate[2][2];
-                  }
-                Tensor<2,3> velocity_gradient_3d;
-                velocity_gradient_3d[0][0] = velocity_gradient[0][0];
-                velocity_gradient_3d[0][1] = velocity_gradient[0][1];
-                velocity_gradient_3d[1][0] = velocity_gradient[1][0];
-                velocity_gradient_3d[1][1] = velocity_gradient[1][1];
-                if (dim == 3)
-                  {
-                    velocity_gradient_3d[0][2] = velocity_gradient[0][2];
-                    velocity_gradient_3d[1][2] = velocity_gradient[1][2];
-                    velocity_gradient_3d[2][0] = velocity_gradient[2][0];
-                    velocity_gradient_3d[2][1] = velocity_gradient[2][1];
-                    velocity_gradient_3d[2][2] = velocity_gradient[2][2];
-                  }
+      //const double dt = this->get_timestep();
 
-                // compute the viscosity
-                MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
-                material_model_inputs.position[0] = positions[0];
-                material_model_inputs.temperature[0] = temperature;
-                material_model_inputs.pressure[0] = pressure;
-                material_model_inputs.velocity[0] = velocity;
-                material_model_inputs.composition[0] = compositions;
-                material_model_inputs.strain_rate[0] = strain_rate;
-                material_model_inputs.current_cell = cell;
-                std::cout << "position = " << positions[0] << ", temperature = " << temperature << ", pressure = " << pressure 
-                << ", velocity = " << velocity << ", strain_rate = " << strain_rate << std::endl;
+      // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
+      // adding an extra dimension which is zero.
+      SymmetricTensor<2,3> strain_rate_3d;
+      strain_rate_3d[0][0] = strain_rate[0][0];
+      strain_rate_3d[0][1] = strain_rate[0][1];
+      //sym: strain_rate_3d[1][0] = strain_rate[1][0];
+      strain_rate_3d[1][1] = strain_rate[1][1];
 
-                MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
-                this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
-                double eta = material_model_outputs.viscosities[0];
+      if (dim == 3)
+        {
+          strain_rate_3d[0][2] = strain_rate[0][2];
+          strain_rate_3d[1][2] = strain_rate[1][2];
+          //sym: strain_rate_3d[2][0] = strain_rate[0][2];
+          //sym: strain_rate_3d[2][1] = strain_rate[1][2];
+          strain_rate_3d[2][2] = strain_rate[2][2];
+        }
+      Tensor<2,3> velocity_gradient_3d;
+      velocity_gradient_3d[0][0] = velocity_gradient[0][0];
+      velocity_gradient_3d[0][1] = velocity_gradient[0][1];
+      velocity_gradient_3d[1][0] = velocity_gradient[1][0];
+      velocity_gradient_3d[1][1] = velocity_gradient[1][1];
+      if (dim == 3)
+        {
+          velocity_gradient_3d[0][2] = velocity_gradient[0][2];
+          velocity_gradient_3d[1][2] = velocity_gradient[1][2];
+          velocity_gradient_3d[2][0] = velocity_gradient[2][0];
+          velocity_gradient_3d[2][1] = velocity_gradient[2][1];
+          velocity_gradient_3d[2][2] = velocity_gradient[2][2];
+        }
 
-                //const SymmetricTensor<2,dim> stress = 2*eta*deviatoric_strain_rate +
-                //                                      pressure * unit_symmetric_tensor<dim>();
+      // compute the viscosity
+      MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
+      material_model_inputs.position[0] = positions[0];
+      material_model_inputs.temperature[0] = temperature;
+      material_model_inputs.pressure[0] = pressure;
+      material_model_inputs.velocity[0] = velocity;
+      material_model_inputs.composition[0] = compositions;
+      material_model_inputs.strain_rate[0] = strain_rate;
+      material_model_inputs.current_cell = cell;
+      //std::cout << "position = " << positions[0] << ", temperature = " << temperature << ", pressure = " << pressure
+      //<< ", velocity = " << velocity << ", strain_rate = " << strain_rate << std::endl;
 
-                //                 const SymmetricTensor<2,dim> deviatoric_strain_rate
-                // = (this->get_material_model().is_compressible()
-                //    ?
-                //    strain_rate - 1./3. * trace(strain_rate) * unit_symmetric_tensor<dim>()
-                //    :
-                //    strain_rate);
+      MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
+      this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
+      double eta = material_model_outputs.viscosities[0];
 
-                // Compressive stress is positive in geoscience applications
-                const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
-                //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
-                Tensor< 1, dim, double > stress_largest_eigenvectors = dealii::eigenvectors(stress)[0].second;
+      //const SymmetricTensor<2,dim> stress = 2*eta*deviatoric_strain_rate +
+      //                                      pressure * unit_symmetric_tensor<dim>();
 
-                std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
-                          << ", " <<dealii::eigenvectors(stress)[1].first << std::endl;
+      //                 const SymmetricTensor<2,dim> deviatoric_strain_rate
+      // = (this->get_material_model().is_compressible()
+      //    ?
+      //    strain_rate - 1./3. * trace(strain_rate) * unit_symmetric_tensor<dim>()
+      //    :
+      //    strain_rate);
 
-                // now we have the largest stress eigenvector. We need to deterine what is up.
-                Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[0])/this->get_gravity_model().gravity_vector(positions[0]).norm();
+      // Compressive stress is positive in geoscience applications
+      const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
+      //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
+      Tensor< 1, dim, double > stress_largest_eigenvectors = dealii::eigenvectors(stress)[0].second;
 
-                double angle = stress_largest_eigenvectors * gravity_vector;
-                std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
-                          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
-                if (std::fabs(angle) < 0.5*numbers::PI)
-                  {
-                    stress_largest_eigenvectors *= -1;
-                  }
+      //std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
+      //          << ", " <<dealii::eigenvectors(stress)[1].first << std::endl;
 
-                  return {stress_largest_eigenvectors};
-                  
+      // now we have the largest stress eigenvector. We need to deterine what is up.
+      Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[0])/this->get_gravity_model().gravity_vector(positions[0]).norm();
+
+      double angle = stress_largest_eigenvectors * gravity_vector;
+      //std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
+      //          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
+      if (std::fabs(angle) < 0.5*numbers::PI)
+        {
+          stress_largest_eigenvectors *= -1;
+        }
+
+      return {stress_largest_eigenvectors};
+
     }
 
     template <int dim>
@@ -206,13 +207,14 @@ namespace aspect
     {
       base_model->update();
 
-      if(!particle_handler){
-        particle_handler = std::make_unique<Particles::ParticleHandler<dim>>(this->get_triangulation(), this->get_mapping(),Particle::Integrator::RK4<dim>::n_integrator_properties);
-        particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
+      if (!particle_handler)
         {
-          this->set_particle_lost(particle, cell);
-        });
-      }
+          particle_handler = std::make_unique<Particles::ParticleHandler<dim>>(this->get_triangulation(), this->get_mapping(),Particle::Integrator::RK4<dim>::n_integrator_properties);
+          particle_handler->signals.particle_lost.connect([&] (const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &cell)
+          {
+            this->set_particle_lost(particle, cell);
+          });
+        }
 
       // find_active_cell_around_point(mapping, tria, point);
       // dealii tests: particle_handler_03 -> inefficient particle inser
@@ -233,10 +235,10 @@ namespace aspect
 
       // we get time passed as seconds (always) but may want
       // to reinterpret it in years
-      if (this->convert_output_to_years())
-        injection_function.set_time (this->get_time() / year_in_seconds);
-      else
-        injection_function.set_time (this->get_time());
+      //if (this->convert_output_to_years())
+      //  injection_function.set_time (this->get_time() / year_in_seconds);
+      //else
+      //  injection_function.set_time (this->get_time());
 
       //bool enable_diking = true;
       particle_lost = false;
@@ -270,73 +272,86 @@ namespace aspect
 
 
           std::vector<Point<dim>> positions = {particle_handler->begin()->get_reference_location()};
-      //const Quadrature<dim> quadrature_formula (std::vector<Point<dim>>(1,particle_handler->begin()->get_reference_location()));
+          //const Quadrature<dim> quadrature_formula (std::vector<Point<dim>>(1,particle_handler->begin()->get_reference_location()));
 
-      //const unsigned int n_q_points =  quadrature_formula.size();
-      //FEValues<dim> fe_values (this->get_mapping(), this->get_fe(),  quadrature_formula,
-      //                         update_flags);
+          //const unsigned int n_q_points =  quadrature_formula.size();
+          //FEValues<dim> fe_values (this->get_mapping(), this->get_fe(),  quadrature_formula,
+          //                         update_flags);
 
           // loop untill point is no longer in any cell;
           // todo: or max number?
           int iteration = 0;
-          while (!this->particle_lost && iteration < 10)
+          while (!this->particle_lost)
             {
               iteration++;
+              AssertThrow(iteration < 1000, ExcMessage ("too many iterations for the dike to reach the surface."));
+
+              std::cout << " old position: " << particle_handler->begin()->get_location() << std::endl;
 
               Point<dim> new_dike_point = Point<dim>();
 
-                do {
-          std::cout << iteration << "(1): particle lost = " << particle_lost << std::endl;
-          particle_handler->sort_particles_into_subdomains_and_cells();
-          std::cout << iteration << "(2): particle lost = " << particle_lost << std::endl;
-              //if (particle_handler->n_locally_owned_particles() == 0)
-              //  {
-              //    continue;
-              //  }
+              do
+                {
+                  //std::cout << iteration << "(1): particle lost = " << particle_lost << std::endl;
+                  particle_handler->sort_particles_into_subdomains_and_cells();
+                  //std::cout << iteration << "(2): particle lost = " << particle_lost << std::endl;
+                  if (particle_lost)
+                    {
+                      break;
+                    }
+                  //if (particle_handler->n_locally_owned_particles() == 0)
+                  //  {
+                  //    continue;
+                  //  }
 
-          std::cout << iteration << "(3): particle lost = " << particle_lost << std::endl;
+                  //std::cout << iteration << "(3): particle lost = " << particle_lost << std::endl;
 
-              typename DoFHandler<dim>::active_cell_iterator cell = typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler()));
-
-
-
-              //if (cell_found_local)
-              {
-                small_vector<double> solution_values(this->get_fe().dofs_per_cell);
-
-                cell->get_dof_values(this->get_solution(),
-                                     solution_values.begin(),
-                                     solution_values.end());
+                  typename DoFHandler<dim>::active_cell_iterator cell = typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler()));
 
 
 
-                //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+                  //if (cell_found_local)
+                  {
+                    small_vector<double> solution_values(this->get_fe().dofs_per_cell);
+
+                    cell->get_dof_values(this->get_solution(),
+                                         solution_values.begin(),
+                                         solution_values.end());
 
 
-                // function here
-                //Tensor<1,dim> solution_stress = 
-                std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);;
 
-                cell->get_dof_values(this->get_current_linearization_point(),
-                                     solution_values.begin(),
-                                     solution_values.end());
+                    //fe_values.reinit(cell);
+                    evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
 
-                //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
 
-                std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);
+                    // function here
+                    //Tensor<1,dim> solution_stress =
+                    std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);;
 
-                // set the new point at half the cell size away from the current point and check if that is still in the domain.
-                const double distance = cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
+                    cell->get_dof_values(this->get_current_linearization_point(),
+                                         solution_values.begin(),
+                                         solution_values.end());
 
-                particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
-                } 
-                } while(particle_integrator->new_integration_step()); 
+                    evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
 
-                new_dike_point = particle_handler->begin()->get_location();
+                    std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);
 
-                //std::cout << "new_dike_point = " << new_dike_point << ", dike_location.back() = " << dike_location.back()
-                //          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ", distance = " << distance << std::endl;
-                // TODO: check if still is in domain, otherwise end loop
+                    // set the new point at half the cell size away from the current point and check if that is still in the domain.
+                    const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
+
+                    particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
+
+                    std::cout << "solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
+                    << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << std::endl;
+                  }
+                }
+              while (particle_integrator->new_integration_step());
+
+              new_dike_point = particle_lost ? particle_lost_location : particle_handler->begin()->get_location();
+
+              //std::cout << "new_dike_point = " << new_dike_point << ", dike_location.back() = " << dike_location.back() << std::endl;
+              //          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ", distance = " << distance << std::endl;
+              // TODO: check if still is in domain, otherwise end loop
 
               //}
               //else
@@ -349,7 +364,7 @@ namespace aspect
               //    //MPI_Recv(&dike_location[0], results_rank_size, MPI_INT, MPI_ANY_SOURCE, 777, this->get_mpi_communicator(), &status);
               //  }
 
-              std::cout << "new_dike_point before = " << new_dike_point << std::endl;
+              //std::cout << "new_dike_point before = " << new_dike_point << std::endl;
               // Synchronize the appended dike points vector over all mpi processes
               // broadcast dim doubles into a point
 
@@ -363,7 +378,7 @@ namespace aspect
               //  {
               //    MPI_Bcast(&new_dike_point[i], 1, MPI_DOUBLE, cell_global_rank, this->get_mpi_communicator());
               //  }
-              std::cout << "new_dike_point after = " << new_dike_point << std::endl;
+              //std::cout << "new_dike_point after = " << new_dike_point << std::endl;
               dike_location.emplace_back(new_dike_point);
               //int results_rank_size = dike_location.size();
               //MPI_Bcast(&results_rank_size, 1, MPI_INT, cell_global_rank, this->get_mpi_communicator());
@@ -383,7 +398,7 @@ namespace aspect
         }
 
       // If using random dike generation
-      if (false && enable_random_dike_generation)
+      /*if (false && enable_random_dike_generation)
         {
           // Dike is randomly generated in the potential dike generation
           // zone at each timestep.
@@ -445,7 +460,7 @@ namespace aspect
           x_dike_left_boundary = std::floor(x_dike_location / dx_max) * dx_max;
           x_dike_right_boundary = x_dike_left_boundary + width_random_dike;
           top_depth_random_dike = ref_top_depth_random_dike + depth_change_random_dike;
-        }
+        }*/
     }
 
     template <int dim>
@@ -472,13 +487,15 @@ namespace aspect
       // the deviatoric strain rate.
       //AssertThrow(in.current_cell.state() == IteratorState::valid, ExcMessage("error"));
       MaterialModel::MaterialModelInputs<dim> in_corrected_strainrate (in);
+      if(this->get_timestep_number() > 0 && this->simulator_is_past_initialization())
+        in_corrected_strainrate.requested_properties = in_corrected_strainrate.requested_properties | MaterialProperties::viscosity;
       //AssertThrow(in_corrected_strainrate.current_cell.state() == IteratorState::valid, ExcMessage("error"));
       //AssertThrow(in.current_cell.state() == IteratorState::valid, ExcMessage("error"));
 
       // Strore dike injection rate for each evaluation point
       std::vector<double> dike_injection_rate(in.n_evaluation_points());
 
-      for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
+      for (unsigned int q=0; q < in.n_evaluation_points(); ++q)
         {
           if (enable_random_dike_generation)
             {
@@ -487,37 +504,72 @@ namespace aspect
               if (dike_location.size() > 1)
                 {
                   double distance;
-                  const Point<dim> &X0 = in.position[0];
-                  for (unsigned int i = 0; i < dike_location.size()-1; ++i)
+                  const Point<dim> &P = in.position[q];
+                  for (unsigned int point_index = 0; point_index < dike_location.size()-1; ++point_index)
                     {
-                      const Point<dim> &X1 = dike_location[i];
-                      const Point<dim> &X2 = dike_location[i+1];
+                      const Point<dim> &X1 = dike_location[point_index];
+                      const Point<dim> &X2 = dike_location[point_index+1];
                       if (dim == 3)
                         {
                           //https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
-                          distance = (cross_product_3d(X0-X1,X0-X2)).norm_square()/(X2-X1).norm_square();
+                          distance = (cross_product_3d(P-X1,P-X2)).norm_square()/(X2-X1).norm_square();
                         }
                       else if (dim == 2)
                         {
                           // https://mathworld.wolfram.com/Point-LineDistance2-Dimensional.html
-                          const Point<2> v = Point<2>(X2[1]-X1[1],-(X2[0]-X1[0]));
-                          const Point<2> r = Point<2>(X1[0]-X0[0],X1[1]-X0[1]);
-                          distance = std::fabs(v*r);
+                          //const Point<2> v = Point<2>(X2[1]-X1[1],-(X2[0]-X1[0]));
+                          //const Point<2> r = Point<2>(X1[0]-X0[0],X1[1]-X0[1]);
+                          //distance = std::fabs(v*r);
+
+                          const Tensor<1,dim> v = (X2 - X1);
+                          const Tensor<1,dim> w = (P - X1);
+
+                          double c1 = w*v;
+                          if ( c1 <= 0 )
+                            {
+                              distance = (P-X1).norm();
+                            }
+                          else
+                            {
+                              double c2 = v*v;
+                              if ( c2 <= c1 )
+                                {
+                                  distance = (P-X2).norm();
+                                }
+                              else
+                                {
+                                  double b = c1 / c2;
+                                  Point Pb = X1 + b * v;
+                                  distance = (P- Pb).norm();
+                                }
+                            }
+
+                          //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
+                          //  {
+                          //    std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                          //  }
                         }
+
                       if (distance < min_distance)
                         {
+                          //if(in.position[i][0] > -1000. && in.position[i][0] < 1000. && in.position[i][1] > 49000 && in.position[i][1] < 51000)
+                          //  std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
                           min_distance = distance;
                         }
                     }
                 }
 
-              if (min_distance < 1000 && this->get_timestep_number() > 0)
-                {
-                  const double dike_injection_rate_double = 1e-14;
-                  dike_injection_rate[i] = this->convert_output_to_years()
-                                           ? dike_injection_rate_double / year_in_seconds
-                                           : dike_injection_rate_double;
-                }
+              //if (min_distance < 10000 && this->get_timestep_number() > 0)
+              //  {
+              //    const double dike_injection_rate_double = 0;//1e-14;
+              //    dike_injection_rate[q] = this->convert_output_to_years()
+              //                             ? dike_injection_rate_double / year_in_seconds
+              //                             : dike_injection_rate_double;
+              //  }
+              //else
+              //  {
+              //    dike_injection_rate[q] = 0;
+              //  }
               // First find the location of the dike which is either randomly
               // generated or prescribed by the user.
               // Then give the dike_injection_rate to the dike points.
@@ -526,29 +578,29 @@ namespace aspect
                   // Note: when the dike is generated randomly, the prescribed
                   // injection rate in the 'Dike injection function' should be
                   // only time dependent and independent of the xyz-coordinate.
-                  const double point_depth = this->get_geometry_model().depth(in.position[i]);
-
-                  // Find the randomly generated dike location
-                  if (in.position[i][0] >= x_dike_left_boundary
-                      && in.position[i][0] <= x_dike_right_boundary
-                      && in.temperature[i] <= T_bottom_dike
-                      && point_depth >= std::max(top_depth_random_dike, 0.0)
-                      && this->get_timestep_number() > 0)
-                    dike_injection_rate[i] = this->convert_output_to_years()
-                                             ? injection_function.value(in.position[i]) / year_in_seconds
-                                             : injection_function.value(in.position[i]);
-                  else
-                    dike_injection_rate[i] = 0.0;
-
+                  //const double point_depth = this->get_geometry_model().depth(in.position[q]);
+//
+                  //// Find the randomly generated dike location
+                  //if (in.position[q][0] >= x_dike_left_boundary
+                  //    && in.position[q][0] <= x_dike_right_boundary
+                  //    && in.temperature[q] <= T_bottom_dike
+                  //    && point_depth >= std::max(top_depth_random_dike, 0.0)
+                  //    && this->get_timestep_number() > 0)
+                  //  dike_injection_rate[q] = this->convert_output_to_years()
+                  //                           ? injection_function.value(in.position[q]) / year_in_seconds
+                  //                           : injection_function.value(in.position[q]);
+                  //else
+                  //  dike_injection_rate[q] = 0.0;
+//
                   // Dike injection effect removal
                   // Note that the correction starts from Timestep 1.
                   // Ensure the current cell is located within the dike area.
-                  if (dike_injection_rate[i] > 0.0
-                      && this->get_timestep_number() > 0
-                      && in.current_cell.state() == IteratorState::valid
-                      && in.current_cell->center()[0] >= x_dike_left_boundary
-                      && in.current_cell->center()[0] <= x_dike_right_boundary)
-                    in_corrected_strainrate.strain_rate[i][0][0] -= dike_injection_rate[i];
+                  //if (dike_injection_rate[q] > 0.0
+                  //    && this->get_timestep_number() > 0
+                  //    && in.current_cell.state() == IteratorState::valid
+                  //    && in.current_cell->center()[0] >= x_dike_left_boundary
+                  //    && in.current_cell->center()[0] <= x_dike_right_boundary)
+                  //  in_corrected_strainrate.strain_rate[q][0][0] -= dike_injection_rate[q];
                 }
               else
                 {
@@ -556,20 +608,20 @@ namespace aspect
                   // The 'Dike injection function' is related to both the time and
                   // the xyz-coordinate.The bottom depth of the dike is limited by
                   // the isothermal depth of the brittle-ductle transition (BDT).
-                  if (in.temperature[i] <= T_bottom_dike
-                      && this->get_timestep_number() > 0)
-                    dike_injection_rate[i] = this->convert_output_to_years()
-                                             ? injection_function.value(in.position[i]) / year_in_seconds
-                                             : injection_function.value(in.position[i]);
-                  else
-                    dike_injection_rate[i] = 0.0;
-
-                  // Dike injection effect removal
-                  if (dike_injection_rate[i] > 0.0
-                      && this->get_timestep_number() > 0
-                      && in.current_cell.state() == IteratorState::valid
-                      && injection_function.value(in.current_cell->center()) > 0.0)
-                    in_corrected_strainrate.strain_rate[i][0][0] -= dike_injection_rate[i];
+                  //if (in.temperature[q] <= T_bottom_dike
+                  //    && this->get_timestep_number() > 0)
+                  //  dike_injection_rate[q] = this->convert_output_to_years()
+                  //                           ? injection_function.value(in.position[q]) / year_in_seconds
+                  //                           : injection_function.value(in.position[q]);
+                  //else
+                  //  dike_injection_rate[q] = 0.0;
+//
+                  //// Dike injection effect removal
+                  //if (dike_injection_rate[q] > 0.0
+                  //    && this->get_timestep_number() > 0
+                  //    && in.current_cell.state() == IteratorState::valid
+                  //    && injection_function.value(in.current_cell->center()) > 0.0)
+                  //  in_corrected_strainrate.strain_rate[q][0][0] -= dike_injection_rate[q];
                 }
             }
         }
@@ -577,6 +629,7 @@ namespace aspect
       // Fill variable out with the results form the base material model
       // using the corrected model inputs.
       base_model->evaluate(in_corrected_strainrate, out);
+
 
       // Below we start to track the motion of the dike injection material.
       AssertThrow(this->introspection().compositional_name_exists("injection_phase"),
@@ -600,21 +653,156 @@ namespace aspect
       // duration of a dike.
       double dike_injection_fraction = 0.0;
 
-      for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
+      for (unsigned int q=0; q < in.n_evaluation_points(); ++q)
+        {
+          if (enable_random_dike_generation)
+            {
+              // for now just add dike composition to this cell
+              double min_distance = std::numeric_limits<double>::max();
+              if (dike_location.size() > 1)
+                {
+                  double distance;
+                  const Point<dim> &P = in.position[q];
+                  for (unsigned int point_index = 0; point_index < dike_location.size()-1; ++point_index)
+                    {
+                      const Point<dim> &X1 = dike_location[point_index];
+                      const Point<dim> &X2 = dike_location[point_index+1];
+                      if (dim == 3)
+                        {
+                          //https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+                          distance = (cross_product_3d(P-X1,P-X2)).norm_square()/(X2-X1).norm_square();
+                        }
+                      else if (dim == 2)
+                        {
+                          // https://mathworld.wolfram.com/Point-LineDistance2-Dimensional.html
+                          //const Point<2> v = Point<2>(X2[1]-X1[1],-(X2[0]-X1[0]));
+                          //const Point<2> r = Point<2>(X1[0]-X0[0],X1[1]-X0[1]);
+                          //distance = std::fabs(v*r);
+
+                          const Tensor<1,dim> v = (X2 - X1);
+                          const Tensor<1,dim> w = (P - X1);
+
+                          double c1 = w*v;
+                          if ( c1 <= 0 )
+                            {
+                              distance = (P-X1).norm();
+                            }
+                          else
+                            {
+
+                              double c2 = v*v;
+                              if ( c2 <= c1 )
+                                {
+                                  distance = (P-X2).norm();
+                                }
+                              else
+                                {
+                                  double b = c1 / c2;
+                                  Point Pb = X1 + b * v;
+                                  distance = (P- Pb).norm();
+                                }
+                            }
+
+                          //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
+                          //  {
+                          //    std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                          //  }
+                        }
+
+                      if (distance < min_distance)
+                        {
+                          //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
+                          //  std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                          min_distance = distance;
+                        }
+                    }
+                }
+              if (min_distance < 1000 && this->get_timestep_number() > 0)
+                {
+                  out.viscosities[q] *= 10;
+                  const double dike_injection_rate_double = 1e-134;
+                  dike_injection_rate[q] = this->convert_output_to_years()
+                                           ? dike_injection_rate_double / year_in_seconds
+                                           : dike_injection_rate_double;
+
+/*
+          // User-defined or timestep-dependent injection fraction.
+          if (this->simulator_is_past_initialization())
+            dike_injection_fraction = dike_injection_rate[q] * this->get_timestep();
+            
+if (dike_injection_rate[q] > 0.0
+              && this->get_timestep_number() > 0
+              && in.current_cell.state() == IteratorState::valid)
+            {
+
+
+          const UpdateFlags update_flags = update_values;// | update_gradients;//property_manager->get_needed_update_flags();
+
+          std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,
+                                                               update_flags);
+
+                    small_vector<double> solution_values(this->get_fe().dofs_per_cell);
+
+                    in.current_cell->get_dof_values(this->get_old_solution(),
+                                         solution_values.begin(),
+                                         solution_values.end());
+
+
+
+                    //fe_values.reinit(cell);
+                    //evaluator->reinit(in.current_cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+
+
+              // If the "single Advection" nonlinear solver scheme is used,
+              // it is necessary to set the reaction term to 0 to avoid
+              // additional plastic deformation generated by dike injection
+              // within the dike zone.
+              if (this->get_parameters().nonlinear_solver ==
+                  Parameters<dim>::NonlinearSolver::single_Advection_single_Stokes
+                  ||
+                  this->get_parameters().nonlinear_solver ==
+                  Parameters<dim>::NonlinearSolver::single_Advection_iterated_Stokes
+                  ||
+                  this->get_parameters().nonlinear_solver ==
+                  Parameters<dim>::NonlinearSolver::single_Advection_iterated_Newton_Stokes
+                  ||
+                  this->get_parameters().nonlinear_solver ==
+                  Parameters<dim>::NonlinearSolver::single_Advection_iterated_defect_correction_Stokes)
+                {
+                  if (this->introspection().compositional_name_exists("plastic_strain"))
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("plastic_strain")] = 0.0;
+                  if (this->introspection().compositional_name_exists("viscous_strain"))
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("viscous_strain")] = 0.0;
+                  if (this->introspection().compositional_name_exists("total_strain"))
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("total_strain")] = 0.0;
+                  if (this->introspection().compositional_name_exists("noninitial_plastic_strain"))
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] = 0.0;
+                }
+            }*/
+
+                }
+              else
+                {
+                  dike_injection_rate[q] = 0;
+                }
+            }
+        }
+
+      for (unsigned int q=0; q < in.n_evaluation_points(); ++q)
         {
           // Activate the dike injection by adding the additional RHS
           // terms of injection to Stokes equations.
           if (prescribed_dilation != nullptr)
-            prescribed_dilation->dilation[i] = dike_injection_rate[i];
+            prescribed_dilation->dilation[q] = dike_injection_rate[q];
 
           // User-defined or timestep-dependent injection fraction.
           if (this->simulator_is_past_initialization())
-            dike_injection_fraction = dike_injection_rate[i] * this->get_timestep();
+            dike_injection_fraction = dike_injection_rate[q] * this->get_timestep();
 
           if (dike_material_injection_fraction != 0.0)
             dike_injection_fraction = dike_material_injection_fraction;
 
-          if (dike_injection_rate[i] > 0.0
+          if (dike_injection_rate[q] > 0.0
               && this->get_timestep_number() > 0
               && in.current_cell.state() == IteratorState::valid)
             {
@@ -623,7 +811,7 @@ namespace aspect
               // linearization point are an extrapolation of the solution from
               // the old timesteps. Prepare the field function and extract the
               // old solution values at the current cell.
-              quadrature_positions.resize(1,this->get_mapping().transform_real_to_unit_cell(in.current_cell, in.position[i]));
+              quadrature_positions.resize(1,this->get_mapping().transform_real_to_unit_cell(in.current_cell, in.position[q]));
 
               // Use a boost::small_vector to avoid memory allocation if possible.
               // Create 100 values by default, which should be enough for most cases.
@@ -660,19 +848,19 @@ namespace aspect
                       const double old_solution_composition = composition_evaluators[c]->get_value(0);
 
                       // If the value increases to greater than 1, it is not increased anymore.
-                      if (old_solution_composition + dike_injection_fraction >= 1.0)
-                        out.reaction_terms[i][c] = 0.0;
-                      else
-                        out.reaction_terms[i][c] = std::max(dike_injection_fraction, -old_solution_composition);
+                      //if (old_solution_composition + dike_injection_fraction >= 1.0)
+                      //  out.reaction_terms[q][c] = 0.0;
+                      //else
+                        out.reaction_terms[q][c] = std::max(dike_injection_fraction, -old_solution_composition);
 
                       // Fill reaction rate outputs instead of the reaction terms if
                       // we use operator splitting (and then set the latter to zero).
                       if (reaction_rate_out != nullptr)
-                        reaction_rate_out->reaction_rates[i][c] = out.reaction_terms[i][c]
+                        reaction_rate_out->reaction_rates[q][c] = out.reaction_terms[q][c]
                                                                   / this->get_timestep();
 
                       if (this->get_parameters().use_operator_splitting)
-                        out.reaction_terms[i][c] = 0.0;
+                        out.reaction_terms[q][c] = 0.0;
                     }
                   else
                     {
@@ -721,18 +909,18 @@ namespace aspect
                                                                               EvaluationFlags::values);
                       double injection_phase_composition = std::max(std::min(composition_evaluators[injection_phase_index]->get_value(0),1.0),0.0);
 
-                      out.reaction_terms[i][c] = -old_solution_other_composition
+                      out.reaction_terms[q][c] = -old_solution_other_composition
                                                  * std::min(dike_injection_fraction
                                                             / (1.0001 - injection_phase_composition), 1.0);
 
                       // Fill reaction rate outputs instead of the reaction terms if
                       // we use operator splitting (and then set the latter to zero).
                       if (reaction_rate_out != nullptr)
-                        reaction_rate_out->reaction_rates[i][c] = out.reaction_terms[i][c]
+                        reaction_rate_out->reaction_rates[q][c] = out.reaction_terms[q][c]
                                                                   / this->get_timestep();
 
                       if (this->get_parameters().use_operator_splitting)
-                        out.reaction_terms[i][c] = 0.0;
+                        out.reaction_terms[q][c] = 0.0;
                     }
                 }
 
@@ -753,13 +941,13 @@ namespace aspect
                   Parameters<dim>::NonlinearSolver::single_Advection_iterated_defect_correction_Stokes)
                 {
                   if (this->introspection().compositional_name_exists("plastic_strain"))
-                    out.reaction_terms[i][this->introspection().compositional_index_for_name("plastic_strain")] = 0.0;
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("plastic_strain")] = 0.0;
                   if (this->introspection().compositional_name_exists("viscous_strain"))
-                    out.reaction_terms[i][this->introspection().compositional_index_for_name("viscous_strain")] = 0.0;
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("viscous_strain")] = 0.0;
                   if (this->introspection().compositional_name_exists("total_strain"))
-                    out.reaction_terms[i][this->introspection().compositional_index_for_name("total_strain")] = 0.0;
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("total_strain")] = 0.0;
                   if (this->introspection().compositional_name_exists("noninitial_plastic_strain"))
-                    out.reaction_terms[i][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] = 0.0;
+                    out.reaction_terms[q][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] = 0.0;
                 }
             }
 
@@ -850,22 +1038,22 @@ namespace aspect
           range_depth_change_random_dike = prm.get_double ("Range of randomly generated dike depth change");
           width_random_dike = prm.get_double ("Width of randomly generated dike");
 
-          prm.enter_subsection("Dike injection function");
-          {
-            try
-              {
-                injection_function.parse_parameters(prm);
-              }
-            catch (...)
-              {
-                std::cerr << "ERROR: FunctionParser failed to parse\n"
-                          << "\t Dike injection function\n"
-                          << "with expression \n"
-                          << "\t' " << prm.get("Function expression") << "'";
-                throw;
-              }
-          }
-          prm.leave_subsection();
+          //prm.enter_subsection("Dike injection function");
+          //{
+          //  try
+          //    {
+          //      injection_function.parse_parameters(prm);
+          //    }
+          //  catch (...)
+          //    {
+          //      std::cerr << "ERROR: FunctionParser failed to parse\n"
+          //                << "\t Dike injection function\n"
+          //                << "with expression \n"
+          //                << "\t' " << prm.get("Function expression") << "'";
+          //      throw;
+          //    }
+          //}
+          //prm.leave_subsection();
 
           particle_integrator = aspect::Particle::Integrator::create_particle_integrator<dim>(prm);
           if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(particle_integrator.get()))
