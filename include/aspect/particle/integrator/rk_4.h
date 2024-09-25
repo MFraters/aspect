@@ -52,7 +52,7 @@ namespace aspect
           /**
            * todo
            */
-          void 
+          void
           set (unsigned int property_index);
 
           /**

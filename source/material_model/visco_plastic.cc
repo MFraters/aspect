@@ -227,6 +227,7 @@ namespace aspect
               // creep (where n_diff=1) viscosities are stress and strain-rate independent, so the calculation
               // of compositional field viscosities is consistent with any averaging scheme.
               out.viscosities[i] = MaterialUtilities::average_value(volume_fractions, isostrain_viscosities.composition_viscosities, rheology->viscosity_averaging);
+              AssertThrow(!std::isnan(out.viscosities[i]),ExcMessage("is nan: "));
 
               // Decide based on the maximum composition if material is yielding.
               // This avoids for example division by zero for harmonic averaging (as plastic_yielding
