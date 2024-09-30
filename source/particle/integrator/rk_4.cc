@@ -138,6 +138,7 @@ namespace aspect
 #if !DEAL_II_VERSION_GTE(9, 6, 0)
                 it->set_location(new_location);
 #endif
+
               }
             else if (integrator_substep == 1)
               {

@@ -286,7 +286,7 @@ namespace aspect
               iteration++;
               AssertThrow(iteration < 1000, ExcMessage ("too many iterations for the dike to reach the surface."));
 
-              std::cout << " old position: " << particle_handler->begin()->get_location() << std::endl;
+              //std::cout << " old position: " << particle_handler->begin()->get_location() << std::endl;
 
               Point<dim> new_dike_point = Point<dim>();
 
@@ -294,9 +294,15 @@ namespace aspect
                 {
                   //std::cout << iteration << "(1): particle lost = " << particle_lost << std::endl;
                   particle_handler->sort_particles_into_subdomains_and_cells();
-                  //std::cout << iteration << "(2): particle lost = " << particle_lost << std::endl;
+                  //std::cout << iteration << "(2): parwhileticle lost = " << particle_lost << std::endl;
                   if (particle_lost)
                     {
+                      do
+                        {
+                          //keep iterating to make sure the iteratino step  is back at 0
+                          // TODO: create a function to rest the integration step.
+                        }
+                      while (particle_integrator->new_integration_step());
                       break;
                     }
                   //if (particle_handler->n_locally_owned_particles() == 0)
@@ -341,8 +347,8 @@ namespace aspect
 
                     particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
 
-                    std::cout << "solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
-                    << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << std::endl;
+                    //std::cout << "solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
+                    //          << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << std::endl;
                   }
                 }
               while (particle_integrator->new_integration_step());
@@ -487,7 +493,7 @@ namespace aspect
       // the deviatoric strain rate.
       //AssertThrow(in.current_cell.state() == IteratorState::valid, ExcMessage("error"));
       MaterialModel::MaterialModelInputs<dim> in_corrected_strainrate (in);
-      if(this->get_timestep_number() > 0 && this->simulator_is_past_initialization())
+      if (this->get_timestep_number() > 0 && this->simulator_is_past_initialization())
         in_corrected_strainrate.requested_properties = in_corrected_strainrate.requested_properties | MaterialProperties::viscosity;
       //AssertThrow(in_corrected_strainrate.current_cell.state() == IteratorState::valid, ExcMessage("error"));
       //AssertThrow(in.current_cell.state() == IteratorState::valid, ExcMessage("error"));
@@ -640,7 +646,7 @@ namespace aspect
       unsigned int injection_phase_index = this->introspection().compositional_index_for_name("injection_phase");
 
       // Indices for all chemical compositional fields, and not e.g., plastic strain.
-      const std::vector<unsigned int> chemical_composition_indices = this->introspection().chemical_composition_field_indices();
+      const std::vector<unsigned int> chemical_composition_indices = this->introspection().get_indices_for_fields_of_type(CompositionalFieldDescription::porosity);    //chemical_composition_field_indices();
 
       const auto &component_indices = this->introspection().component_indices.compositional_fields;
 
@@ -719,66 +725,66 @@ namespace aspect
                 }
               if (min_distance < 1000 && this->get_timestep_number() > 0)
                 {
-                  out.viscosities[q] *= 10;
+                  out.viscosities[q] *= 0.1;
                   const double dike_injection_rate_double = 1e-134;
                   dike_injection_rate[q] = this->convert_output_to_years()
                                            ? dike_injection_rate_double / year_in_seconds
                                            : dike_injection_rate_double;
 
-/*
-          // User-defined or timestep-dependent injection fraction.
-          if (this->simulator_is_past_initialization())
-            dike_injection_fraction = dike_injection_rate[q] * this->get_timestep();
-            
-if (dike_injection_rate[q] > 0.0
-              && this->get_timestep_number() > 0
-              && in.current_cell.state() == IteratorState::valid)
-            {
+                  /*
+                            // User-defined or timestep-dependent injection fraction.
+                            if (this->simulator_is_past_initialization())
+                              dike_injection_fraction = dike_injection_rate[q] * this->get_timestep();
+
+                  if (dike_injection_rate[q] > 0.0
+                                && this->get_timestep_number() > 0
+                                && in.current_cell.state() == IteratorState::valid)
+                              {
 
 
-          const UpdateFlags update_flags = update_values;// | update_gradients;//property_manager->get_needed_update_flags();
+                            const UpdateFlags update_flags = update_values;// | update_gradients;//property_manager->get_needed_update_flags();
 
-          std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,
-                                                               update_flags);
+                            std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,
+                                                                                 update_flags);
 
-                    small_vector<double> solution_values(this->get_fe().dofs_per_cell);
+                                      small_vector<double> solution_values(this->get_fe().dofs_per_cell);
 
-                    in.current_cell->get_dof_values(this->get_old_solution(),
-                                         solution_values.begin(),
-                                         solution_values.end());
-
-
-
-                    //fe_values.reinit(cell);
-                    //evaluator->reinit(in.current_cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+                                      in.current_cell->get_dof_values(this->get_old_solution(),
+                                                           solution_values.begin(),
+                                                           solution_values.end());
 
 
-              // If the "single Advection" nonlinear solver scheme is used,
-              // it is necessary to set the reaction term to 0 to avoid
-              // additional plastic deformation generated by dike injection
-              // within the dike zone.
-              if (this->get_parameters().nonlinear_solver ==
-                  Parameters<dim>::NonlinearSolver::single_Advection_single_Stokes
-                  ||
-                  this->get_parameters().nonlinear_solver ==
-                  Parameters<dim>::NonlinearSolver::single_Advection_iterated_Stokes
-                  ||
-                  this->get_parameters().nonlinear_solver ==
-                  Parameters<dim>::NonlinearSolver::single_Advection_iterated_Newton_Stokes
-                  ||
-                  this->get_parameters().nonlinear_solver ==
-                  Parameters<dim>::NonlinearSolver::single_Advection_iterated_defect_correction_Stokes)
-                {
-                  if (this->introspection().compositional_name_exists("plastic_strain"))
-                    out.reaction_terms[q][this->introspection().compositional_index_for_name("plastic_strain")] = 0.0;
-                  if (this->introspection().compositional_name_exists("viscous_strain"))
-                    out.reaction_terms[q][this->introspection().compositional_index_for_name("viscous_strain")] = 0.0;
-                  if (this->introspection().compositional_name_exists("total_strain"))
-                    out.reaction_terms[q][this->introspection().compositional_index_for_name("total_strain")] = 0.0;
-                  if (this->introspection().compositional_name_exists("noninitial_plastic_strain"))
-                    out.reaction_terms[q][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] = 0.0;
-                }
-            }*/
+
+                                      //fe_values.reinit(cell);
+                                      //evaluator->reinit(in.current_cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+
+
+                                // If the "single Advection" nonlinear solver scheme is used,
+                                // it is necessary to set the reaction term to 0 to avoid
+                                // additional plastic deformation generated by dike injection
+                                // within the dike zone.
+                                if (this->get_parameters().nonlinear_solver ==
+                                    Parameters<dim>::NonlinearSolver::single_Advection_single_Stokes
+                                    ||
+                                    this->get_parameters().nonlinear_solver ==
+                                    Parameters<dim>::NonlinearSolver::single_Advection_iterated_Stokes
+                                    ||
+                                    this->get_parameters().nonlinear_solver ==
+                                    Parameters<dim>::NonlinearSolver::single_Advection_iterated_Newton_Stokes
+                                    ||
+                                    this->get_parameters().nonlinear_solver ==
+                                    Parameters<dim>::NonlinearSolver::single_Advection_iterated_defect_correction_Stokes)
+                                  {
+                                    if (this->introspection().compositional_name_exists("plastic_strain"))
+                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("plastic_strain")] = 0.0;
+                                    if (this->introspection().compositional_name_exists("viscous_strain"))
+                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("viscous_strain")] = 0.0;
+                                    if (this->introspection().compositional_name_exists("total_strain"))
+                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("total_strain")] = 0.0;
+                                    if (this->introspection().compositional_name_exists("noninitial_plastic_strain"))
+                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] = 0.0;
+                                  }
+                              }*/
 
                 }
               else
@@ -851,7 +857,7 @@ if (dike_injection_rate[q] > 0.0
                       //if (old_solution_composition + dike_injection_fraction >= 1.0)
                       //  out.reaction_terms[q][c] = 0.0;
                       //else
-                        out.reaction_terms[q][c] = std::max(dike_injection_fraction, -old_solution_composition);
+                      out.reaction_terms[q][c] = std::max(dike_injection_fraction, -old_solution_composition);
 
                       // Fill reaction rate outputs instead of the reaction terms if
                       // we use operator splitting (and then set the latter to zero).
@@ -909,9 +915,9 @@ if (dike_injection_rate[q] > 0.0
                                                                               EvaluationFlags::values);
                       double injection_phase_composition = std::max(std::min(composition_evaluators[injection_phase_index]->get_value(0),1.0),0.0);
 
-                      out.reaction_terms[q][c] = -old_solution_other_composition
-                                                 * std::min(dike_injection_fraction
-                                                            / (1.0001 - injection_phase_composition), 1.0);
+                      //out.reaction_terms[q][c] = -old_solution_other_composition
+                      //                           * std::min(dike_injection_fraction
+                      //                                      / (1.0001 - injection_phase_composition), 1.0);
 
                       // Fill reaction rate outputs instead of the reaction terms if
                       // we use operator splitting (and then set the latter to zero).
