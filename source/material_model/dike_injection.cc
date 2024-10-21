@@ -257,9 +257,6 @@ namespace aspect
         {
           dike_location.emplace_back(Point<dim>(-1370.4997314869,50e3,40489.36393586183));//(0,50225));
         }
-
-      std::pair<const typename parallel::distributed::Triangulation<dim>::active_cell_iterator,Point<dim>> cell_it = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_location.back());
-
       // If we found the correct cell on this MPI process, we have found the right cell.
       //Assert(cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned(), ExcMessage("Internal error: could not find cell to place initial point."));
 
@@ -276,12 +273,16 @@ namespace aspect
       if (enable_random_dike_generation && this->get_timestep_number() > 0)// && cell_it.first.state() == IteratorState::valid)// && cell_it.first->is_locally_owned())
         {
 
+
+          std::pair<const typename parallel::distributed::Triangulation<dim>::active_cell_iterator,Point<dim>> cell_it_start = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_location.back());
+
+
           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 1" << std::endl;
 
-          if (cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned())
+          if (cell_it_start.first.state() == IteratorState::valid && cell_it_start.first->is_locally_owned())
             {
               unsigned int next_free_id = particle_handler->get_next_free_particle_index();
-              particle_handler->insert_particle(dike_location.back(),cell_it.second,next_free_id, cell_it.first);
+              particle_handler->insert_particle(dike_location.back(),cell_it_start.second,next_free_id, cell_it_start.first);
             }
           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 1.5" << std::endl;
           //particle_handler->update_cached_numbers();
@@ -310,7 +311,7 @@ namespace aspect
             {
               //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
               iteration++;
-              if (!(iteration < 5000))
+              if (!(iteration < 500))
                 {
                   std::string concat = "";
                   std::cout << "Failing at iteration " << iteration << ", current dike path: " << std::endl;
@@ -319,15 +320,15 @@ namespace aspect
                       //concat += std::to_string(coords);
                       std::cout << coords << ", ";
                     }
-                  AssertThrow(iteration < 5000, ExcMessage ("too many iterations for the dike to reach the surface."));
+                  AssertThrow(iteration < 500, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
                 }
-              std::vector<Point<dim>> positions = {};
+              std::vector<Point<dim>> positions = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
 
               //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.2, cell_it.first.state() = " << cell_it.first.state() << ", IteratorState::valid = " << IteratorState::valid << std::endl;
               if (particle_handler->n_locally_owned_particles() > 0) //        cell_it.first.state() == IteratorState::valid)
                 {
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.3, cell_it.first.state() = " << cell_it.first.state() << ", IteratorState::valid = " << IteratorState::valid << ", particle_handler->begin() = " << particle_handler->begin()->get_surrounding_cell().state() << std::endl;
-                  positions.emplace_back(particle_handler->begin()->get_reference_location());
+                  positions[0] = particle_handler->begin()->get_reference_location();
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.4" << std::endl;
                 } //? {{particle_handler->begin()->get_reference_location()}} : {};
 
@@ -364,7 +365,7 @@ namespace aspect
                           //particle_handler->sort_particles_into_subdomains_and_cells();
                           ////std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7.1" << std::endl;
                           //Utilities::MPI::sum(particle_lost_int,this->get_mpi_communicator());
-                          ////std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7.2" << std::endl;
+                          //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7.2" << std::endl;
                           //keep iterating to make sure the iteratino step  is back at 0
                           // TODO: create a function to rest the integration step.
                         }
@@ -378,16 +379,18 @@ namespace aspect
 
                   //std::cout << iteration << "(3): particle lost = " << particle_lost << std::endl;
 
-                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8" << std::endl;
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8, positions.size() = " << positions.size() << std::endl;
                   if (particle_handler->n_locally_owned_particles() > 0 && particle_handler->begin()->get_surrounding_cell().state() == IteratorState::valid)
                     {
                       typename DoFHandler<dim>::active_cell_iterator cell = typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler()));
 
-                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9" << std::endl;
+                      //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9, positions.size() = " << positions.size() 
+                      //<< ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
 
+                      Assert(positions.size() == 1, ExcMessage("Internal error."));
+                      positions[0] = particle_handler->begin()->get_reference_location();
+                      Assert(cell->state() == IteratorState::valid, ExcMessage("internal error"));
 
-                      //if (cell_found_local)
-                      if (positions.size() > 0  && cell_it.first.state() == IteratorState::valid)
                         {
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.5" << std::endl;
                           small_vector<double> solution_values(this->get_fe().dofs_per_cell);
@@ -419,12 +422,15 @@ namespace aspect
                           std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);
 
                           // set the new point at half the cell size away from the current point and check if that is still in the domain.
-                          const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
+                          const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;  
 
+                          auto old_position = particle_handler->begin()->get_location();
+
+                          //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
                           particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
 
-                          //std::cout << "solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
-                          //          << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << std::endl;
+                          //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
+                          //          << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << std::endl;
 
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12" << std::endl;
                         }
