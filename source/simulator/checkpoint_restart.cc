@@ -569,6 +569,12 @@ namespace aspect
       {
         initialize_current_linearization_point();
         compute_current_constraints ();
+      } else {
+        // needed for diking
+        // TODO: find a way to only do this when diking is enabled
+        initialize_current_linearization_point();
+        // compute_current_constraints might not be needed, not sure. Better safe then sorry?
+        compute_current_constraints ();
       }
   }
 
