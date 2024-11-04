@@ -664,6 +664,7 @@ namespace aspect
             // as the values from the current linearization point are an extrapolation of the solution
             // from the old timesteps.
             // Prepare the field function and extract the old solution values at the current cell.
+            //std::cout << in.position[i] << std::endl;
             std::vector<Point<dim>> quadrature_positions(1,this->get_mapping().transform_real_to_unit_cell(in.current_cell, in.position[i]));
 
             // Use a small_vector to avoid memory allocation if possible.

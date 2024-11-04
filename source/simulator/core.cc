@@ -589,6 +589,8 @@ namespace aspect
     // trouble. So destroy it first.
     particle_managers.clear();
 
+    material_model.reset();
+
     // wait if there is a thread that's still writing the statistics
     // object (set from the output_statistics() function)
     if (output_statistics_thread.joinable())

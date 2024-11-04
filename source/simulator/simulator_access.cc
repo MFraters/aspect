@@ -340,6 +340,15 @@ namespace aspect
 
 
 
+  //template <int dim>
+  //LinearAlgebra::BlockVector &
+  //SimulatorAccess<dim>::get_solution_mut ()
+  //{
+  //  return *simulator->solution;
+  //}
+
+
+
   template <int dim>
   const LinearAlgebra::BlockVector &
   SimulatorAccess<dim>::get_old_solution () const

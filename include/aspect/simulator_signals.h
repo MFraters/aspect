@@ -286,7 +286,7 @@ namespace aspect
      * SolverControl object will report a successful state, a single iteration
      * and a remaining residual of zero.
      */
-    boost::signals2::signal<void (const SolverControl &)> post_nonlinear_solver;
+    boost::signals2::signal<void (const SolverControl &,LinearAlgebra::BlockVector &)> post_nonlinear_solver;
 
     /**
      * A signal that is triggered when ARKode is done solving an ODE.

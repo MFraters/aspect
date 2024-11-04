@@ -118,6 +118,8 @@ namespace aspect
          */
         double dike_material_injection_fraction;
 
+        double dike_visosity_multiply_factor;
+
         /**
          * Temperature at the bottom of the generated dike.
          * It usually equals to the temperature at the

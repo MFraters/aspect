@@ -27,18 +27,35 @@
 #include <aspect/gravity_model/interface.h>
 #include <aspect/particle/integrator/rk_4.h>
 
+#include <aspect/simulator.h>
+
 
 #include <deal.II/grid/grid_tools.h>
 namespace aspect
 {
-  namespace MaterialModel
+ 
+// Global variables (to be set by parameters)
+  unsigned int clear_composition_field_index;
+   namespace MaterialModel
   {
+  template <int dim>
+  void clear_compositional_field (const SimulatorAccess<dim> &simulator_access)
+  {
+    std::cout << "clear_compositional_field signal" << std::endl;
+    simulator_access.get_pcout() << "Signal clear_compositional_field triggered, clearing field " << clear_composition_field_index << "!" << std::endl;
+    const typename Simulator<dim>::AdvectionField adv_field (Simulator<dim>::AdvectionField::composition(clear_composition_field_index));
+    //std::cout << "before: " << const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_solution()).block(adv_field.block_index(simulator_access.introspection()))[0] << std::endl;
+    const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_solution()).block(adv_field.block_index(simulator_access.introspection())) = 0;
+    const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_old_solution()).block(adv_field.block_index(simulator_access.introspection())) = 0;
+    const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_current_linearization_point()).block(adv_field.block_index(simulator_access.introspection())) = 0;
+    //std::cout << "after: " << const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_solution()).block(adv_field.block_index(simulator_access.introspection()))[0] << std::endl;
+  }
     template <int dim>
     void
     DikeInjection<dim>::initialize()
     {
       base_model->initialize();
-
+      this->get_signals().start_timestep.connect(&clear_compositional_field<dim>);
     }
 
     template <int dim>
@@ -50,6 +67,7 @@ namespace aspect
       particle_lost_location = particle->get_location();
     }
 
+  
     template <int dim>
     std::vector<Tensor<1,dim>>
     DikeInjection<dim>::compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>> &evaluator,
@@ -311,7 +329,7 @@ namespace aspect
             {
               //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
               iteration++;
-              if (!(iteration < 500))
+              if (!(iteration < 5000))
                 {
                   std::string concat = "";
                   std::cout << "Failing at iteration " << iteration << ", current dike path: " << std::endl;
@@ -320,15 +338,17 @@ namespace aspect
                       //concat += std::to_string(coords);
                       std::cout << coords << ", ";
                     }
-                  AssertThrow(iteration < 500, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
+                  AssertThrow(iteration < 5000, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
                 }
               std::vector<Point<dim>> positions = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
+              std::vector<Point<dim>> reference_positions = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
 
               //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.2, cell_it.first.state() = " << cell_it.first.state() << ", IteratorState::valid = " << IteratorState::valid << std::endl;
               if (particle_handler->n_locally_owned_particles() > 0) //        cell_it.first.state() == IteratorState::valid)
                 {
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.3, cell_it.first.state() = " << cell_it.first.state() << ", IteratorState::valid = " << IteratorState::valid << ", particle_handler->begin() = " << particle_handler->begin()->get_surrounding_cell().state() << std::endl;
-                  positions[0] = particle_handler->begin()->get_reference_location();
+                  positions[0] = particle_handler->begin()->get_location();
+                  reference_positions[0] = particle_handler->begin()->get_reference_location();
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.4" << std::endl;
                 } //? {{particle_handler->begin()->get_reference_location()}} : {};
 
@@ -388,7 +408,9 @@ namespace aspect
                       //<< ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
 
                       Assert(positions.size() == 1, ExcMessage("Internal error."));
-                      positions[0] = particle_handler->begin()->get_reference_location();
+                      Assert(reference_positions.size() == 1, ExcMessage("Internal error."));
+                      positions[0] = particle_handler->begin()->get_location();
+                      reference_positions[0] = particle_handler->begin()->get_reference_location();
                       Assert(cell->state() == IteratorState::valid, ExcMessage("internal error"));
 
                         {
@@ -404,10 +426,10 @@ namespace aspect
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.7" << std::endl;
 
                           //fe_values.reinit(cell);
-                          evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+                          evaluator->reinit(cell, reference_positions, {solution_values.data(), solution_values.size()}, update_flags);
 
 
-                          //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
+                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
                           // function here
                           //Tensor<1,dim> solution_stress =
                           std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);;
@@ -417,7 +439,7 @@ namespace aspect
                                                solution_values.begin(),
                                                solution_values.end());
 
-                          evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
+                          evaluator->reinit(cell, reference_positions, {solution_values.data(), solution_values.size()}, update_flags);
 
                           std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);
 
@@ -752,7 +774,8 @@ namespace aspect
 
       // Index for injection phase
       unsigned int injection_phase_index = this->introspection().compositional_index_for_name("injection_phase");
-
+      unsigned int injection_phase_current_index = this->introspection().compositional_index_for_name("injection_phase_current");
+      clear_composition_field_index = injection_phase_current_index;
       // Indices for all chemical compositional fields, and not e.g., plastic strain.
       const std::vector<unsigned int> chemical_composition_indices = this->introspection().get_indices_for_fields_of_type(CompositionalFieldDescription::porosity);    //chemical_composition_field_indices();
 
@@ -833,8 +856,8 @@ namespace aspect
                 }
               if (min_distance < 1000 && this->get_timestep_number() > 0)
                 {
-                  out.viscosities[q] *= 0.1;
-                  const double dike_injection_rate_double = 1e-134;
+                  out.viscosities[q] *= dike_visosity_multiply_factor;
+                  const double dike_injection_rate_double = 1;//1e-134;
                   dike_injection_rate[q] = this->convert_output_to_years()
                                            ? dike_injection_rate_double / year_in_seconds
                                            : dike_injection_rate_double;
@@ -911,13 +934,18 @@ namespace aspect
 
           // User-defined or timestep-dependent injection fraction.
           if (this->simulator_is_past_initialization())
-            dike_injection_fraction = dike_injection_rate[q] * this->get_timestep();
+            dike_injection_fraction = dike_injection_rate[q];// * this->get_timestep();
 
-          if (dike_material_injection_fraction != 0.0)
-            dike_injection_fraction = dike_material_injection_fraction;
+          //if (dike_material_injection_fraction != 0.0)
+          //  dike_injection_fraction = dike_material_injection_fraction;
 
-          if (dike_injection_rate[q] > 0.0
-              && this->get_timestep_number() > 0
+                      const double diff = 100.;
+          if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
+            std::cout << q << ": position: " << in.position[q] << ", dike_injection_rate[q] = " << dike_injection_rate[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", dike_material_injection_fraction = " << dike_material_injection_fraction << std::endl;
+                   
+          if (//dike_injection_rate[q] > 0.0
+              //&& 
+              this->get_timestep_number() > 0
               && in.current_cell.state() == IteratorState::valid)
             {
               // We need to obtain the values of chemical compositional fields
@@ -946,7 +974,7 @@ namespace aspect
               // Loop only in chemical copositional fields
               for (unsigned int c : chemical_composition_indices)
                 {
-                  if (c == injection_phase_index)
+                  if (c == injection_phase_index && dike_injection_rate[q] > 0.0 || c == injection_phase_current_index && dike_injection_rate[q] > 0.0 )
                     {
                       // Only create the evaluator the first time we get here
                       if (!composition_evaluators[c])
@@ -976,7 +1004,47 @@ namespace aspect
                       if (this->get_parameters().use_operator_splitting)
                         out.reaction_terms[q][c] = 0.0;
                     }
-                  else
+                  else /*if(c == injection_phase_current_index)
+                  {
+                      // Only create the evaluator the first time we get here
+                      if (!composition_evaluators[c])
+                        composition_evaluators[c]
+                          = std::make_unique<FEPointEvaluation<1, dim>>(this->get_mapping(),
+                                                                         this->get_fe(),
+                                                                         update_values,
+                                                                         component_indices[c]);
+
+                      composition_evaluators[c]->reinit(in.current_cell, quadrature_positions);
+                      composition_evaluators[c]->evaluate({old_solution_values.data(),old_solution_values.size()},
+                                                          EvaluationFlags::values);
+                      const double old_solution_composition = composition_evaluators[c]->get_value(0);
+
+                      // If the value increases to greater than 1, it is not increased anymore.
+                      //if (old_solution_composition + dike_injection_fraction >= 1.0)
+                      //  out.reaction_terms[q][c] = 0.0;
+                      //else
+                      //const double diff = 100.;
+                      //if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff){
+                      //  std::cout << "position: " << in.position[q] << std::endl;
+                      //}
+                      if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
+                        std::cout << q << ": A position: " << in.position[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", old_solution_composition = " << old_solution_composition << ", result = " << std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition) << std::endl;
+                      if(dike_injection_rate[q] > 0.0 || std::fabs(dike_injection_fraction-old_solution_composition) > 0.0){if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
+                        std::cout << q << ": B position: " << in.position[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", old_solution_composition = " << old_solution_composition << ", result = " << std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition) << std::endl;
+                      
+                      out.reaction_terms[q][c] = std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition);
+
+                      // Fill reaction rate outputs instead of the reaction terms if
+                      // we use operator splitting (and then set the latter to zero).
+                      if (reaction_rate_out != nullptr)
+                        reaction_rate_out->reaction_rates[q][c] = out.reaction_terms[q][c]
+                                                                  / this->get_timestep();
+
+                      if (this->get_parameters().use_operator_splitting)
+                        out.reaction_terms[q][c] = 0.0;
+                        }
+
+                  } else*/
                     {
                       // Only create the evaluator the first time we get here
                       if (!composition_evaluators[c])
@@ -1110,6 +1178,8 @@ namespace aspect
                             "Whether the dikes are generated randomly. If the dike is generated randomly, "
                             "the prescribed injection rate in the 'Dike injection function' should be "
                             "only time dependent and independent of the xyz-coordinate.");
+          prm.declare_entry("Dike viscosity multiply factor", "0.1", Patterns::Double(0),
+                            "");
           prm.enter_subsection("Dike injection function");
           {
             Functions::ParsedFunction<dim>::declare_parameters(prm,1);
@@ -1151,6 +1221,7 @@ namespace aspect
           ref_top_depth_random_dike = prm.get_double ("Reference top depth of randomly generated dike");
           range_depth_change_random_dike = prm.get_double ("Range of randomly generated dike depth change");
           width_random_dike = prm.get_double ("Width of randomly generated dike");
+          dike_visosity_multiply_factor = prm.get_double("Dike viscosity multiply factor");
 
           //prm.enter_subsection("Dike injection function");
           //{
@@ -1250,7 +1321,16 @@ namespace aspect
     }
 
   }
+
 }
+
+ //   template <int dim>
+ // void signal_connector (aspect::SimulatorSignals<dim> &signals)
+ // {
+ //   signals.start_timestep.connect(&aspect::clear_compositional_field<dim>);
+ //   std::cout << "Connecting signal" << std::endl;
+ // }
+  //ASPECT_REGISTER_SIGNALS_CONNECTOR(signal_connector<2>, signal_connector<3>)
 
 // explicit instantiations
 namespace aspect
