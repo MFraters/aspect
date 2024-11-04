@@ -1932,7 +1932,7 @@ namespace aspect
       const std::unique_ptr<InitialTopographyModel::Interface<dim>>          initial_topography_model;
       const std::unique_ptr<GeometryModel::Interface<dim>>                   geometry_model;
       const IntermediaryConstructorAction                                    post_geometry_model_creation_action;
-      const std::unique_ptr<MaterialModel::Interface<dim>>                   material_model;
+      std::unique_ptr<MaterialModel::Interface<dim>>                   material_model;
       const std::unique_ptr<GravityModel::Interface<dim>>                    gravity_model;
       BoundaryTemperature::Manager<dim>                                      boundary_temperature_manager;
       BoundaryComposition::Manager<dim>                                      boundary_composition_manager;
