@@ -79,27 +79,51 @@ namespace aspect
 
 
       //const UpdateFlags update_flags = update_values | update_gradients;
+          // FEPointEvaluation uses different evaluation flags than the common UpdateFlags.
+          // Translate between the two.
+          std::vector<EvaluationFlags::EvaluationFlags> evaluation_flags (this->introspection().n_components, EvaluationFlags::nothing);
+
+          for (unsigned int i=0; i<this->introspection().n_components; ++i)
+            {
+                evaluation_flags[i] |= EvaluationFlags::values;
+                evaluation_flags[i] |= EvaluationFlags::gradients;
+            }
+
+      //std::vector<EvaluationFlags::EvaluationFlags> evaluation_flags (1, EvaluationFlags::nothing);
+      //evaluation_flags[0] |= EvaluationFlags::values;
+      //evaluation_flags[0] |= EvaluationFlags::gradients;
       //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
       //std::cout << "ifcsle flag 1: positions.size() = " << positions.size() << ", this->introspection().n_components = " << this->introspection().n_components << std::endl;
       Assert(cell.state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
 
-      std::vector<Vector<double>> solution;
-      solution.resize(1,Vector<double>(this->introspection().n_components));
+      //std::vector<Vector<double>> solution(this->get_fe().dofs_per_cell);
+      //solution.resize(1,Vector<double>(this->introspection().n_components));
+       small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
+             cell->get_dof_values(this->get_solution(),
+                                          solution_values.begin(),
+                                          solution_values.end());
+       //solution_values.resize(1,small_vector<double,50>(evaluator.n_components(), numbers::signaling_nan<double>()));
+       std::vector<small_vector<double,50>> solution(this->get_fe().dofs_per_cell);
+       solution.resize(1,small_vector<double,50>(evaluator->n_components(), numbers::signaling_nan<double>()));
 
-      std::vector<std::vector<Tensor<1,dim>>> gradients;
-      gradients.resize(1,std::vector<Tensor<1,dim>>(this->introspection().n_components));
+      //std::vector<std::vector<Tensor<1,dim>>> gradients;
+      //gradients.resize(1,std::vector<Tensor<1,dim>>(this->introspection().n_components));
+       small_vector<small_vector<Tensor<1,dim>,50>> gradients(this->get_fe().dofs_per_cell);
+      gradients.resize(1,small_vector<Tensor<1,dim>,50>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
 
       //std::cout << "ifcsle flag 5" << std::endl;
       //for (unsigned int i = 0; i<1; ++i)
       {
+        //evaluator->evaluate({&solution[0][0],solution[0].size()}, evaluation_flags);
+        evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
         // Evaluate the solution, but only if it is requested in the update_flags
         //if (update_flags & update_values)
-        evaluator->get_solution(0, {&solution[0][0],solution[0].size()});
+        evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
 
         //std::cout << "ifcsle flag 6" << std::endl;
         // Evaluate the gradients, but only if they are requested in the update_flags
         //if (update_flags & update_gradients)
-        evaluator->get_gradients(0, gradients[0]);
+        evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
       }
 
       //std::cout << "ifcsle flag 7" << std::endl;
@@ -111,7 +135,7 @@ namespace aspect
       Tensor<1,dim> velocity;
 
       for (unsigned int i = 0; i < dim; ++i)
-        velocity[i] = solution[0][this->introspection().component_indices.velocities[i]];
+        velocity[i] = solution_values[this->introspection().component_indices.velocities[i]];
 
       // get velocity gradient tensor.
       Tensor<2,dim> velocity_gradient;
@@ -131,9 +155,9 @@ namespace aspect
 
       //std::vector<double> temperature_values = {1};
       //fe_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(), temperature_values);
-      const double temperature = solution[0][this->introspection().component_indices.temperature];
+      const double temperature =solution[0][this->introspection().component_indices.temperature];
 
-      //std::cout << "fevalues temp = " << temperature_values[0] << ", old: " << solution[0][this->introspection().component_indices.temperature] << std::endl;
+      //std::cout << "temperature = " << temperature << ", pressure = " << pressure << ",solution[0][0] = " << solution[0][0] << ",1:" << solution[0][1] << ",2:" << solution[0][2] << ",3:" << solution[0][3] << ", old: " << solution[0][this->introspection().component_indices.temperature] << ", this->introspection().component_indices.temperature = " << this->introspection().component_indices.temperature << ", pres index = " << this->introspection().component_indices.pressure << ", solution_values = " << solution_values[0] << ":" << solution_values[1] << ":" << solution_values[2] << ":" << solution_values[3] << std::endl;
 
       // get the composition of the particle
       std::vector<double> compositions;
@@ -426,7 +450,7 @@ namespace aspect
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.7" << std::endl;
 
                           //fe_values.reinit(cell);
-                          evaluator->reinit(cell, reference_positions, {solution_values.data(), solution_values.size()}, update_flags);
+                          evaluator->reinit(cell, reference_positions);
 
 
                         //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
@@ -439,7 +463,7 @@ namespace aspect
                                                solution_values.begin(),
                                                solution_values.end());
 
-                          evaluator->reinit(cell, reference_positions, {solution_values.data(), solution_values.size()}, update_flags);
+                          evaluator->reinit(cell, reference_positions);
 
                           std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(evaluator,cell,positions,solution_values);
 
@@ -939,9 +963,9 @@ namespace aspect
           //if (dike_material_injection_fraction != 0.0)
           //  dike_injection_fraction = dike_material_injection_fraction;
 
-                      const double diff = 100.;
-          if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
-            std::cout << q << ": position: " << in.position[q] << ", dike_injection_rate[q] = " << dike_injection_rate[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", dike_material_injection_fraction = " << dike_material_injection_fraction << std::endl;
+          //            const double diff = 100.;
+          //if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
+          //  std::cout << q << ": position: " << in.position[q] << ", dike_injection_rate[q] = " << dike_injection_rate[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", dike_material_injection_fraction = " << dike_material_injection_fraction << std::endl;
                    
           if (//dike_injection_rate[q] > 0.0
               //&& 
@@ -974,7 +998,7 @@ namespace aspect
               // Loop only in chemical copositional fields
               for (unsigned int c : chemical_composition_indices)
                 {
-                  if (c == injection_phase_index && dike_injection_rate[q] > 0.0 || c == injection_phase_current_index && dike_injection_rate[q] > 0.0 )
+                  if ((c == injection_phase_index && dike_injection_rate[q] > 0.0) || (c == injection_phase_current_index && dike_injection_rate[q] > 0.0 ))
                     {
                       // Only create the evaluator the first time we get here
                       if (!composition_evaluators[c])
@@ -1105,7 +1129,10 @@ namespace aspect
                         out.reaction_terms[q][c] = 0.0;
                     }
                 }
-
+                      //const double diff = 100.;
+                      //if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 96301.8-diff && in.position[q][1] < 96301.8+diff){
+                      //  std::cout << "position: " << in.position[q] << ", noninitial_plastic_strain = " << out.reaction_terms[0][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] << ", sr = " << std::sqrt(std::max(-second_invariant(deviator(in.strain_rate[0])), 0.))<< std::endl;
+                      //}
               // If the "single Advection" nonlinear solver scheme is used,
               // it is necessary to set the reaction term to 0 to avoid
               // additional plastic deformation generated by dike injection
