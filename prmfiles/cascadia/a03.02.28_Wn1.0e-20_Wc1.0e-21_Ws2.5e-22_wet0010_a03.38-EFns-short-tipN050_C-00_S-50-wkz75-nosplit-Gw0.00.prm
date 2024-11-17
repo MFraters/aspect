@@ -1,0 +1,346 @@
+# copied from a03.02.08-mid4-shallowing-split.
+# actually using wb mid4 now
+# update the activation volumes for diffusion and dislocation to 1.24e-5 and 1.13e-5 respectively
+# correct Adiabatic surface temperature to 1600
+set World builder file = iofiles/cascadia-v02/a03.38-EFns-short-tipN050_C-00_S-50-wkz75-nosplit-Gw0.00.wb #  # ANNOTATE: WB
+set Output directory = iofiles/cascadia-v02/a03.02.28_Wn1.0e-20_Wc1.0e-21_Ws2.5e-22_wet0010_a03.38-EFns-short-tipN050_C-00_S-50-wkz75-nosplit-Gw0.00 # # ANNOTATE: NAME  
+set Dimension = 3
+set CFL number              = 0.5
+set Max nonlinear iterations = 50
+#set End time = 10e7
+#set End time = 25000
+set End time = 0 #9000 #100000 #5000000 #12500
+#set End time = 0
+#set Nonlinear solver scheme = single Advection, iterated Stokes
+#set Nonlinear solver scheme = single Advection, iterated defect correction Stokes
+#set Nonlinear solver scheme = no Advection, no Stokes #no Advection, no Stokes //single Advection, iterated defect correction Stokes
+set Nonlinear solver scheme = single Advection, iterated Newton Stokes
+#set Nonlinear solver scheme = no Advection, no Stokes
+set Timing output frequency = 0
+set Max nonlinear iterations in pre-refinement = 0
+set Pressure normalization                 = surface
+set Nonlinear solver tolerance = 1e-6 #1e-7 #5e-5
+#set Maximum time step = 93750
+#set Maximum time step = 62500
+#set Maximum time step = 250
+set Maximum time step = 10 #3000
+#set Maximum first time step = 128
+#set Maximum relative increase in time step = 25
+set Resume computation = auto
+set Adiabatic surface temperature = 1600
+
+subsection Solver parameters
+  subsection Newton solver parameters
+    set Max pre-Newton nonlinear iterations = 100
+    set Nonlinear Newton solver switch tolerance = 1e-6
+    set Max Newton line search iterations = 0
+    set Maximum linear Stokes solver tolerance = 1e-2
+    set Use Newton residual scaling method = true
+    set Use Newton failsafe = true #false #true
+    set Stabilization preconditioner = none #SPD
+    set Stabilization velocity block = none #SPD
+    set Use Eisenstat Walker method for Picard iterations = true
+  end
+  subsection Stokes solver parameters
+    set Maximum number of expensive Stokes solver steps =  5000
+    set Number of cheap Stokes solver steps = 50000 #2000 #80000
+    set Linear solver tolerance = 1e-2
+    #set Stokes solver type = block GMG
+    set GMRES solver restart length = 250
+  end
+end
+
+subsection Heating model
+  set List of model names = adiabatic heating, shear heating
+end
+
+
+subsection Boundary composition model
+  set List of model names = initial composition
+  set Fixed composition boundary indicators = 0,2,3,5,6,7,8,9 # no top
+end
+
+subsection Boundary temperature model
+  set Fixed temperature boundary indicators   = 0,1,2,3,4,5,6,7,8,9
+  set List of model names = initial temperature
+  subsection Initial temperature
+    set Minimal temperature = 273.15
+    set Maximal temperature = 4000
+  end
+end
+
+subsection Discretization
+  #set Use locally conservative discretization = true
+  #set Use discontinuous composition discretization = true
+  #set Use discontinuous temperature discretization = true
+  subsection Stabilization parameters
+    #set Stabilization method = SUPG
+    set Use artificial viscosity smoothing = false
+    #set Use limiter for discontinuous composition solution = true
+    #set Use limiter for discontinuous temperature solution = true
+    set Global composition maximum = 1.0 #,1.0,1.0,1.0,1.0
+    set Global composition minimum = 0.0 #,0.0,0.0,0.0,0.0
+    set Global temperature minimum = 273.15
+    set alpha = 2
+    set beta  = 0.78 #0.117
+   end
+end
+
+subsection Boundary velocity model
+  set Prescribed velocity boundary indicators = uppereast: euler poles, upperwest: euler poles #, uppersouth: euler poles, uppernorth: euler poles #top xyz: euler poles, uppereast xyz: euler poles, uppernorth xyz: euler poles, upperwest xyz: euler poles, uppersouth xyz: euler poles, lowereast xyz: euler poles, lowernorth xyz: euler poles, lowerwest xyz: euler poles, lowersouth xyz: euler poles,
+  set Tangential velocity boundary indicators = top
+  set Zero velocity boundary indicators       = bottom
+end
+
+subsection Boundary traction model #uppersouth: initial lithostatic pressure, upperwest: initial lithostatic pressure,
+  set Prescribed traction boundary indicators =  lowernorth: initial lithostatic pressure, lowereast: initial lithostatic pressure, lowersouth: initial lithostatic pressure, lowerwest: initial lithostatic pressure, uppersouth: initial lithostatic pressure, uppernorth: initial lithostatic pressure
+  subsection Initial lithostatic pressure
+    #set Representative point = 6371e3,-118.01,39.01 #6371e3,-107.01,33.01
+    #set Representative point = 6371e3,-106.01,32.01
+    #set Representative point = 6371e3,-102.41,32.01
+    set Representative point = 6371e3,-100.41,32.01
+  end
+end
+
+subsection Mesh deformation
+  #set Mesh deformation boundary indicators = top: free surface
+  subsection Free surface
+    set Free surface stabilization theta = 1.0
+    set Surface velocity projection = vertical
+  end
+end
+
+
+subsection Geometry model
+  set Model name = chunk with lithosphere boundary indicators
+
+  subsection Chunk with lithosphere boundary indicators
+    set Use merged grids = false
+    set Chunk inner radius = 4871e3
+    set Chunk outer radius = 6371e3
+    set Chunk middle boundary radius = 6271e3
+    set Chunk minimum latitude = 32
+    set Chunk maximum latitude = 58
+    set Chunk minimum longitude = -143 #-138
+    set Chunk maximum longitude = -100.25
+    set Longitude repetitions = 2 #34->40 #34
+    set Latitude repetitions = 2 #32
+    #set Inner chunk radius repetitions = 7
+  end
+end
+
+subsection Material model
+  set Material averaging = project to Q1 only viscosity #harmonic average only viscosity  #harmonic average #project to Q1 only viscosity
+  set Model name = visco plastic
+  subsection Visco Plastic
+        set Reference temperature = 273
+        #set Reference viscosity = 1e20
+        set Minimum viscosity = 1e17 #1e19 #5e18
+        set Maximum viscosity = 1e24 #1e24
+        set Use adiabatic pressure in plasticity = true # but doens't matter #false
+        set Use adiabatic pressure in creep viscosity = true #but doesn't matter #false #true
+        # the background rheologically becomes oceanic curst at depths lower than 80km, this is to hopefullly fix the boundaries. The densities remain the same for the open boundaries to remain working.
+        set Phase transition depths = background:410e3|520e3|560e3| 670e3|670e3|670e3| 670e3|670e3, PC_crust:80e3| 665e3|720e3, spharz:410e3|520e3|560e3| 670e3|670e3|670e3| 670e3|670e3, wkzn: 80e3, wkzc: 80e3, wkzs: 80e3
+        set Phase transition widths = background:13e3|25e3|60e3| 5e3|5e3|5e3| 5e3|5e3, PC_crust:5e3| 60e3|5e3, spharz:13e3|25e3|60e3| 5e3|5e3|5e3| 5e3|5e3, wkzn: 5e3, wkzc: 5e3, wkzs: 5e3
+        set Phase transition temperatures = background:1900.0|1900.0|1900.0| 1900.0|1900.0|1900.0| 1900.0|1900., PC_crust:1173.0|  1900.0|1900.0, spharz:1900.0|1900.0|1900.0| 1900.0|1900.0|1900.0| 1900.0|1900.0, wkzn: 1173.0, wkzc: 1173.0, wkzs: 1173.0
+	      set Phase transition temperature lower limits = background:-1e31|-1e31|-1e31| -1e31|-1e31|-1e31|1900.0|1900.0, PC_crust:-1e31| -1e31|-1e31, spharz:-1e31|-1e31|-1e31| -1e31|-1e31|-1e31| 1900.0|1900.0, wkzn: -1e31, wkzc: -1e31, wkzs: -1e31
+	      set Phase transition temperature upper limits = background:1e31|1e31|1e31| 1900.0|1900.0|1900.0| 1e31|1e31, PC_crust:1e31|  1e31|1e31, spharz:1e31|1e31|1e31| 1900.0|1900.0|1900.0| 1e31|1e31, wkzn: 1e31, wkzc: 1e31, wkzs: 1e31
+        set Phase transition Clapeyron slopes = background:4e6|4.1e6|4e6| 4e6|-2e6|-3.1e6| -2e6|1.3e6, PC_crust:0.0|  4e6|1.3e6, spharz:4e6|4.1e6|4e6| 4e6|-2e6|-3.1e6| -2e6|1.3e6, wkzn: 0.0, wkzc: 0.0, wkzs: 0.0
+
+        
+        set Thermal diffusivities = 1.0e-6
+        set Heat capacities = 1250.0
+
+        set Densities = background:3300.0|3394.4|3442.1|3453.2| 3527.1|3691.45|3774.7| 3616.45|3772.0, PC_crust:3000.0|3540.0| 3613.0|3871.7, spharz:3235.0|3372.3|3441.7|3441.7| 3478.7|3716.1|3759.4| 3679.1|3759.4, NA_crust:3000, \
+		     total_strain:1e5, water:1e5, wkzn:3000.0|3540.0, wkzc:3000.0|3540.0, wkzs:3000.0|3540.0
+        
+        #set Phase transition depths = background:80e3|410e3|520e3|560e3|670e3|670e3|670e3|670e3, PC_crust:80e3|665e3|720e3, spharz: 410e3|520e3|560e3|670e3|670e3|670e3|670e3, wkzn: 80e3, wkzc: 80e3, wkzs: 80e3
+        #set Phase transition widths = background:5e3|5e3|5e3|5e3|10e3|5e3|5e3|5e3, PC_crust:5e3|5e3|5e3, spharz: 5e3|5e3|5e3|5e3|5e3|5e3|5e3, wkzn: 5e3, wkzc: 5e3, wkzs: 5e3
+        #set Phase transition temperatures = background:1662.0|1662.0|1662.0|1662.0|1662.0|1662.0|1662.0|1662.0, PC_crust:1173.0|1662.0|1662.0, spharz: 1662.0|1662.0|1662.0|1662.0|1662.0|1662.0|1662.0, wkzn: 1173.0, wkzc: 1173.0, wkzs: 1173.0
+        #set Phase transition Clapeyron slopes = background:0.0|4e6|4.1e6|4e6|-2e6|4e6|-3.1e6|1.3e6, PC_crust:0.0|4e6|1.3e6, spharz: 4e6|4.1e6|4e6|-2e6|4e6|-3.1e6|1.3e6, wkzn: 0.0, wkzc: 0.0, wkzs: 0.0
+        set Thermal diffusivities = 1.0e-6
+        set Heat capacities = 1250.0
+        #set Densities = background: 3300.0|3300.0|3394.4|3442.1|3453.2|3617.6|3691.5|3774.7|3929.1, NA_crust:3000.0, PC_crust:3000.0|3540.0|3613.0|3871.7, spharz: 3235.0|3372.3|3441.7|3441.7|3680.8|3717.8|3759.4|3836.6 ,  total_strain:1e5, water:1e5, wkzn:3000.0|3540.0, wkzc:3000.0|3540.0, wkzs:3000.0|3540.0
+        #set Densities = background: 3300.0|3300|3300|3300|3300|3300|3300|3300, NA_crust:3100.0|3100.0|3100.0|3100, PC_crust:3100.0|3100|3100.0|3100, spharz: 3100|3100|3100|3100|3100|3100|3100|3100 , total_strain:1e5, water: 1e5
+        set Thermal expansivities = 3.1e-5
+        set Viscosity averaging scheme = harmonic
+        set Viscous flow law = composite
+        set Yield mechanism = drucker
+        set Grain size = 1.0000e-02
+        set Prefactors for diffusion creep =            background:1.5000e-15|1.5000e-15|1.5000e-15|1.5000e-15|3.2583e-17|3.2583e-17|3.2583e-17|3.2583e-17|3.2583e-17, NA_crust:8.5700e-28, PC_crust:8.5700e-28|7.1768e-15|2.4977e-19|2.4977e-19, spharz:7.1768e-15|7.1768e-15|7.1768e-15|7.1768e-15|2.4977e-19|2.4977e-19|2.4977e-19|2.4977e-19|2.4977e-19 , total_strain:1e-15, water: 1e-15, wkzn: 1.0e-20|1.0e-20, wkzc: 1.0e-21|1.0e-21, wkzs:2.5e-22|2.5e-22 # ANNOTATE: Pre_diff
+        set Grain size exponents for diffusion creep =  background:3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00, NA_crust:3.0000e+00, PC_crust:3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00, spharz:3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00|3.0000e+00 , total_strain:1, water:1, wkzn: 0|0, wkzc: 0|0, wkzs: 0|0
+        set Activation energies for diffusion creep =   background:3.7500e+05|3.7500e+05|3.7500e+05|3.7500e+05|3.7500e+05|3.7500e+05|3.7500e+05|3.7500e+05|3.7500e+05, NA_crust:3.7500e+05, PC_crust:3.7500e+05|3.2500e+05|3.2500e+05|3.2500e+05, spharz:3.2500e+05|3.2500e+05|3.2500e+05|3.2500e+05|3.2500e+05|3.2500e+05|3.2500e+05|3.2500e+05|3.2500e+05 , total_strain:1, water:1, wkzn: 0|0, wkzc: 0|0, wkzs: 0|0
+        set Activation volumes for diffusion creep =    background:4.0000e-06|4.0000e-06|4.0000e-06|4.0000e-06|3.0000e-06|3.0000e-06|3.0000e-06|3.0000e-06|3.0000e-06, NA_crust:2.3000e-05, PC_crust:2.3000e-05|2.3000e-05|3.0000e-06|3.0000e-06, spharz:2.3000e-05|2.3000e-05|2.3000e-05|2.3000e-05|3.0000e-06|3.0000e-06|3.0000e-06|3.0000e-06|3.0000e-06 , total_strain:1, water:1, wkzn: 0|0, wkzc: 0|0, wkzs: 0|0
+        set Prefactors for dislocation creep =          background:1.1000e-16|1.1000e-16|1.1000e-16|1.1000e-16|5.0000e-50|5.0000e-50|5.0000e-50|5.0000e-50|5.0000e-50, NA_crust:8.5700e-28, PC_crust:8.5700e-28|4.4668e-16|5.0000e-50|5.0000e-50, spharz:4.4668e-16|4.4668e-16|4.4668e-16|4.4668e-16|5.0000e-50|5.0000e-50|5.0000e-50|5.0000e-50|5.0000e-50 , total_strain:1e-15, water:1e-15, wkzn: 0.5e-50|0.5e-50, wkzc: 0.5e-50|0.5e-50, wkzs: 0.5e-50|0.5e-50
+        set Stress exponents for dislocation creep =    background:3.5000e+00|3.5000e+00|3.5000e+00|3.5000e+00|1.0000e+00|1.0000e+00|1.0000e+00|1.0000e+00|1.0000e+00, NA_crust:3.5000e+00, PC_crust:3.5000e+00|3.5000e+00|1.0000e+00|1.0000e+00, spharz:3.5000e+00|3.5000e+00|3.5000e+00|3.5000e+00|1.0000e+00|1.0000e+00|1.0000e+00|1.0000e+00|1.0000e+00 , total_strain:1, water:1, wkzn: 1|1, wkzc: 1|1, wkzs: 1|1
+        set Activation energies for dislocation creep = background:5.3000e+05|5.3000e+05|5.3000e+05|5.3000e+05|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00, NA_crust:2.2300e+05, PC_crust:2.2300e+05|4.8000e+05|0.0000e+00|0.0000e+00, spharz:4.8000e+05|4.8000e+05|4.8000e+05|4.8000e+05|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00 , total_strain:1, water:1, wkzn: 0, wkzc: 0, wkzs: 0
+        set Activation volumes for dislocation creep =  background:1.2000e-05|1.2000e-05|1.2000e-05|1.2000e-05|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00, NA_crust:2.4000e-05, PC_crust:2.4000e-05|2.4000e-05|0.0000e+00|0.0000e+00, spharz:2.4000e-05|2.4000e-05|2.4000e-05|2.4000e-05|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00|0.0000e+00 , total_strain:1, water:1, wkzn: 0, wkzc: 0, wkzs: 0
+
+        #set Manually define phase method crust = background: 0.0, PC_crust:1.3, spharz:0.0, wkzn: 1.3, wkzc:1.3, wkzs:1.3  # CDPT
+        #set Manually define phase method pyrolite = background:1.0, PC_crust: 0.0, spharz:0.0, wkzn: 0.0, wkzc: 0.0, wkzs: 0.0  # CDPT
+        #set Manually define phase method harzburgite = background:0.0, PC_crust: 0.0, spharz:1.0, wkzn: 0.0, wkzc: 0.0, wkzs: 0.0  # CDPT
+        #set Constant viscosity prefactors      = background:10.,  NA_crust:1.,  PC_crust:1., spharz:1.,  total_strain:1, water:1 #,       100.0 , 1.0
+        #set Constant viscosity prefactors      =2.5, 1., 1., 1., 1, 1 #,       100.0 , 1.0
+
+    set Angles of internal friction = background: 45|45|0|0|0|0|0|0|0, NA_crust:45,  PC_crust:45|45|45|45, spharz:45|45|45|0|0|0|0|0|0 , total_strain:0, water:0, wkzn: 0, wkzc:0, wkzs: 0
+    set Cohesions                   = background: 20.e6|20e6|20e50|20e50|20e50|20e50|20e60|20e60|20e60, NA_crust:20e6, PC_crust:20.e6|20e6|20e6|20e6, spharz:20e6|20e6|20e6|20e50|20e50|20e50|20e50|20e50|20e50 , total_strain:1, water:1, wkzn: 20e50, wkzc: 20e50, wkzs: 20e50
+
+    set Strain weakening mechanism                   = total strain
+    set Prefactor strain weakening factors = 0.01
+    set Friction strain weakening factors = 0.01
+    set Cohesion strain weakening factors = 0.01
+    set Start plasticity strain weakening intervals = 0.01
+    set Start prefactor strain weakening intervals = 0.01
+    set Strain healing temperature dependent recovery rate =  1e-22
+    set Strain healing mechanism                     = temperature dependent
+    set Accumulate strain = false
+       # subsection Eclogite transition  # CDPT
+       #     set Temperature for eclogite transition = 673.0
+       #     set Temperature width for eclogite transition = 200.0
+       #     set Temperature slope for eclogite transition = -20e6
+       #     set Pressure for eclogite transition = 1.5e9
+       #     set Pressure width for eclogite transition = 0.5e9
+       #     set Max pressure for eclogite transition = 5e9
+       #     set Max pressure width for eclogite transition = 1.5e9
+       # end
+  end
+end
+subsection Compositional fields
+  set Number of fields = 8
+  set Names of fields =  NA_crust, PC_crust, spharz , total_strain, water, wkzn, wkzc, wkzs
+  set Types of fields = chemical composition, chemical composition, chemical composition, generic, generic, chemical composition, chemical composition, chemical composition
+  #set Compositional field methods = particles, particles, particles, field
+  set List of normalized fields = 0,1,2,5,6,7
+end
+
+
+subsection Initial temperature model
+    set Model name = world builder
+end
+
+subsection Initial composition model
+    set Model name = world builder
+end
+
+#subsection Compositional fields
+#    set Number of fields = 5
+#                          # 0        1            2        3                4
+#    set Names of fields = NA_crust, PC_crust, weak_crust, weak_Lithosphere, lower_mantle
+#end
+
+subsection Gravity model
+  set Model name = radial constant
+
+#  subsection Vertical
+#    set Magnitude = 9.81
+#  end
+end
+
+
+
+subsection Mesh refinement
+  set Initial global refinement = 5 #3
+  set Initial adaptive refinement = 4
+  set Time steps between mesh refinement = 5
+  set Strategy = isosurfaces,minimum refinement function #, thermal energy density #, minimum refinement function, maximum refinement function
+   subsection Isosurfaces
+                          #max,    max,   Temperature:   0 | 1300, wkzn: 0.5 | 2, wkzc: 0.5 | 2, wkzs: 0.5 | 2; \ 
+                          #minref maxref  mintemp maxtemp
+        set Isosurfaces = \
+                          max,    max,   Temperature:   0 | 350; \
+                          max,    max,   Temperature:   0 | 1300, PC_crust: 0.5 | 2; \
+                          max,    max,   Temperature:   0 | 1300, wkzn: 0.5 | 2; \
+                          max,    max,   Temperature:   0 | 1300, wkzc: 0.5 | 2; \
+                          max,    max,   Temperature:   0 | 1300, wkzs: 0.5 | 2; \
+                          max,    max,   Temperature:   350 | 400; \
+                          max,    max,   Temperature:   0 | 400, NA_crust: 0.5 | 2; \
+                          max,    max,   Temperature:   400 | 1100, NA_crust: 0.5 | 2; \
+                          max-1,  max-1, Temperature:   400 | 1100; \
+                          max,    max,   PC_crust: 0.5 | 2; \
+                          max,    max,   spharz: 0.5 | 2; \
+                          max-2,  max-2, Temperature:1300 | 1650; \
+                          max-3,  max-3, Temperature:1650 | 1950; \
+                          max-5,  max-5, Temperature:1950 | 3000;
+
+                          #max-1,  max-1, Temperature:1787 | 1792; \
+
+   end
+   subsection Minimum refinement function
+     set Variable names = d,l,b
+     set Function expression = if(d > 400e3 && d < 420e3,8,0)
+   end
+   #subsection Minimum refinement function
+   #  set Coordinate system = spherical
+   #  set Variable names = R,long,lat
+   #  set Function expression = if(long < 252/180*3.14 & long > 224/180*3.14  & lat < 56/180*3.14 & lat > 34/180*3.14,0,2)
+   #end
+   #subsection Maximum refinement function
+   #  set Coordinate system = spherical
+   #  set Variable names = R,long,lat
+   #  set Function expression = if(long < 252/180*3.14 & long > 224/180*3.14  & lat < 56/180*3.14 & lat > 34/180*3.14,10,2)
+   #end
+end
+
+subsection Postprocess
+  #set Run postprocessors on nonlinear iterations = true
+  set List of postprocessors = visualization, boundary pressures, pressure statistics, velocity statistics, spherical velocity statistics, temperature statistics, composition statistics, load balance statistics, memory statistics, depth average #, particles, lpo
+  subsection Visualization
+    set List of output variables = depth, density, viscosity, strain rate,stress second invariant, boundary indicators, relative Euler pole velocities JdF, relative Euler pole velocities NA #, partition #, density #, thermal conductivity
+    #set List of output variables = depth, density, relative Euler pole velocities JdF, relative Euler pole velocities NA #, partition #, density #, thermal conductivity
+    set Time between graphical output = 0 #25000 #50000 #12500 #10000 #25000 #50000
+    set Write higher order output = false #true
+    set Interpolate output = false
+    set Write in background thread = true
+    #subsection Artificial viscosity composition
+    #  set Name of compositional field = total_strain
+    #end
+  end
+  subsection Depth average
+    set Time between graphical output = 0 #25000 #50000 #12500 #10000 #25000 #50000
+  end
+  subsection Particles
+    set Number of particles = 100000 #250000
+    set Time between data output = 0 #50000
+    set List of particle properties = lpo, lpo elastic tensor, decompose elastic matrix, integrated strain invariant,lpo bingham average,
+    set Exclude output properties = a_cosine_matrix, volume fraction, bingham
+    set Integration scheme = rk4
+    #set Particle generator name = probability density function
+
+    #subsection Generator
+    #  subsection Probability density function
+    #    set Variable names = R,long,lat
+    #    set Function expression = if(R<5711e3,0.,1.)
+    #  end
+    #end
+
+    subsection LPO
+      set Random number seed = 200
+      set Number of grains per praticle = 250 ## Annotation: grain count
+      set Property advection method = Backward Euler #Crank-Nicolson #Backward Euler ## Annotation: Property advection method
+      set Property advection tolerance = 1e-15
+       subsection D-Rex 2004
+         set Minerals = Olivine: Karato 2008, Enstatite ## Annotation: Minerals
+         set Mobility = 125 ## Annotation: LPO Mobility
+         set Volume fractions minerals = 0.7, 0.3 ## Annotation: Volume fractions minerals
+         set Stress exponents = 3.5
+         set Exponents p = 1.5
+         set Nucleation efficientcy = 5 ## Annotation: Nucleation efficientcy
+         set Threshold GBS = 0.3 ## Annotation: TGBS
+       end
+    end
+    subsection LpoBinghamAverage
+      set Random number seed = 200
+    end
+  end
+  subsection LPO
+    set Time between data output = 0 #10000
+    set Write in background thread = true
+    set Compress lpo data files = true #false
+      set Write out raw lpo data =
+      set Write out draw volume weighted lpo data = mineral 0: volume fraction, mineral 0: Euler angles, mineral 1: volume fraction, mineral 1: Euler angles
+  end
+end
+
+subsection Checkpointing
+   #set Steps between checkpoint = 25
+end
