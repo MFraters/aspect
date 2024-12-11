@@ -779,10 +779,10 @@ namespace aspect
                 composition_evaluators[strain_index]->evaluate({old_solution_values.data(),old_solution_values.size()},
                                                                EvaluationFlags::values);
 
-              //const double diff = 100.;
-              //if(in.position[i][0] > -1250.-diff && in.position[i][0] < -1250.+diff && in.position[i][1] > 96301.8-diff && in.position[i][1] < 96301.8+diff){
-              //std::cout << "edot_ii = " << edot_ii << ", delta_e_ii = " << delta_e_ii << ", delta_e_ii_plastic = " << delta_e_ii_plastic << ", -composition_evaluators[strain_index]->get_value(0) = " << -composition_evaluators[strain_index]->get_value(0) << ", timestep = " << this->get_timestep() << std::endl;
-              //}
+                //const double diff = 100.;
+                //if(in.position[i][0] > -1250.-diff && in.position[i][0] < -1250.+diff && in.position[i][1] > 96301.8-diff && in.position[i][1] < 96301.8+diff){
+                //std::cout << "edot_ii = " << edot_ii << ", delta_e_ii = " << delta_e_ii << ", delta_e_ii_plastic = " << delta_e_ii_plastic << ", -composition_evaluators[strain_index]->get_value(0) = " << -composition_evaluators[strain_index]->get_value(0) << ", timestep = " << this->get_timestep() << std::endl;
+                //}
                 out.reaction_terms[i][strain_index] = std::max(delta_e_ii_plastic,
                                                                -composition_evaluators[strain_index]->get_value(0));
               }
