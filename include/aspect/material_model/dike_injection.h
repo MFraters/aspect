@@ -27,6 +27,8 @@
 
 #include <aspect/solution_evaluator.h>
 
+#include <tuple>
+
 namespace aspect
 {
   namespace MaterialModel
@@ -94,19 +96,22 @@ namespace aspect
         create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const override;
 
       private:
-        std::vector<Point<dim>> dike_location;
+        std::vector<std::vector<Point<dim>>> dike_locations;
         std::unique_ptr<Particles::ParticleHandler<dim>> particle_handler;
         std::unique_ptr<aspect::Particle::Integrator::Interface<dim>> particle_integrator;
-        bool particle_lost;
-        Point<dim> particle_lost_location;
+        //bool particle_lost;
+        // stores the 1: the index, 2 wether they are active (0), lost(1) or lost and processed (2) and 2: the location if lost.
+        std::vector<std::tuple<unsigned int,unsigned int,Point<dim>>> particle_statuses;
+        //unsigned int particle_lost_index;
+        //Point<dim> particle_lost_location;
 
         void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle,
                                const typename Triangulation<dim>::active_cell_iterator &cell);
 
-        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::unique_ptr<SolutionEvaluator<dim>> &evaluator,
-                                                                       typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                                       std::vector<Point<dim>> &positions,
-                                                                       small_vector<double> &solution_values);
+        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::vector<typename DoFHandler<dim>::active_cell_iterator>& cells,
+                                                           std::vector<Point<dim>> &positions,
+                                                           std::vector<Point<dim>> &reference_positions,
+                                                           const LinearAlgebra::BlockVector& input_solution);
         /**
          * Parsed function that specifies the region and amount of
          * material that is injected into the model.
