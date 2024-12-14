@@ -69,10 +69,12 @@ namespace aspect
       bool found = false;
       for (auto &particle_status : particle_statuses)
         {
+          std::cout << "particle_status = " << std::get<0>(particle_status) << ";" << std::get<1>(particle_status) << "; " << (std::get<2>(particle_status))[0] << ":" << (std::get<2>(particle_status))[1]
+                    << ", particle = " << particle->get_id() << "; " << particle->get_location()[0] << ":" << particle->get_location()[1] << std::endl;
           if (std::get<0>(particle_status) == particle->get_id())
             {
               found = true;
-              std::get<1>(particle_status) = -1;
+              std::get<1>(particle_status) = 1;
               std::get<2>(particle_status) = particle->get_location();
             }
         }
@@ -83,10 +85,10 @@ namespace aspect
     template <int dim>
     std::vector<Tensor<1,dim>>
     DikeInjection<dim>::compute_stress_largest_eigenvector(//std::vector<std::unique_ptr<SolutionEvaluator<dim>>>& evaluators,
-                                                           std::vector<typename DoFHandler<dim>::active_cell_iterator>& cells,
-                                                           std::vector<Point<dim>> &positions,
-                                                           std::vector<Point<dim>> &reference_positions,
-                                                           const LinearAlgebra::BlockVector& input_solution)
+      std::vector<typename DoFHandler<dim>::active_cell_iterator> &cells,
+      std::vector<Point<dim>> &positions,
+      std::vector<Point<dim>> &reference_positions,
+      const LinearAlgebra::BlockVector &input_solution)
     {
 
 
@@ -105,153 +107,158 @@ namespace aspect
           evaluation_flags[i] |= EvaluationFlags::values;
           evaluation_flags[i] |= EvaluationFlags::gradients;
         }
-        
-        std::vector<Tensor< 1, dim, double >> stress_largest_eigenvectors;
 
-        for(unsigned int cell_i = 0; cell_i < cells.size(); ++cell_i){
-          std::cout << "flag 10" << std::endl;
-            Assert(cells[cell_i].state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
-          std::cout << "flag 11" << std::endl;
-            small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
-                  cells[cell_i]->get_dof_values(input_solution,
-                           solution_values.begin(),
-                           solution_values.end());
-          std::cout << "flag 12" << std::endl;
+      std::vector<Tensor< 1, dim, double >> stress_largest_eigenvectors;
 
-            std::vector<small_vector<double,50>> solution(this->get_fe().dofs_per_cell);
-          std::cout << "flag 13" << std::endl;
-            solution.resize(1,small_vector<double,50>(evaluator->n_components(), numbers::signaling_nan<double>()));
-          std::cout << "flag 14 evaluator->n_components() = " << evaluator->n_components() << std::endl;
-
-            small_vector<small_vector<Tensor<1,dim>,50>> gradients(this->get_fe().dofs_per_cell);
-          std::cout << "flag 15" << std::endl;
-            gradients.resize(1,small_vector<Tensor<1,dim>,50>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
-          std::cout << "flag 16" << std::endl;
-
-            evaluator->reinit(cells[cell_i], reference_positions);
-          std::cout << "flag 17" << std::endl;
-            evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
-            std::cout << "flag 45"<< std::endl;
-            std::cout << "solution.size() = " << solution.size() << std::endl;
-            std::cout << "&solution[0] = " << &solution[0] << std::endl;
-            std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
-            std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
-            std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
-            evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
-            std::cout << "flag 46"<< std::endl;
-            std::cout << "&solution[0] = " << &solution[0] << std::endl;
-            std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
-            std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
-            std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
-            evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
-            std::cout << "flag 47"<< std::endl;
-            std::cout << "&solution[0] = " << &solution[0] << std::endl;
-            std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
-            std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
-            std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
-
-                  Tensor<1,dim> velocity;
-
-      for (unsigned int i = 0; i < dim; ++i)
-        velocity[i] = solution_values[this->introspection().component_indices.velocities[i]];
-
-            std::cout << "flag 48"<< std::endl;
-      // get velocity gradient tensor.
-      Tensor<2,dim> velocity_gradient;
-      for (unsigned int i = 0; i < dim; ++i)
-        velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
-
-            std::cout << "flag 49"<< std::endl;
-      // Calculate strain rate from velocity gradients
-      const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
-      const SymmetricTensor<2,dim> deviatoric_strain_rate
-        = (this->get_material_model().is_compressible()
-           ?
-           strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
-           :
-           strain_rate);
-
-      const double pressure = solution[0][this->introspection().component_indices.pressure];
-
-            const double temperature =solution[0][this->introspection().component_indices.temperature];
-
-            std::cout << "flag 50"<< std::endl;
-      //std::cout << "temperature = " << temperature << ", pressure = " << pressure << ",solution[0][0] = " << solution[0][0] << ",1:" << solution[0][1] << ",2:" << solution[0][2] << ",3:" << solution[0][3] << ", old: " << solution[0][this->introspection().component_indices.temperature] << ", this->introspection().component_indices.temperature = " << this->introspection().component_indices.temperature << ", pres index = " << this->introspection().component_indices.pressure << ", solution_values = " << solution_values[0] << ":" << solution_values[1] << ":" << solution_values[2] << ":" << solution_values[3] << std::endl;
-
-      // get the composition of the particle
-      std::vector<double> compositions;
-      for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
+      for (unsigned int cell_i = 0; cell_i < cells.size(); ++cell_i)
         {
-          const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
-          compositions.push_back(solution[0][solution_component]);
-        }
+          //std::cout << "flag 10" << std::endl;
+          Assert(cells[cell_i].state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
+          //std::cout << "flag 11" << std::endl;
+          small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
+          cells[cell_i]->get_dof_values(input_solution,
+                                        solution_values.begin(),
+                                        solution_values.end());
+          //std::cout << "flag 12" << std::endl;
+
+          std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
+          //std::cout << "flag 13" << std::endl;
+          solution.resize(1,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
+          //std::cout << "flag 14 evaluator->n_components() = " << evaluator->n_components() << ", solution.size() = " << solution.size() << std::endl;
+          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
+          solution[0] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
+          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
+
+          std::vector<std::vector<Tensor<1,dim>>> gradients(this->get_fe().dofs_per_cell);
+          //std::cout << "flag 15" << std::endl;
+          gradients.resize(1,std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
+          gradients[0]=std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>());
+          //std::cout << "flag 16" << std::endl;
+
+          evaluator->reinit(cells[cell_i], reference_positions);
+          //std::cout << "flag 17" << std::endl;
+          evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
+          //std::cout << "flag 45"<< std::endl;
+          //std::cout << "solution.size() = " << solution.size() << std::endl;
+          //std::cout << "&solution[0] = " << &solution[0] << std::endl;
+          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
+          //std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
+//            std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
+          evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
+          //std::cout << "flag 46"<< std::endl;
+          //std::cout << "&solution[0] = " << &solution[0] << std::endl;
+          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
+          //std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
+          //std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
+          evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
+          //std::cout << "flag 47"<< std::endl;
+          //std::cout << "&solution[0] = " << &solution[0] << std::endl;
+          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
+          //std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
+          //std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
+
+          Tensor<1,dim> velocity;
+
+          for (unsigned int i = 0; i < dim; ++i)
+            velocity[i] = solution_values[this->introspection().component_indices.velocities[i]];
+
+          //std::cout << "flag 48"<< std::endl;
+          // get velocity gradient tensor.
+          Tensor<2,dim> velocity_gradient;
+          for (unsigned int i = 0; i < dim; ++i)
+            velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
+
+          //std::cout << "flag 49"<< std::endl;
+          // Calculate strain rate from velocity gradients
+          const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
+          const SymmetricTensor<2,dim> deviatoric_strain_rate
+            = (this->get_material_model().is_compressible()
+               ?
+               strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
+               :
+               strain_rate);
+
+          const double pressure = solution[0][this->introspection().component_indices.pressure];
+
+          const double temperature =solution[0][this->introspection().component_indices.temperature];
+
+          //std::cout << "flag 50"<< std::endl;
+          //std::cout << "temperature = " << temperature << ", pressure = " << pressure << ",solution[0][0] = " << solution[0][0] << ",1:" << solution[0][1] << ",2:" << solution[0][2] << ",3:" << solution[0][3] << ", old: " << solution[0][this->introspection().component_indices.temperature] << ", this->introspection().component_indices.temperature = " << this->introspection().component_indices.temperature << ", pres index = " << this->introspection().component_indices.pressure << ", solution_values = " << solution_values[0] << ":" << solution_values[1] << ":" << solution_values[2] << ":" << solution_values[3] << std::endl;
+
+          // get the composition of the particle
+          std::vector<double> compositions;
+          for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
+            {
+              const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
+              compositions.push_back(solution[0][solution_component]);
+            }
 
 
-      // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
-      // adding an extra dimension which is zero.
-      SymmetricTensor<2,3> strain_rate_3d;
-      strain_rate_3d[0][0] = strain_rate[0][0];
-      strain_rate_3d[0][1] = strain_rate[0][1];
-      //sym: strain_rate_3d[1][0] = strain_rate[1][0];
-      strain_rate_3d[1][1] = strain_rate[1][1];
+          // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
+          // adding an extra dimension which is zero.
+          SymmetricTensor<2,3> strain_rate_3d;
+          strain_rate_3d[0][0] = strain_rate[0][0];
+          strain_rate_3d[0][1] = strain_rate[0][1];
+          //sym: strain_rate_3d[1][0] = strain_rate[1][0];
+          strain_rate_3d[1][1] = strain_rate[1][1];
 
-      if (dim == 3)
-        {
-          strain_rate_3d[0][2] = strain_rate[0][2];
-          strain_rate_3d[1][2] = strain_rate[1][2];
-          //sym: strain_rate_3d[2][0] = strain_rate[0][2];
-          //sym: strain_rate_3d[2][1] = strain_rate[1][2];
-          strain_rate_3d[2][2] = strain_rate[2][2];
-        }
-      Tensor<2,3> velocity_gradient_3d;
-      velocity_gradient_3d[0][0] = velocity_gradient[0][0];
-      velocity_gradient_3d[0][1] = velocity_gradient[0][1];
-      velocity_gradient_3d[1][0] = velocity_gradient[1][0];
-      velocity_gradient_3d[1][1] = velocity_gradient[1][1];
-      if (dim == 3)
-        {
-          velocity_gradient_3d[0][2] = velocity_gradient[0][2];
-          velocity_gradient_3d[1][2] = velocity_gradient[1][2];
-          velocity_gradient_3d[2][0] = velocity_gradient[2][0];
-          velocity_gradient_3d[2][1] = velocity_gradient[2][1];
-          velocity_gradient_3d[2][2] = velocity_gradient[2][2];
-        }
+          if (dim == 3)
+            {
+              strain_rate_3d[0][2] = strain_rate[0][2];
+              strain_rate_3d[1][2] = strain_rate[1][2];
+              //sym: strain_rate_3d[2][0] = strain_rate[0][2];
+              //sym: strain_rate_3d[2][1] = strain_rate[1][2];
+              strain_rate_3d[2][2] = strain_rate[2][2];
+            }
+          Tensor<2,3> velocity_gradient_3d;
+          velocity_gradient_3d[0][0] = velocity_gradient[0][0];
+          velocity_gradient_3d[0][1] = velocity_gradient[0][1];
+          velocity_gradient_3d[1][0] = velocity_gradient[1][0];
+          velocity_gradient_3d[1][1] = velocity_gradient[1][1];
+          if (dim == 3)
+            {
+              velocity_gradient_3d[0][2] = velocity_gradient[0][2];
+              velocity_gradient_3d[1][2] = velocity_gradient[1][2];
+              velocity_gradient_3d[2][0] = velocity_gradient[2][0];
+              velocity_gradient_3d[2][1] = velocity_gradient[2][1];
+              velocity_gradient_3d[2][2] = velocity_gradient[2][2];
+            }
 
-            std::cout << "flag 51"<< std::endl;
-      // compute the viscosity
-      MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
-      material_model_inputs.position[0] = positions[0];
-      material_model_inputs.temperature[0] = temperature;
-      material_model_inputs.pressure[0] = pressure;
-      material_model_inputs.velocity[0] = velocity;
-      material_model_inputs.composition[0] = compositions;
-      material_model_inputs.strain_rate[0] = strain_rate;
-      material_model_inputs.current_cell = cells[cell_i];
-            std::cout << "flag 52"<< std::endl;
+          //std::cout << "flag 51"<< std::endl;
+          // compute the viscosity
+          MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
+          material_model_inputs.position[0] = positions[0];
+          material_model_inputs.temperature[0] = temperature;
+          material_model_inputs.pressure[0] = pressure;
+          material_model_inputs.velocity[0] = velocity;
+          material_model_inputs.composition[0] = compositions;
+          material_model_inputs.strain_rate[0] = strain_rate;
+          material_model_inputs.current_cell = cells[cell_i];
+          //std::cout << "flag 52"<< std::endl;
 
-      MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
-      this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
-      double eta = material_model_outputs.viscosities[0];
+          MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
+          this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
+          double eta = material_model_outputs.viscosities[0];
 
-const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
-      //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
-      stress_largest_eigenvectors.emplace_back(dealii::eigenvectors(stress)[0].second);
+          const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
+          //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
+          stress_largest_eigenvectors.emplace_back(dealii::eigenvectors(stress)[0].second);
 
-            std::cout << "flag 53"<< std::endl;
-      //std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
-      //          << ", " <<dealii::eigenvectors(stress)[1].first << std::endl;
+          //std::cout << "flag 53"<< std::endl;
+          //std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
+          //          << ", " <<dealii::eigenvectors(stress)[1].first << std::endl;
 
-      // now we have the largest stress eigenvector. We need to deterine what is up.
-      Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[0])/this->get_gravity_model().gravity_vector(positions[0]).norm();
+          // now we have the largest stress eigenvector. We need to deterine what is up.
+          Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[0])/this->get_gravity_model().gravity_vector(positions[0]).norm();
 
-      double angle = stress_largest_eigenvectors.back() * gravity_vector;
-      //std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
-      //          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
-      if (std::fabs(angle) < 0.5*numbers::PI)
-        {
-          stress_largest_eigenvectors.back() *= -1;
-        }
-            std::cout << "flag 60"<< std::endl;
+          double angle = stress_largest_eigenvectors.back() * gravity_vector;
+          //std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
+          //          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
+          if (std::fabs(angle) < 0.5*numbers::PI)
+            {
+              stress_largest_eigenvectors.back() *= -1;
+            }
+          std::cout << "flag 60"<< std::endl;
 
         }
 
@@ -488,23 +495,35 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
 
       if (enable_random_dike_generation && this->get_timestep_number() > 0)// && cell_it.first.state() == IteratorState::valid)// && cell_it.first->is_locally_owned())
         {
-          std::cout << "dike_locations.size() = " << dike_locations.size() << std::endl;
+          //std::cout << "dike_locations.size() = " << dike_locations.size() << std::endl;
           for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
             {
               std::pair<const typename parallel::distributed::Triangulation<dim>::active_cell_iterator,Point<dim>> cell_it_start = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_locations[dike_i].back());
 
 
-              std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 1" << std::endl;
+              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 1" << std::endl;
 
+              unsigned int next_free_id = 0;
               if (cell_it_start.first.state() == IteratorState::valid && cell_it_start.first->is_locally_owned())
                 {
-                  unsigned int next_free_id = particle_handler->get_next_free_particle_index();
-                  particle_statuses.emplace_back(std::tuple<unsigned int,unsigned int,Point<dim>>{next_free_id, 0,Point<dim>()});
+                  next_free_id = particle_handler->get_next_free_particle_index();
+                  unsigned int next_free_id_sum = Utilities::MPI::sum(next_free_id,this->get_mpi_communicator());
+                  Assert(next_free_id == next_free_id_sum, ExcMessage("mpi internal error"));
+                  particle_statuses.emplace_back(std::tuple<unsigned int,unsigned int,Point<dim>> {next_free_id, 0,Point<dim>()});
                   particle_handler->insert_particle(dike_locations[dike_i].back(),cell_it_start.second,next_free_id, cell_it_start.first);
-
-                  // TODO: Is this safe in parallel? Do I need to call  update_cached_numbers()?
-                  //       Add an Assert(next_free_id==particle_handler->get_next_free_particle_index(),ExcMessage(...)) before update_cached_numbers() to check if the number has been updated in between?
+                  //std::cout << "next_free_id = " << next_free_id << std::endl;
+                  particle_handler->update_cached_numbers();
                 }
+              else
+                {
+                  next_free_id = Utilities::MPI::sum(next_free_id,this->get_mpi_communicator());
+                  particle_statuses.emplace_back(std::tuple<unsigned int,unsigned int,Point<dim>> {next_free_id, 0,Point<dim>()});
+                  particle_handler->update_cached_numbers();
+                }
+
+              // TODO: Is this safe in parallel? Do I need to call  update_cached_numbers()?
+              //       Add an Assert(next_free_id==particle_handler->get_next_free_particle_index(),ExcMessage(...)) before update_cached_numbers() to check if the number has been updated in between?
+
             }
           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 1.5" << std::endl;
           //particle_handler->update_cached_numbers();
@@ -533,7 +552,7 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
           std::cout << "n_active_particles = " << n_active_particles << std::endl;
           while (n_active_particles > 0)
             {
-              std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
+              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
               iteration++;
               if (!(iteration < 5000))
                 {
@@ -566,13 +585,13 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
 
 
               std::vector<Point<dim>> new_dike_points(particle_statuses.size(),Point<dim>());
-              std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4" << std::endl;
+              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4" << std::endl;
               size_t iter2 = 0;
               do
                 {
                   iter2++;
-                  std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4.5" << std::endl;
-                  std::cout << iteration << ":" << iter2 << std::endl;//"(1): particle lost = " << particle_lost << std::endl;
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4.5" << std::endl;
+                  //std::cout << iteration << ":" << iter2 << std::endl;//"(1): particle lost = " << particle_lost << std::endl;
                   particle_handler->sort_particles_into_subdomains_and_cells();
                   //std::cout << iteration << ":" << iter2 << "(2): parwhileticle lost = " << particle_lost << std::endl;
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 5" << std::endl;
@@ -581,29 +600,31 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
 
                   // recmpute active particles
                   n_active_particles = 0;
-                  std::cout << "particle_statuses = " << particle_statuses.size() << std::endl;
+                  //std::cout << "particle_statuses = " << particle_statuses.size() << std::endl;
                   for (auto &particle_status : particle_statuses)
                     {
-                      std::cout << "a particle" << std::endl;
+                      //std::cout << "a particle" << std::endl;
                       //if (std::get<1>(particle_status) == 0 || std::get<1>(particle_status) == 1)
-                        {
-                          // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
-                          if (Utilities::MPI::sum(std::get<1>(particle_status),this->get_mpi_communicator()))
-                            {
-                              // particle lost on some processor, so set it to 1 on all processors
-                              std::cout << "not active anymore: " << Utilities::MPI::sum(std::get<1>(particle_status),this->get_mpi_communicator()) << std::endl;
-                              std::get<1>(particle_status) = 1;
-                            }
-                          else
-                            {
-                              std::cout << "an active particle!" << std::endl;
-                              n_active_particles++;
-                            }
-                        }
+                      {
+                        // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
+                        //std::cout << "std::get<0:1>(particle_status) = " << std::get<0>(particle_status) << ":" << std::get<1>(particle_status) << std::endl;
+                        if (Utilities::MPI::sum(std::get<1>(particle_status),this->get_mpi_communicator()))
+                          {
+                            // particle lost on some processor, so set it to 1 on all processors
+                            //std::cout << "not active anymore: " << Utilities::MPI::sum(std::get<1>(particle_status),this->get_mpi_communicator()) << std::endl;
+                            std::get<1>(particle_status) = 1;
+                          }
+                        else
+                          {
+                            //std::cout << "an active particle!" << std::endl;
+                            n_active_particles++;
+                          }
+                      }
                     }
-                    std::cout << "new active particles = " << n_active_particles << std::endl;
+                  //std::cout << "new active particles = " << n_active_particles << std::endl;
 
-                  unsigned int particle_lost = Utilities::MPI::sum((unsigned int)particle_lost,this->get_mpi_communicator());
+                  unsigned int particle_lost = 0;
+                  particle_lost = Utilities::MPI::sum((unsigned int)particle_lost,this->get_mpi_communicator());
                   //std::cout << iteration << ":" << iter2 << "(4): parwhileticle lost = " << particle_lost_int << std::endl;
                   if (n_active_particles == 0)
                     {
@@ -634,7 +655,7 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
 
                   //std::cout << iteration << "(3): particle lost = " << particle_lost << std::endl;
 
-                  std::cout << "ifworld_rank = " << world_rank << "/" << world_size << std::endl;//": Flag 8, positions.size() = " << positions.size() << std::endl;
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << std::endl;//": Flag 8, positions.size() = " << positions.size() << std::endl;
 
                   std::vector<Point<dim>> positions;// = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
                   std::vector<Point<dim>> reference_positions;// = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
@@ -642,72 +663,74 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
                   //std::vector<small_vector<double>> solution_values;
                   //std::vector<std::unique_ptr<SolutionEvaluator<dim>>> evaluators;
 
-                  for(auto particle_it = particle_handler->begin(); particle_it != particle_handler->end(); ++particle_it){
-                    if(particle_it->get_surrounding_cell().state() == IteratorState::valid){
+                  for (auto particle_it = particle_handler->begin(); particle_it != particle_handler->end(); ++particle_it)
+                    {
+                      if (particle_it->get_surrounding_cell().state() == IteratorState::valid)
+                        {
 
-                      cells.emplace_back(typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler())));
+                          cells.emplace_back(typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler())));
 
-                      //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9, positions.size() = " << positions.size()
-                      //<< ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
+                          //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9, positions.size() = " << positions.size()
+                          //<< ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
 
-                      //Assert(positions.size() == 1, ExcMessage("Internal error."));
-                      //Assert(reference_positions.size() == 1, ExcMessage("Internal error."));
-                      positions.emplace_back(particle_it->get_location());
-                      reference_positions.emplace_back(particle_it->get_reference_location());
-                      //Assert(cell->state() == IteratorState::valid, ExcMessage("internal error"));
+                          //Assert(positions.size() == 1, ExcMessage("Internal error."));
+                          //Assert(reference_positions.size() == 1, ExcMessage("Internal error."));
+                          positions.emplace_back(particle_it->get_location());
+                          reference_positions.emplace_back(particle_it->get_reference_location());
+                          //Assert(cell->state() == IteratorState::valid, ExcMessage("internal error"));
 
-                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.5" << std::endl;
-                        //solution_values.emplace_back(this->get_fe().dofs_per_cell);
+                          //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.5" << std::endl;
+                          //solution_values.emplace_back(this->get_fe().dofs_per_cell);
 
-                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.6" << std::endl;
-                        //cells->end()->get_dof_values(this->get_solution(),
-                        //                     solution_values.begin(),
-                        //                     solution_values.end());
+                          //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.6" << std::endl;
+                          //cells->end()->get_dof_values(this->get_solution(),
+                          //                     solution_values.begin(),
+                          //                     solution_values.end());
 
-                        //evaluators.emplace_back(construct_solution_evaluator(*this,
-                        //                                       update_flags));
-                        //evaluators.back()->reinit(cells.back(), reference_positions.back()); 
+                          //evaluators.emplace_back(construct_solution_evaluator(*this,
+                          //                                       update_flags));
+                          //evaluators.back()->reinit(cells.back(), reference_positions.back());
+                        }
                     }
-                    }
-                      //{
+                  //{
 
 
 
-                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.7" << std::endl;
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.7" << std::endl;
 
-                        //fe_values.reinit(cell);
-                        //evaluator->reinit(cell, reference_positions);
+                  //fe_values.reinit(cell);
+                  //evaluator->reinit(cell, reference_positions);
 
 
-                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
-                        // function here
-                        //Tensor<1,dim> solution_stress =
-                        std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_solution());
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
+                  // function here
+                  //Tensor<1,dim> solution_stress =
+                  std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_solution());
 
-                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 11" << std::endl;
-                        //cell->get_dof_values(this->get_current_linearization_point(),
-                        //                     solution_values.begin(),
-                        //                     solution_values.end());
-                        //
-                        //evaluator->reinit(cell, reference_positions);
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 11" << std::endl;
+                  //cell->get_dof_values(this->get_current_linearization_point(),
+                  //                     solution_values.begin(),
+                  //                     solution_values.end());
+                  //
+                  //evaluator->reinit(cell, reference_positions);
 
-                        std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_current_linearization_point());
+                  std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_current_linearization_point());
 
-                        // set the new point at half the cell size away from the current point and check if that is still in the domain.
-                        const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
+                  // set the new point at half the cell size away from the current point and check if that is still in the domain.
+                  const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
 
-                        //auto old_position = particle_it->get_location();
-                      //}
+                  //auto old_position = particle_it->get_location();
+                  //}
 
-                        //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
-                        particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
+                  //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
+                  particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
 
-                        //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
-                        //          << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << std::endl;
+                  //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
+                  //          << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << std::endl;
 
-                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12" << std::endl;
-                      //}
-                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.25" << std::endl;
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12" << std::endl;
+                  //}
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.25" << std::endl;
                   //  }
                   //}
 
@@ -823,13 +846,16 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
 
                           //new_dike_points[dike_i] = particle_lost ? particle_lost_location : particle_handler->[dike_i]->get_location();
 
-                          for(auto it = particle_handler->begin(); it != particle_handler->end(); ++it){
-                            // if the indexes are equal we found a match
-                            if(std::get<0>(particle_statuses[dike_i]) == it->get_id()){
-                              dike_locations[dike_i].emplace_back(it->get_location());
-                              break;
+                          for (auto it = particle_handler->begin(); it != particle_handler->end(); ++it)
+                            {
+                              // if the indexes are equal we found a match
+                              //std::cout << "std::get<0>(particle_statuses[dike_i]) = " << std::get<0>(particle_statuses[dike_i]) << ", it->get_id() = " << it->get_id() << std::endl;
+                              if (std::get<0>(particle_statuses[dike_i]) == it->get_id())
+                                {
+                                  dike_locations[dike_i].emplace_back(it->get_location());
+                                  break;
+                                }
                             }
-                          }
 
                           // if particle is not lost add a new point to the dike
                           //if (std::get<1>(particle_statuses[dike_i]) == 0)
@@ -943,6 +969,7 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
           x_dike_right_boundary = x_dike_left_boundary + width_random_dike;
           top_depth_random_dike = ref_top_depth_random_dike + depth_change_random_dike;
         }*/
+      particle_statuses.resize(0);
     }
 
     template <int dim>
@@ -988,60 +1015,60 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
                   double distance;
                   const Point<dim> &P = in.position[q];
                   for (unsigned int dike_i = 0; dike_i < dike_locations.size(); dike_i++)
-                  {                  
-                  for (unsigned int point_index = 0; point_index < dike_locations[dike_i].size()-1; ++point_index)
                     {
-                      const Point<dim> &X1 = dike_locations[dike_i][point_index];
-                      const Point<dim> &X2 = dike_locations[dike_i][point_index+1];
-                      if (dim == 3)
+                      for (unsigned int point_index = 0; point_index < dike_locations[dike_i].size()-1; ++point_index)
                         {
-                          //https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
-                          distance = (cross_product_3d(P-X1,P-X2)).norm_square()/(X2-X1).norm_square();
-                        }
-                      else if (dim == 2)
-                        {
-                          // https://mathworld.wolfram.com/Point-LineDistance2-Dimensional.html
-                          //const Point<2> v = Point<2>(X2[1]-X1[1],-(X2[0]-X1[0]));
-                          //const Point<2> r = Point<2>(X1[0]-X0[0],X1[1]-X0[1]);
-                          //distance = std::fabs(v*r);
-
-                          const Tensor<1,dim> v = (X2 - X1);
-                          const Tensor<1,dim> w = (P - X1);
-
-                          double c1 = w*v;
-                          if ( c1 <= 0 )
+                          const Point<dim> &X1 = dike_locations[dike_i][point_index];
+                          const Point<dim> &X2 = dike_locations[dike_i][point_index+1];
+                          if (dim == 3)
                             {
-                              distance = (P-X1).norm();
+                              //https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+                              distance = (cross_product_3d(P-X1,P-X2)).norm_square()/(X2-X1).norm_square();
                             }
-                          else
+                          else if (dim == 2)
                             {
-                              double c2 = v*v;
-                              if ( c2 <= c1 )
+                              // https://mathworld.wolfram.com/Point-LineDistance2-Dimensional.html
+                              //const Point<2> v = Point<2>(X2[1]-X1[1],-(X2[0]-X1[0]));
+                              //const Point<2> r = Point<2>(X1[0]-X0[0],X1[1]-X0[1]);
+                              //distance = std::fabs(v*r);
+
+                              const Tensor<1,dim> v = (X2 - X1);
+                              const Tensor<1,dim> w = (P - X1);
+
+                              double c1 = w*v;
+                              if ( c1 <= 0 )
                                 {
-                                  distance = (P-X2).norm();
+                                  distance = (P-X1).norm();
                                 }
                               else
                                 {
-                                  double b = c1 / c2;
-                                  Point Pb = X1 + b * v;
-                                  distance = (P- Pb).norm();
+                                  double c2 = v*v;
+                                  if ( c2 <= c1 )
+                                    {
+                                      distance = (P-X2).norm();
+                                    }
+                                  else
+                                    {
+                                      double b = c1 / c2;
+                                      Point Pb = X1 + b * v;
+                                      distance = (P- Pb).norm();
+                                    }
                                 }
+
+                              //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
+                              //  {
+                              //    std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                              //  }
                             }
 
-                          //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
-                          //  {
-                          //    std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
-                          //  }
-                        }
+                          if (distance < min_distance)
+                            {
+                              //if(in.position[i][0] > -1000. && in.position[i][0] < 1000. && in.position[i][1] > 49000 && in.position[i][1] < 51000)
+                              //  std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                              min_distance = distance;
+                            }
 
-                      if (distance < min_distance)
-                        {
-                          //if(in.position[i][0] > -1000. && in.position[i][0] < 1000. && in.position[i][1] > 49000 && in.position[i][1] < 51000)
-                          //  std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
-                          min_distance = distance;
                         }
-                    
-                    }
                     }
                 }
 
@@ -1147,12 +1174,12 @@ const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
               // for now just add dike composition to this cell
               double min_distance = std::numeric_limits<double>::max();
 
-                  double distance;
-                  const Point<dim> &P = in.position[q];
-                  for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
-                    {              
-                      if (dike_locations[dike_i].size() > 1)
+              double distance;
+              const Point<dim> &P = in.position[q];
+              for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
                 {
+                  if (dike_locations[dike_i].size() > 1)
+                    {
                       for (unsigned int point_index = 0; point_index < dike_locations[dike_i].size()-1; ++point_index)
                         {
                           const Point<dim> &X1 = dike_locations[dike_i][point_index];

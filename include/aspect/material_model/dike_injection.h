@@ -108,10 +108,10 @@ namespace aspect
         void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle,
                                const typename Triangulation<dim>::active_cell_iterator &cell);
 
-        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::vector<typename DoFHandler<dim>::active_cell_iterator>& cells,
-                                                           std::vector<Point<dim>> &positions,
-                                                           std::vector<Point<dim>> &reference_positions,
-                                                           const LinearAlgebra::BlockVector& input_solution);
+        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::vector<typename DoFHandler<dim>::active_cell_iterator> &cells,
+                                                                       std::vector<Point<dim>> &positions,
+                                                                       std::vector<Point<dim>> &reference_positions,
+                                                                       const LinearAlgebra::BlockVector &input_solution);
         /**
          * Parsed function that specifies the region and amount of
          * material that is injected into the model.
