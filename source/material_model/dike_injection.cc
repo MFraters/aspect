@@ -41,7 +41,7 @@ namespace aspect
     template <int dim>
     void clear_compositional_field (const SimulatorAccess<dim> &simulator_access)
     {
-      std::cout << "clear_compositional_field signal" << std::endl;
+     //std::cout << "clear_compositional_field signal" << std::endl;
       simulator_access.get_pcout() << "Signal clear_compositional_field triggered, clearing field " << clear_composition_field_index << "!" << std::endl;
       const typename Simulator<dim>::AdvectionField adv_field (Simulator<dim>::AdvectionField::composition(clear_composition_field_index));
       //std::cout << "before: " << const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_solution()).block(adv_field.block_index(simulator_access.introspection()))[0] << std::endl;
@@ -62,15 +62,15 @@ namespace aspect
     void
     DikeInjection<dim>::set_particle_lost(const typename Particles::ParticleIterator<dim> &particle, const typename Triangulation<dim>::active_cell_iterator &/*cell*/)
     {
-      std::cout << "lost particle here!!!!: " << particle->get_location() << std::endl;
+     //std::cout << "lost particle here!!!!: " << particle->get_location() << std::endl;
       //particle_lost = true;
       //particle_lost_location = particle->get_location();
       //particle_lost_index = particle->index();
       bool found = false;
       for (auto &particle_status : particle_statuses)
         {
-          std::cout << "particle_status = " << std::get<0>(particle_status) << ";" << std::get<1>(particle_status) << "; " << (std::get<2>(particle_status))[0] << ":" << (std::get<2>(particle_status))[1]
-                    << ", particle = " << particle->get_id() << "; " << particle->get_location()[0] << ":" << particle->get_location()[1] << std::endl;
+         //std::cout << "particle_status = " << std::get<0>(particle_status) << ";" << std::get<1>(particle_status) << "; " << (std::get<2>(particle_status))[0] << ":" << (std::get<2>(particle_status))[1]
+                    //<< ", particle = " << particle->get_id() << "; " << particle->get_location()[0] << ":" << particle->get_location()[1] << std::endl;
           if (std::get<0>(particle_status) == particle->get_id())
             {
               found = true;
@@ -143,7 +143,7 @@ namespace aspect
           //std::cout << "&solution[0] = " << &solution[0] << std::endl;
           //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
           //std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
-//            std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
+//           //std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
           evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
           //std::cout << "flag 46"<< std::endl;
           //std::cout << "&solution[0] = " << &solution[0] << std::endl;
@@ -258,7 +258,7 @@ namespace aspect
             {
               stress_largest_eigenvectors.back() *= -1;
             }
-          std::cout << "flag 60"<< std::endl;
+          //std::cout << "flag 60"<< std::endl;
 
         }
 
@@ -549,7 +549,7 @@ namespace aspect
           // todo: or max number?
           int iteration = 0;
           unsigned int n_active_particles = dike_locations.size();
-          std::cout << "n_active_particles = " << n_active_particles << std::endl;
+         //std::cout << "n_active_particles = " << n_active_particles << std::endl;
           while (n_active_particles > 0)
             {
               //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
@@ -557,14 +557,14 @@ namespace aspect
               if (!(iteration < 5000))
                 {
                   std::string concat = "";
-                  std::cout << "Failing at iteration " << iteration << ", current dike path: ";
+                 //std::cout << "Failing at iteration " << iteration << ", current dike path: ";
                   for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
                     {
-                      std::cout << std::endl << "dike " << dike_i << ": ";
+                     //std::cout << std::endl << "dike " << dike_i << ": ";
                       for (auto coords : dike_locations[dike_i])
                         {
                           //concat += std::to_string(coords);
-                          std::cout << coords << ", ";
+                         //std::cout << coords << ", ";
                         }
                     }
                   AssertThrow(iteration < 5000, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
@@ -702,33 +702,35 @@ namespace aspect
                   //evaluator->reinit(cell, reference_positions);
 
 
-                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
+                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
                   // function here
                   //Tensor<1,dim> solution_stress =
-                  std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_solution());
+                  if (cells.size() > 0)
+                    {
+                      std::vector<Tensor<1,dim>> solution_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_solution());
 
-                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 11" << std::endl;
-                  //cell->get_dof_values(this->get_current_linearization_point(),
-                  //                     solution_values.begin(),
-                  //                     solution_values.end());
-                  //
-                  //evaluator->reinit(cell, reference_positions);
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 11" << std::endl;
+                      //cell->get_dof_values(this->get_current_linearization_point(),
+                      //                     solution_values.begin(),
+                      //                     solution_values.end());
+                      //
+                      //evaluator->reinit(cell, reference_positions);
 
-                  std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_current_linearization_point());
+                      std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_stress_largest_eigenvector(cells,positions,reference_positions,this->get_current_linearization_point());
 
-                  // set the new point at half the cell size away from the current point and check if that is still in the domain.
-                  const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
+                      // set the new point at half the cell size away from the current point and check if that is still in the domain.
+                      const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
 
-                  //auto old_position = particle_it->get_location();
-                  //}
+                      //auto old_position = particle_it->get_location();
+                      //}
 
-                  //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
-                  particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
-
+                     //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
+                      particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
+                    }
                   //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
                   //          << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << std::endl;
 
-                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12" << std::endl;
+                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12" << std::endl;
                   //}
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.25" << std::endl;
                   //  }
@@ -792,11 +794,11 @@ namespace aspect
                       }
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.25" << std::endl;
                     }*/
-                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.5" << std::endl;
+                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.5" << std::endl;
                 }
               while (particle_integrator->new_integration_step());
 
-              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 13: particle_lost = " << particle_lost << ", cell_it.first.state() = " << cell_it.first.state() << std::endl;
+             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 13: " << std::endl; //particle_lost = " << particle_lost << ", cell_it.first.state() = " << cell_it.first.state() << std::endl;
               //if (particle_handler->n_locally_owned_particles() > 0) //cell_it.first.state() == IteratorState::valid) {
               //  {
               //    //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 13.5: particle_lost = " << particle_lost << std::endl;
@@ -829,41 +831,67 @@ namespace aspect
               n_active_particles = 0;
               for (unsigned int dike_i = 0; dike_i < particle_statuses.size(); ++dike_i)
                 {
+                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ":Flag 14: dike = " << dike_i << std::endl;
                   //if(std::get<1>(particle_statuses[dike_i]) == 1){
                   //}
                   if (std::get<1>(particle_statuses[dike_i]) == 0 || std::get<1>(particle_statuses[dike_i]) == 1)
                     {
+                     //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ":Flag 15: dike = " << dike_i << ", particle_statuses[dike_i] = " << std::get<1>(particle_statuses[dike_i]) << std::endl;
                       // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
                       if (Utilities::MPI::sum(std::get<1>(particle_statuses[dike_i]),this->get_mpi_communicator()))
                         {
+                         //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ":Flag 16: dike = " << dike_i << std::endl;
                           // particle lost on some processor, so set it to 1 on all processors
-                          dike_locations[dike_i].emplace_back(std::get<2>(particle_statuses[dike_i]));
+                          Point<dim> new_dike_location = std::get<2>(particle_statuses[dike_i]);
+                          for (unsigned int dim_i = 0; dim_i < dim; ++dim_i)
+                            {
+                              new_dike_location[dim_i] = Utilities::MPI::sum(new_dike_location[dim_i],this->get_mpi_communicator());
+                            }
+                          dike_locations[dike_i].emplace_back(new_dike_location);
                           std::get<1>(particle_statuses[dike_i]) = 2;
+
+                         //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 19: dike = " << dike_i << std::endl;
                         }
                       else
                         {
+                         //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 20: dike = " << dike_i << std::endl;
                           n_active_particles++;
 
                           //new_dike_points[dike_i] = particle_lost ? particle_lost_location : particle_handler->[dike_i]->get_location();
-
+                          Point<dim> new_dike_location = Point<dim>();
                           for (auto it = particle_handler->begin(); it != particle_handler->end(); ++it)
                             {
+                             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 21: dike = " << dike_i << std::endl;
                               // if the indexes are equal we found a match
                               //std::cout << "std::get<0>(particle_statuses[dike_i]) = " << std::get<0>(particle_statuses[dike_i]) << ", it->get_id() = " << it->get_id() << std::endl;
                               if (std::get<0>(particle_statuses[dike_i]) == it->get_id())
                                 {
-                                  dike_locations[dike_i].emplace_back(it->get_location());
+                                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 22: dike = " << dike_i << ", it->get_id() = " << it->get_id() <<std::endl;
+                                  new_dike_location = it->get_location();
                                   break;
                                 }
                             }
+                         //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 23.5: dike = " << dike_i << std::endl;
+
+                          for (unsigned int dim_i = 0; dim_i < dim; ++dim_i)
+                            {
+                             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 24: dike = " << dike_i << ", dim_i = " << dim_i << std::endl;
+                              new_dike_location[dim_i] = Utilities::MPI::sum(new_dike_location[dim_i],this->get_mpi_communicator());
+                             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: dike = " << dike_i << ", dim_i = " << dim_i << std::endl;
+                            }
+                          dike_locations[dike_i].emplace_back(new_dike_location);
 
                           // if particle is not lost add a new point to the dike
                           //if (std::get<1>(particle_statuses[dike_i]) == 0)
                           //  dike_locations[dike_i].emplace_back(new_dike_point);
+                         //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 30: dike = " << dike_i << std::endl;
                         }
+
+                     //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 31: dike = " << dike_i << std::endl;
                     }
+                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 32: dike = " << dike_i << std::endl;
                 }
-              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 40" << std::endl;
+             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 40" << std::endl;
               //for (size_t i = 0; i < dim; i++)
               //  {
               //    MPI_Bcast(&new_dike_point[i], 1, MPI_DOUBLE, cell_global_rank, this->get_mpi_communicator());
@@ -880,29 +908,29 @@ namespace aspect
           // prevent deadlock.
           Point<dim> new_dike_point = Point<dim>();
 
-          std::cout << "el world_rank = " << world_rank << "/" << world_size << ": Flag 1" << std::endl;
+         //std::cout << "el world_rank = " << world_rank << "/" << world_size << ": Flag 1" << std::endl;
  particle_handler->sort_particles_into_subdomains_and_cells();
 
-          std::cout << "el world_rank = " << world_rank << "/" << world_size << ": Flag 2" << std::endl;
+         //std::cout << "el world_rank = " << world_rank << "/" << world_size << ": Flag 2" << std::endl;
   Utilities::MPI::sum(new_dike_point,this->get_mpi_communicator(),new_dike_point);
-          std::cout << "el world_rank = " << world_rank << "/" << world_size << ": Flag 3" << std::endl;
+         //std::cout << "el world_rank = " << world_rank << "/" << world_size << ": Flag 3" << std::endl;
         }*/
 
 
 
       if (world_rank == 0)
         {
-          std::cout << "dike_location = ";
+         //std::cout << "dike_location = ";
           for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
             {
-              std::cout << "dike " << dike_i << ": ";
+             //std::cout << "dike " << dike_i << ": ";
               for (unsigned int segment_i = 0; segment_i < dike_locations[dike_i].size(); ++segment_i)
                 {
-                  std::cout << dike_locations[dike_i][segment_i] << ", ";
+                 //std::cout << dike_locations[dike_i][segment_i] << ", ";
                 }
-              std::cout << std::endl;
+             //std::cout << std::endl;
             }
-          std::cout << std::endl;
+         //std::cout << std::endl;
         }
 
       // If using random dike generation
@@ -1057,14 +1085,14 @@ namespace aspect
 
                               //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
                               //  {
-                              //    std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                              //   //std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
                               //  }
                             }
 
                           if (distance < min_distance)
                             {
                               //if(in.position[i][0] > -1000. && in.position[i][0] < 1000. && in.position[i][1] > 49000 && in.position[i][1] < 51000)
-                              //  std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                              // //std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
                               min_distance = distance;
                             }
 
@@ -1222,14 +1250,14 @@ namespace aspect
 
                               //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
                               //  {
-                              //    std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                              //   //std::cout << point_index << "/" << dike_location.size() << ": P = " << P << ", X1 = " << X1 << ", X2 = " << X2 << ", distance = " << distance << ", min_distance = " << min_distance << std::endl;
                               //  }
                             }
 
                           if (distance < min_distance)
                             {
                               //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
-                              //  std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
+                              // //std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
                               min_distance = distance;
                             }
                         }
@@ -1322,7 +1350,7 @@ namespace aspect
 
           //            const double diff = 100.;
           //if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
-          //  std::cout << q << ": position: " << in.position[q] << ", dike_injection_rate[q] = " << dike_injection_rate[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", dike_material_injection_fraction = " << dike_material_injection_fraction << std::endl;
+          // //std::cout << q << ": position: " << in.position[q] << ", dike_injection_rate[q] = " << dike_injection_rate[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", dike_material_injection_fraction = " << dike_material_injection_fraction << std::endl;
 
           if (//dike_injection_rate[q] > 0.0
             //&&
@@ -1406,12 +1434,12 @@ namespace aspect
                       //else
                       //const double diff = 100.;
                       //if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff){
-                      //  std::cout << "position: " << in.position[q] << std::endl;
+                      // //std::cout << "position: " << in.position[q] << std::endl;
                       //}
                       if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
-                        std::cout << q << ": A position: " << in.position[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", old_solution_composition = " << old_solution_composition << ", result = " << std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition) << std::endl;
+                       //std::cout << q << ": A position: " << in.position[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", old_solution_composition = " << old_solution_composition << ", result = " << std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition) << std::endl;
                       if(dike_injection_rate[q] > 0.0 || std::fabs(dike_injection_fraction-old_solution_composition) > 0.0){if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 90087.4 -diff && in.position[q][1] < 90087.4 +diff)
-                        std::cout << q << ": B position: " << in.position[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", old_solution_composition = " << old_solution_composition << ", result = " << std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition) << std::endl;
+                       //std::cout << q << ": B position: " << in.position[q] << ", dike_injection_fraction = " << dike_injection_fraction << ", old_solution_composition = " << old_solution_composition << ", result = " << std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition) << std::endl;
 
                       out.reaction_terms[q][c] = std::max(dike_injection_fraction-old_solution_composition, -old_solution_composition);
 
@@ -1488,7 +1516,7 @@ namespace aspect
                 }
               //const double diff = 100.;
               //if(in.position[q][0] > -1250.-diff && in.position[q][0] < -1250.+diff && in.position[q][1] > 96301.8-diff && in.position[q][1] < 96301.8+diff){
-              //  std::cout << "position: " << in.position[q] << ", noninitial_plastic_strain = " << out.reaction_terms[0][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] << ", sr = " << std::sqrt(std::max(-second_invariant(deviator(in.strain_rate[0])), 0.))<< std::endl;
+              // //std::cout << "position: " << in.position[q] << ", noninitial_plastic_strain = " << out.reaction_terms[0][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] << ", sr = " << std::sqrt(std::max(-second_invariant(deviator(in.strain_rate[0])), 0.))<< std::endl;
               //}
               // If the "single Advection" nonlinear solver scheme is used,
               // it is necessary to set the reaction term to 0 to avoid
@@ -1712,7 +1740,7 @@ namespace aspect
 // void signal_connector (aspect::SimulatorSignals<dim> &signals)
 // {
 //   signals.start_timestep.connect(&aspect::clear_compositional_field<dim>);
-//   std::cout << "Connecting signal" << std::endl;
+//  //std::cout << "Connecting signal" << std::endl;
 // }
 //ASPECT_REGISTER_SIGNALS_CONNECTOR(signal_connector<2>, signal_connector<3>)
 
