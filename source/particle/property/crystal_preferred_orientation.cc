@@ -73,6 +73,7 @@ namespace aspect
 
         // first generate three random numbers between 0 and 1 and multiply them with 2 PI or 2 for z. Note that these are not the same as phi_1, theta and phi_2.
 
+       // I want to add option to add initial fabric
         boost::random::uniform_real_distribution<double> uniform_distribution(0,1);
         double one = uniform_distribution(this->random_number_generator);
         double two = uniform_distribution(this->random_number_generator);
