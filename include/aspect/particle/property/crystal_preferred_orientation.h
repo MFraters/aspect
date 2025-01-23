@@ -25,6 +25,14 @@
 #include <aspect/simulator_access.h>
 #include <array>
 
+/* //Commented_lines
+#include <aspect/material_model/rheology/diffusion_creep.h>   //Commented_lines
+#include <aspect/material_model/rheology/dislocation_creep.h> //Commented_lines
+#include <aspect/material_model/rheology/visco_plastic.h>     //Commented_lines
+#include <aspect/material_model/utilities.h>                  //Commented_lines
+#include <aspect/material_model/interface.h>                  //Commented_lines
+*/
+
 DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
 #include <boost/random.hpp>
 DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
@@ -83,7 +91,7 @@ namespace aspect
        */
       enum class CPODerivativeAlgorithm
       {
-        spin_tensor, drex_2004
+        spin_tensor, drex_2004, drexpp
       };
 
       /**
@@ -91,10 +99,11 @@ namespace aspect
        *
        * uniform_grains_and_random_uniform_rotations: all particles are set to a uniform grain-size of 1/n_grains
        * world_builder: all particle grain-sizes and orientations are set by the world builder.
+       * piezometer: This option is specific to D-Rex^{++}. It will initialize the grain size to the piezometric grain size corresponding to the stress at the location the particle was initialized at.
        */
       enum class CPOInitialGrainsModel
       {
-        uniform_grains_and_random_uniform_rotations, world_builder
+        uniform_grains_and_random_uniform_rotations, world_builder, piezometer,paleowattmeter
       };
 
       /**
@@ -248,6 +257,38 @@ namespace aspect
                                         const Tensor<2,3> &velocity_gradient_tensor,
                                         const std::array<double,4> ref_resolved_shear_stress,
                                         const bool prevent_nondimensionalization = false) const;
+
+          void
+          recrystalize_grains(const unsigned int cpo_index,
+                              const ArrayView<double> &data,
+                              const unsigned int mineral_i,
+                              const std::vector<double> &recrystalized_grainsize,
+                              const std::vector<double> &recrystalized_fraction,
+                              const double bulk_piezometer,
+                              std::vector<bool> &rx_now) const;
+
+          /**
+           * @brief Computes the CPO derivatives with the D-Rex 2004 algorithm.
+           *
+           * @param cpo_index The location where the CPO data starts in the data array.
+           * @param data The data array containing the CPO data.
+           * @param mineral_i The mineral for which to compute the derivatives for.
+           * @param strain_rate_3d The 3D strain rate
+           * @param velocity_gradient_tensor The velocity gradient tensor
+           * @param ref_resolved_shear_stress Represent one value per slip plane.
+           * The planes are ordered from weakest to strongest with relative values,
+           * where the inactive plane is infinity strong. So it is a measure of strength
+           * on each slip plane.
+           * @param prevent_nondimensionalization Prevent nondimensializing values internally.
+           * Only for unit testing purposes.
+           */
+          std::pair<std::vector<double>, std::vector<Tensor<2,3>>>
+          compute_derivatives_drexpp(const unsigned int cpo_index,
+                                        const ArrayView<double> &data,
+                                        const unsigned int mineral_i,
+                                        const SymmetricTensor<2,3> &strain_rate_3d,
+                                        const Tensor<2,3> &velocity_gradient_tensor,
+                                        const std::array<double,4> ref_resolved_shear_stress) const;
 
 
           /**
@@ -613,6 +654,44 @@ namespace aspect
            */
           CPOInitialGrainsModel initial_grains_model;
 
+
+          /**
+           * Parameters that will describe the number of grains that will be initialized. To be used with D-Rex^{++} 
+           */
+         
+          double n_grains_init;
+          double initial_grain_size;
+
+          /**
+          * Other D-Rex^{++} specific parameters
+          * 
+          * drexpp_mobility - Dimensional grain boundary mobilities for different minerals
+          * avrami_slope    - Constant rate of recrystalization.  
+          * interfacial_energy 
+          **/
+         
+          std::vector<double> drexpp_mobility;
+          double interfacial_energy;
+          double avrami_slope_input;
+
+          //Commented_lines          
+          /*
+          std::unique_ptr<MaterialModel::Rheology::DiffusionCreep<dim>> rheology_diff;    //Commented_lines
+          std::unique_ptr<MaterialModel::Rheology::DislocationCreep<dim>> rheology_disl;  //Commented_lines
+          std::unique_ptr<MaterialModel::Rheology::ViscoPlastic<dim>> rheology_vipl;      //Commented_lines
+          double min_strain_rate;                                                         //Commented_lines
+          std::vector<double> thermal_diffusivities;                                      //Commented_lines
+          bool define_conductivities;                                                     //Commented_lines
+
+          std::vector<double> thermal_conductivities;                                     //Commented_lines
+
+          /**
+           * Object that handles phase transitions.
+          **/
+
+          //MaterialModel::MaterialUtilities::PhaseFunction<dim> phase_function;          //Commented_lines
+          
+          
           /** @} */
 
       };
