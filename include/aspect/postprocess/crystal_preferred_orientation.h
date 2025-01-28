@@ -108,7 +108,7 @@ namespace aspect
          */
         enum class Output
         {
-          VolumeFraction, RotationMatrix, EulerAngles, not_found
+          VolumeFraction, RotationMatrix, EulerAngles,ChiDif,GrainStatus, not_found
         };
 
         /**

@@ -271,6 +271,14 @@ namespace aspect
                                               << "mineral_" << write_raw_cpo[property_i].first << "_EA_theta" << " "
                                               << "mineral_" << write_raw_cpo[property_i].first << "_EA_z" << " ";
                     break;
+                  
+                  case Output::GrainStatus:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_grain_status" << " ";
+                    break;
+                  
+                  case Output::ChiDif:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_diffusion_fraction" << " ";
+                    break;
                   default:
                     Assert(false, ExcMessage("Internal error: raw CPO postprocess case not found."));
                     break;
@@ -309,6 +317,15 @@ namespace aspect
                                                                 << "mineral_" << write_draw_volume_weighted_cpo[property_i].first << "_EA_theta" << " "
                                                                 << "mineral_" << write_draw_volume_weighted_cpo[property_i].first << "_EA_z" << " ";
                     break;
+                  
+                   case Output::GrainStatus:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_grain_status" << " ";
+                    break;
+                  
+                  case Output::ChiDif:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_diffusion_fraction" << " ";
+                    break;
+
                   default:
                     Assert(false, ExcMessage("Internal error: raw CPO postprocess case not found."));
                     break;
@@ -409,6 +426,23 @@ namespace aspect
                                                       <<  euler_angles[write_raw_cpo[property_i].first][grain][1] << " "
                                                       <<  euler_angles[write_raw_cpo[property_i].first][grain][2] << " ";
                             break;
+                          
+                          case Output::GrainStatus:
+                            string_stream_content_raw << cpo_particle_property.get_grain_status(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_raw_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                          
+                          case Output::ChiDif:
+                            string_stream_content_raw << cpo_particle_property.get_diffusion_fraction(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_raw_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+
                           default:
                             Assert(false, ExcMessage("Internal error: raw CPO postprocess case not found."));
                             break;
@@ -476,7 +510,23 @@ namespace aspect
                                                                         <<  weighted_euler_angles[write_draw_volume_weighted_cpo[property_i].first][grain][1] << " "
                                                                         <<  weighted_euler_angles[write_draw_volume_weighted_cpo[property_i].first][grain][2] << " ";
                             break;
-
+                          
+                          case Output::GrainStatus:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_grain_status(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                          
+                          case Output::ChiDif:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_diffusion_fraction(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                            
                           default:
                             Assert(false, ExcMessage("Internal error: raw CPO postprocess case not found."));
                             break;
@@ -601,6 +651,10 @@ namespace aspect
         return Output::RotationMatrix;
       if (string == "Euler angles")
         return Output::EulerAngles;
+      if (string == "Grain status")
+        return Output::GrainStatus;
+      if (string == "Diffusion fraction")
+        return Output::ChiDif;
       return Output::not_found;
     }
 

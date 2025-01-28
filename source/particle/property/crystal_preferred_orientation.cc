@@ -1387,6 +1387,8 @@ namespace aspect
         const double exponent_dif = 1.;
         const double exponent_dis = 3.5;
 
+        const double exponent_grain_size = 3;
+
         const double activation_energy_dif = 3.75 * std::pow(10,5) ;
         const double activation_energy_dis = 5.3 * std::pow(10,5);
 
@@ -1399,8 +1401,10 @@ namespace aspect
           if(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) > 0.)
           {
             const double grain_size = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-            const double strain_rate_dif = pre_exponential_dif * differential_stress * exp(-1 *(activation_energy_dif + (pressure * activation_volume_dif))/(constants::gas_constant * temperature));
+            const double strain_rate_dif = pre_exponential_dif * differential_stress * std::pow(grain_size,-1*exponent_grain_size) * exp(-1 *(activation_energy_dif + (pressure * activation_volume_dif))/(constants::gas_constant * temperature));
+            
             chi_dif[grain_i] = strain_rate_dif/std::sqrt(std::max(-second_invariant(strain_rate_3d), 0.));
+            set_diffusion_fraction(cpo_index,data,mineral_i,grain_i,chi_dif[grain_i]);
            
             diffusion_strain_rate[grain_i] = chi_dif[grain_i] * strain_rate_3d;
             dislocation_strain_rate[grain_i] = strain_rate_3d - diffusion_strain_rate[grain_i];
@@ -1415,6 +1419,7 @@ namespace aspect
 
             diffusion_velocity_gradient[grain_i] = 0.;
             dislocation_velocity_gradient[grain_i] = 0.;
+            set_diffusion_fraction(cpo_index,data,mineral_i,grain_i,0.);
           }
         }
 

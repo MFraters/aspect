@@ -369,7 +369,7 @@ namespace aspect
                                                const ArrayView<double> &data,
                                                const unsigned int mineral_i) const
           {
-            return static_cast<DeformationType>(data[cpo_data_position + 0 + mineral_i * (n_grains * 13 + 2)]);
+            return static_cast<DeformationType>(data[cpo_data_position + 0 + mineral_i * (n_grains * 14 + 2)]);
           }
 
           /**
@@ -386,7 +386,7 @@ namespace aspect
                                     const unsigned int mineral_i,
                                     const DeformationType deformation_type) const
           {
-            data[cpo_data_position + 0 + mineral_i * (n_grains * 13 + 2)] = static_cast<double>(deformation_type);
+            data[cpo_data_position + 0 + mineral_i * (n_grains * 14 + 2)] = static_cast<double>(deformation_type);
           }
 
           /**
@@ -401,7 +401,7 @@ namespace aspect
                                              const ArrayView<double> &data,
                                              const unsigned int mineral_i) const
           {
-            return data[cpo_data_position + 1 + mineral_i *(n_grains * 13 + 2)];
+            return data[cpo_data_position + 1 + mineral_i *(n_grains * 14 + 2)];
           }
 
           /**
@@ -418,7 +418,7 @@ namespace aspect
                                            const unsigned int mineral_i,
                                            const double volume_fraction_mineral) const
           {
-            data[cpo_data_position + 1 + mineral_i *(n_grains * 13 + 2)] = volume_fraction_mineral;
+            data[cpo_data_position + 1 + mineral_i *(n_grains * 14 + 2)] = volume_fraction_mineral;
           }
 
           /**
@@ -435,7 +435,7 @@ namespace aspect
                                              const unsigned int mineral_i,
                                              const unsigned int grain_i) const
           {
-            return data[cpo_data_position + 2 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)];
+            return data[cpo_data_position + 2 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)];
           }
 
           /**
@@ -454,7 +454,7 @@ namespace aspect
                                            const unsigned int grain_i,
                                            const double volume_fractions_grains) const
           {
-            data[cpo_data_position + 2 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)] = volume_fractions_grains;
+            data[cpo_data_position + 2 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)] = volume_fractions_grains;
           }
 
           /**
@@ -476,7 +476,7 @@ namespace aspect
             for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
               {
                 const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                rotation_matrix[index] = data[cpo_data_position + 3 + grain_i * 13 + mineral_i * (n_grains * 13 + 2) + i];
+                rotation_matrix[index] = data[cpo_data_position + 3 + grain_i * 14 + mineral_i * (n_grains * 14 + 2) + i];
               }
             return rotation_matrix;
           }
@@ -500,7 +500,7 @@ namespace aspect
             for (unsigned int i = 0; i < Tensor<2,3>::n_independent_components ; ++i)
               {
                 const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
-                data[cpo_data_position + 3 + grain_i * 13 + mineral_i * (n_grains * 13 + 2) + i] = rotation_matrix[index];
+                data[cpo_data_position + 3 + grain_i * 14 + mineral_i * (n_grains * 14 + 2) + i] = rotation_matrix[index];
               }
           }
 
@@ -518,7 +518,7 @@ namespace aspect
                                              const unsigned int mineral_i,
                                              const unsigned int grain_i) const
           {
-            return data[cpo_data_position + 12 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)];
+            return data[cpo_data_position + 12 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)];
           }
 
           /**
@@ -537,7 +537,7 @@ namespace aspect
                                            const unsigned int grain_i,
                                            const int grain_status) const
           {
-            data[cpo_data_position + 12 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)] = grain_status;
+            data[cpo_data_position + 12 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)] = grain_status;
           }
 
           /**
@@ -554,7 +554,7 @@ namespace aspect
                                              const unsigned int mineral_i,
                                              const unsigned int grain_i) const
           {
-            return data[cpo_data_position + 13 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)];
+            return data[cpo_data_position + 13 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)];
           }
 
           /**
@@ -573,7 +573,7 @@ namespace aspect
                                            const unsigned int grain_i,
                                            const double strain_accumulated) const
           {
-            data[cpo_data_position + 13 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)] = strain_accumulated;
+            data[cpo_data_position + 13 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)] = strain_accumulated;
           }
 
           /**
@@ -590,7 +590,7 @@ namespace aspect
                                              const unsigned int mineral_i,
                                              const unsigned int grain_i) const
           {
-            return data[cpo_data_position + 14 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)];
+            return data[cpo_data_position + 14 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)];
           }
 
           /**
@@ -609,7 +609,44 @@ namespace aspect
                                            const unsigned int grain_i,
                                            const double rx_fractions) const
           {
-            data[cpo_data_position + 14 + grain_i * 13 + mineral_i * (n_grains * 13 + 2)] = rx_fractions;
+            data[cpo_data_position + 14 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)] = rx_fractions;
+          }
+
+          // After this, all properties stored to the cpo array is purely for the purpose of visualizing the evolution of different model parameters for verification and not needed for running the model
+           /**
+           * @brief Returns the value in the data array representing the volume fraction 3f a grain.
+           *
+           * @param cpo_data_position The starting index/position of the cpo data in the particle data vector.
+           * @param data The particle data vector.
+           * @param mineral_i The mineral to get the value of the volume fraction of a grain for.
+           * @param grain_i The grain to get the value of the volume fraction of.
+           */
+          inline
+          double get_diffusion_fraction(const unsigned int cpo_data_position,
+                                             const ArrayView<const double> &data,
+                                             const unsigned int mineral_i,
+                                             const unsigned int grain_i) const
+          {
+            return data[cpo_data_position + 15 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)];
+          }
+
+          /**
+           * @brief Sets the value in the data array representing the volume fraction of a grain.
+           *
+           * @param cpo_data_position The starting index/position of the cpo data in the particle data vector.
+           * @param data The particle data vector.
+           * @param mineral_i The mineral to set the value of the volume fraction of a grain for.
+           * @param grain_i The grain to set the value of the volume fraction of.
+           * @param volume_fractions_grains The value of the volume fraction of a grain to set.
+           */
+          inline
+          void set_diffusion_fraction(const unsigned int cpo_data_position,
+                                           const ArrayView<double> &data,
+                                           const unsigned int mineral_i,
+                                           const unsigned int grain_i,
+                                           const double chi_dif) const
+          {
+            data[cpo_data_position + 15 + grain_i * 14 + mineral_i * (n_grains * 14 + 2)] = chi_dif;
           }
 
         private:
