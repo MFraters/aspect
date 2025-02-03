@@ -2002,8 +2002,9 @@ namespace aspect
                                    Patterns::List(Patterns::Double(0)),
                                    "This is intial grain size we choose to prescribe to Drex ++ ");
           }
+          prm.leave_subsection();
         }
-        prm.leave_subsection ();
+        prm.leave_subsection();
       }
 
 
