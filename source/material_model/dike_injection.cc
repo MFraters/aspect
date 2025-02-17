@@ -55,6 +55,12 @@ namespace aspect
     DikeInjection<dim>::initialize()
     {
       base_model->initialize();
+        const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+        unsigned int random_number_seed = 1;
+        // The random number generator needs to be exactly the same on all processors
+        // so don't do + my_rank!!! If you need an random number generator which is different
+        // between processors, create a new one.
+        this->random_number_generator.seed(random_number_seed);
       this->get_signals().start_timestep.connect(&clear_compositional_field<dim>);
     }
 
@@ -90,9 +96,6 @@ namespace aspect
       std::vector<Point<dim>> &reference_positions,
       const LinearAlgebra::BlockVector &input_solution)
     {
-
-
-
       const UpdateFlags update_flags = update_values | update_gradients;
       std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,update_flags);
 
@@ -112,63 +115,34 @@ namespace aspect
 
       for (unsigned int cell_i = 0; cell_i < cells.size(); ++cell_i)
         {
-          //std::cout << "flag 10" << std::endl;
           Assert(cells[cell_i].state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
-          //std::cout << "flag 11" << std::endl;
           small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
           cells[cell_i]->get_dof_values(input_solution,
                                         solution_values.begin(),
                                         solution_values.end());
-          //std::cout << "flag 12" << std::endl;
 
           std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
-          //std::cout << "flag 13" << std::endl;
           solution.resize(1,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
-          //std::cout << "flag 14 evaluator->n_components() = " << evaluator->n_components() << ", solution.size() = " << solution.size() << std::endl;
-          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
           solution[0] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
-          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
 
           std::vector<std::vector<Tensor<1,dim>>> gradients(this->get_fe().dofs_per_cell);
-          //std::cout << "flag 15" << std::endl;
           gradients.resize(1,std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
           gradients[0]=std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>());
-          //std::cout << "flag 16" << std::endl;
 
           evaluator->reinit(cells[cell_i], reference_positions);
-          //std::cout << "flag 17" << std::endl;
           evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
-          //std::cout << "flag 45"<< std::endl;
-          //std::cout << "solution.size() = " << solution.size() << std::endl;
-          //std::cout << "&solution[0] = " << &solution[0] << std::endl;
-          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
-          //std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
-//           //std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
           evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
-          //std::cout << "flag 46"<< std::endl;
-          //std::cout << "&solution[0] = " << &solution[0] << std::endl;
-          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
-          //std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
-          //std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
           evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
-          //std::cout << "flag 47"<< std::endl;
-          //std::cout << "&solution[0] = " << &solution[0] << std::endl;
-          //std::cout << "solution[0].size() = " << solution[0].size() << std::endl;
-          //std::cout << "&solution[0][0] = " << &solution[0][0] << std::endl;
-          //std::cout << "solution[0][0] = " << solution[0][0] << std::endl;
 
           Tensor<1,dim> velocity;
 
           for (unsigned int i = 0; i < dim; ++i)
             velocity[i] = solution_values[this->introspection().component_indices.velocities[i]];
 
-          //std::cout << "flag 48"<< std::endl;
-          // get velocity gradient tensor.
           Tensor<2,dim> velocity_gradient;
           for (unsigned int i = 0; i < dim; ++i)
             velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
 
-          //std::cout << "flag 49"<< std::endl;
           // Calculate strain rate from velocity gradients
           const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
           const SymmetricTensor<2,dim> deviatoric_strain_rate
@@ -261,163 +235,6 @@ namespace aspect
           //std::cout << "flag 60"<< std::endl;
 
         }
-
-      //std::vector<EvaluationFlags::EvaluationFlags> evaluation_flags (1, EvaluationFlags::nothing);
-      //evaluation_flags[0] |= EvaluationFlags::values;
-      //evaluation_flags[0] |= EvaluationFlags::gradients;
-      //evaluator->reinit(cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
-      //std::cout << "ifcsle flag 1: positions.size() = " << positions.size() << ", this->introspection().n_components = " << this->introspection().n_components << std::endl;
-      //Assert(cell.state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
-
-      //std::vector<Vector<double>> solution(this->get_fe().dofs_per_cell);
-      //solution.resize(1,Vector<double>(this->introspection().n_components));
-      //small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
-      //cell->get_dof_values(this->get_solution(),
-      //                     solution_values.begin(),
-      //                     solution_values.end());
-      //solution_values.resize(1,small_vector<double,50>(evaluator.n_components(), numbers::signaling_nan<double>()));
-      //std::vector<small_vector<double,50>> solution(this->get_fe().dofs_per_cell);
-      //solution.resize(1,small_vector<double,50>(evaluator->n_components(), numbers::signaling_nan<double>()));
-
-      //std::vector<std::vector<Tensor<1,dim>>> gradients;
-      //gradients.resize(1,std::vector<Tensor<1,dim>>(this->introspection().n_components));
-      //small_vector<small_vector<Tensor<1,dim>,50>> gradients(this->get_fe().dofs_per_cell);
-      //gradients.resize(1,small_vector<Tensor<1,dim>,50>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
-
-      //std::cout << "ifcsle flag 5" << std::endl;
-      //for (unsigned int i = 0; i<1; ++i)
-      //{
-      //  //evaluator->evaluate({&solution[0][0],solution[0].size()}, evaluation_flags);
-      //  evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
-      //  // Evaluate the solution, but only if it is requested in the update_flags
-      //  //if (update_flags & update_values)
-      //  evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
-      //
-      //  //std::cout << "ifcsle flag 6" << std::endl;
-      //  // Evaluate the gradients, but only if they are requested in the update_flags
-      //  //if (update_flags & update_gradients)
-      //  evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
-      //}
-
-      //std::cout << "ifcsle flag 7" << std::endl;
-      // get presure, temp, etc
-
-      // need access to the pressure, viscosity,
-      // get velocity
-
-      /*Tensor<1,dim> velocity;
-
-      for (unsigned int i = 0; i < dim; ++i)
-        velocity[i] = solution_values[this->introspection().component_indices.velocities[i]];
-
-      // get velocity gradient tensor.
-      Tensor<2,dim> velocity_gradient;
-      for (unsigned int i = 0; i < dim; ++i)
-        velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
-
-      // Calculate strain rate from velocity gradients
-      const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
-      const SymmetricTensor<2,dim> deviatoric_strain_rate
-        = (this->get_material_model().is_compressible()
-           ?
-           strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
-           :
-           strain_rate);
-
-      const double pressure = solution[0][this->introspection().component_indices.pressure];
-
-      //std::vector<double> temperature_values = {1};
-      //fe_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(), temperature_values);
-      const double temperature =solution[0][this->introspection().component_indices.temperature];
-
-      //std::cout << "temperature = " << temperature << ", pressure = " << pressure << ",solution[0][0] = " << solution[0][0] << ",1:" << solution[0][1] << ",2:" << solution[0][2] << ",3:" << solution[0][3] << ", old: " << solution[0][this->introspection().component_indices.temperature] << ", this->introspection().component_indices.temperature = " << this->introspection().component_indices.temperature << ", pres index = " << this->introspection().component_indices.pressure << ", solution_values = " << solution_values[0] << ":" << solution_values[1] << ":" << solution_values[2] << ":" << solution_values[3] << std::endl;
-
-      // get the composition of the particle
-      std::vector<double> compositions;
-      for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
-        {
-          const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
-          compositions.push_back(solution[0][solution_component]);
-        }
-
-      //const double dt = this->get_timestep();
-
-      // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
-      // adding an extra dimension which is zero.
-      SymmetricTensor<2,3> strain_rate_3d;
-      strain_rate_3d[0][0] = strain_rate[0][0];
-      strain_rate_3d[0][1] = strain_rate[0][1];
-      //sym: strain_rate_3d[1][0] = strain_rate[1][0];
-      strain_rate_3d[1][1] = strain_rate[1][1];
-
-      if (dim == 3)
-        {
-          strain_rate_3d[0][2] = strain_rate[0][2];
-          strain_rate_3d[1][2] = strain_rate[1][2];
-          //sym: strain_rate_3d[2][0] = strain_rate[0][2];
-          //sym: strain_rate_3d[2][1] = strain_rate[1][2];
-          strain_rate_3d[2][2] = strain_rate[2][2];
-        }
-      Tensor<2,3> velocity_gradient_3d;
-      velocity_gradient_3d[0][0] = velocity_gradient[0][0];
-      velocity_gradient_3d[0][1] = velocity_gradient[0][1];
-      velocity_gradient_3d[1][0] = velocity_gradient[1][0];
-      velocity_gradient_3d[1][1] = velocity_gradient[1][1];
-      if (dim == 3)
-        {
-          velocity_gradient_3d[0][2] = velocity_gradient[0][2];
-          velocity_gradient_3d[1][2] = velocity_gradient[1][2];
-          velocity_gradient_3d[2][0] = velocity_gradient[2][0];
-          velocity_gradient_3d[2][1] = velocity_gradient[2][1];
-          velocity_gradient_3d[2][2] = velocity_gradient[2][2];
-        }
-
-      // compute the viscosity
-      MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
-      material_model_inputs.position[0] = positions[0];
-      material_model_inputs.temperature[0] = temperature;
-      material_model_inputs.pressure[0] = pressure;
-      material_model_inputs.velocity[0] = velocity;
-      material_model_inputs.composition[0] = compositions;
-      material_model_inputs.strain_rate[0] = strain_rate;
-      material_model_inputs.current_cell = cell;
-      //std::cout << "position = " << positions[0] << ", temperature = " << temperature << ", pressure = " << pressure
-      //<< ", velocity = " << velocity << ", strain_rate = " << strain_rate << std::endl;
-
-      MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
-      this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
-      double eta = material_model_outputs.viscosities[0];
-
-      //const SymmetricTensor<2,dim> stress = 2*eta*deviatoric_strain_rate +
-      //                                      pressure * unit_symmetric_tensor<dim>();
-
-      //                 const SymmetricTensor<2,dim> deviatoric_strain_rate
-      // = (this->get_material_model().is_compressible()
-      //    ?
-      //    strain_rate - 1./3. * trace(strain_rate) * unit_symmetric_tensor<dim>()
-      //    :
-      //    strain_rate);
-
-      // Compressive stress is positive in geoscience applications
-      const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
-      //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
-      Tensor< 1, dim, double > stress_largest_eigenvectors = dealii::eigenvectors(stress)[0].second;
-
-      //std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
-      //          << ", " <<dealii::eigenvectors(stress)[1].first << std::endl;
-
-      // now we have the largest stress eigenvector. We need to deterine what is up.
-      Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[0])/this->get_gravity_model().gravity_vector(positions[0]).norm();
-
-      double angle = stress_largest_eigenvectors * gravity_vector;
-      //std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
-      //          << ", stress_largest_eigenvectors = " << stress_largest_eigenvectors << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
-      if (std::fabs(angle) < 0.5*numbers::PI)
-        {
-          stress_largest_eigenvectors *= -1;
-        }*/
-
-      //std::cout << "ifcsle flag end" << std::endl;
       return stress_largest_eigenvectors;
 
     }
@@ -470,16 +287,232 @@ namespace aspect
       int world_size;
       MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
+      // find the melt to deterimne the dike loctations
+      Point<dim> min_dim_melt;
+      Point<dim> max_dim_melt;
+      // compute the integral quantities by quadrature
+      const UpdateFlags update_flags = update_values | update_gradients;
+
+      std::vector<EvaluationFlags::EvaluationFlags> evaluation_flags (this->introspection().n_components, EvaluationFlags::nothing);
+
+      for (unsigned int i=0; i<this->introspection().n_components; ++i)
+        {
+          evaluation_flags[i] |= EvaluationFlags::values;
+          evaluation_flags[i] |= EvaluationFlags::gradients;
+        }
+
+      std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,update_flags);
+      //const unsigned int n_quadrature_points = input_data.solution_values.size();
+      // TODO: generalize this for spherical
+      double x_min = std::numeric_limits<double>::infinity();
+      double x_max = -std::numeric_limits<double>::infinity();
+      double y_min = std::numeric_limits<double>::infinity();
+      double y_max = -std::numeric_limits<double>::infinity();
+      double z_min = std::numeric_limits<double>::infinity();
+      double z_max = -std::numeric_limits<double>::infinity();
+      for (const auto &cell : this->get_dof_handler().active_cell_iterators())
+      {
+        if (cell->is_locally_owned())
+          {
+            std::vector<Point<dim>> position = {cell->center()};
+            std::vector<Point<dim>> reference_positions = {this->get_mapping().transform_real_to_unit_cell(cell, position[0])};
+
+            // for now we just check the center of the cell
+//for (unsigned int q=0; q<n_quadrature_points; ++q)
+            {
+              unsigned int q = 0;
+          Assert(cell.state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
+          small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
+          cell->get_dof_values(this->get_solution(),
+                                        solution_values.begin(),
+                                        solution_values.end());
+
+          std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
+          solution.resize(1,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
+          solution[q] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
+
+          evaluator->reinit(cell, reference_positions);
+          evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
+          evaluator->get_solution(q, {&solution[q][0],solution[q].size()}, evaluation_flags);
+
+          const double pressure = solution[q][this->introspection().component_indices.pressure];
+          const double temperature =solution[q][this->introspection().component_indices.temperature];
+
+              std::vector<double> composition(this->n_compositional_fields());
+
+          for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
+            {
+              const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
+              composition[i] = solution[0][solution_component];
+            }
+
+              // anhydrous melting of peridotite after Katz, 2003
+              const double T_solidus  = A1 + 273.15
+                                        + A2 * pressure
+                                        + A3 * pressure * pressure;
+              const double T_lherz_liquidus = B1 + 273.15
+                                              + B2 * pressure
+                                              + B3 * pressure * pressure;
+              const double T_liquidus = C1 + 273.15
+                                        + C2 * pressure
+                                        + C3 * pressure * pressure;
+
+              // melt fraction for peridotite with clinopyroxene
+              double peridotite_melt_fraction;
+              if (temperature < T_solidus || pressure > 1.3e10)
+                peridotite_melt_fraction = 0.0;
+              else if (temperature > T_lherz_liquidus)
+                peridotite_melt_fraction = 1.0;
+              else
+                peridotite_melt_fraction = std::pow((temperature - T_solidus) / (T_lherz_liquidus - T_solidus),beta);
+
+              // melt fraction after melting of all clinopyroxene
+              const double R_cpx = r1 + r2 * std::max(0.0, pressure);
+              const double F_max = M_cpx / R_cpx;
+
+              if (peridotite_melt_fraction > F_max && temperature < T_liquidus)
+                {
+                  const double T_max = std::pow(F_max,1/beta) * (T_lherz_liquidus - T_solidus) + T_solidus;
+                  peridotite_melt_fraction = F_max + (1 - F_max) * std::pow((temperature - T_max) / (T_liquidus - T_max),beta);
+                }
+
+              // melting of pyroxenite after Sobolev et al., 2011
+              const double T_melting = D1 + 273.15
+                                       + D2 * pressure
+                                       + D3 * pressure * pressure;
+
+              const double discriminant = E1*E1/(E2*E2*4) + (temperature-T_melting)/E2;
+
+              double pyroxenite_melt_fraction;
+              if (temperature < T_melting || pressure > 1.3e10)
+                pyroxenite_melt_fraction = 0.0;
+              else if (discriminant < 0)
+                pyroxenite_melt_fraction = 0.5429;
+              else
+                pyroxenite_melt_fraction = -E1/(2*E2) - std::sqrt(discriminant);
+
+              double melt_fraction;
+              if (this->introspection().compositional_name_exists("pyroxenite"))
+                {
+                  const unsigned int pyroxenite_index = this->introspection().compositional_index_for_name("pyroxenite");
+                  melt_fraction = composition[pyroxenite_index] * pyroxenite_melt_fraction +
+                                  (1-composition[pyroxenite_index]) * peridotite_melt_fraction;
+                }
+              else
+                melt_fraction = peridotite_melt_fraction;
+
+                //std::cout << "melt_fraction = " << melt_fraction << ", melt_fraction_threshold = " << melt_fraction_threshold << std::endl;
+
+              if(melt_fraction > melt_fraction_threshold){
+
+      std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
+                                  << y_min  << " : " << y_max << ", "
+                                  << z_min  << " : " << z_max << std::endl;
+                x_min = std::min(x_min,position[0][0]);
+                x_max = std::max(x_max,position[0][0]);
+                y_min = std::min(y_min,position[0][1]);
+                y_max = std::max(y_max,position[0][1]);
+                z_min = std::min(z_min,position[0][2]);
+                z_max = std::max(z_max,position[0][2]);
+              }
+            }
+          }
+    }
+      x_min = Utilities::MPI::min(x_min,this->get_mpi_communicator());
+      x_max = Utilities::MPI::max(x_max,this->get_mpi_communicator());
+      y_min = Utilities::MPI::min(y_min,this->get_mpi_communicator());
+      y_max = Utilities::MPI::max(y_max,this->get_mpi_communicator());
+      z_min = Utilities::MPI::min(z_min,this->get_mpi_communicator());
+      z_max = Utilities::MPI::max(z_max,this->get_mpi_communicator());
+
+      //std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
+      //                            << y_min  << " : " << y_max << ", "
+      //                            << z_min  << " : " << z_max << std::endl;
+
+      // only make dikes if values are finite
+
+      if(std::isfinite(x_min) && std::isfinite(x_max) &&
+         std::isfinite(y_min) && std::isfinite(y_max) &&
+         std::isfinite(z_min) && std::isfinite(z_max))
+{
+    //std::cout << "flag 0" << std::endl;
+    std::uniform_real_distribution<double> uniform_distribution_x(x_min,x_max);
+    std::uniform_real_distribution<double> uniform_distribution_y(y_min,y_max);
+    std::uniform_real_distribution<double> uniform_distribution_z(z_min,z_max);
+    //std::cout << "flag 1" << std::endl;
+    /**
+     * The code below shows the distribution of adding two uniform distribution outputs, 
+     * which is a triangle distribution.
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <random>
+#include <string>
+ 
+int main()
+{
+    std::random_device rd;  // Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dis(0.0, 25);
+        auto random_int = [&rd, &gen, &dis]{ return std::lround((dis(gen)+dis(gen))/2.0); };
+ 
+    std::map<long, unsigned> histogram{};
+    for (auto n{100000}; n; --n)
+        ++histogram[random_int()];
+ 
+    for (const auto [k, v] : histogram)
+        std::cout << std::setw(2) << k << ' ' << std::string(v / 200, '*') << '\n';
+
+    std::cout << '\n';
+}
+
+result:
+
+ 0 
+ 1 ***
+ 2 ******
+ 3 *********
+ 4 ************
+ 5 ***************
+ 6 *******************
+ 7 **********************
+ 8 *************************
+ 9 ****************************
+10 ********************************
+11 ***********************************
+12 **************************************
+13 **************************************
+14 **********************************
+15 ********************************
+16 ****************************
+17 *************************
+18 **********************
+19 *******************
+20 ***************
+21 ************
+22 *********
+23 ******
+24 ***
+25 
+     */
+        double dike_x = (uniform_distribution_x(this->random_number_generator)+uniform_distribution_x(this->random_number_generator))/2.0;
+        double dike_y = y_max;//(uniform_distribution_y(this->random_number_generator)+uniform_distribution_y(this->random_number_generator))/2.0;
+        double dike_z = z_max;//(uniform_distribution_z(this->random_number_generator)+uniform_distribution_z(this->random_number_generator))/2.0;
+
+      
+    //std::cout << "flag 3: dike start location = " << dike_x << ":" << dike_y << ":" << dike_z << std::endl;
       //particle_lost = false;
-      dike_locations.resize(2);
+      dike_locations.resize(1);
       dike_locations[0].resize(0);
-      dike_locations[1].resize(0);
+      //dike_locations[1].resize(0);
 
       // TODO: To know if we need diking, we need to compute whether or not we have melting.
       if (dim == 2)
         {
-          dike_locations[0].emplace_back(Point<dim>(-1370.4997314869,40489.36393586183));//(0,50225));
-          dike_locations[1].emplace_back(Point<dim>(-20000,40489.36393586183));//(0,50225));
+          dike_locations[0].emplace_back(Point<dim>(dike_x,dike_y));
+          //dike_locations[0].emplace_back(Point<dim>(-1370.4997314869,40489.36393586183));//(0,50225));
+          //dike_locations[1].emplace_back(Point<dim>(-20000,40489.36393586183));//(0,50225));
         }
       else
         {
@@ -557,14 +590,14 @@ namespace aspect
               if (!(iteration < 5000))
                 {
                   std::string concat = "";
-                 //std::cout << "Failing at iteration " << iteration << ", current dike path: ";
+                 std::cout << "Failing at iteration " << iteration << ", current dike path: ";
                   for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
                     {
-                     //std::cout << std::endl << "dike " << dike_i << ": ";
+                     std::cout << std::endl << "dike " << dike_i << ": ";
                       for (auto coords : dike_locations[dike_i])
                         {
                           //concat += std::to_string(coords);
-                         //std::cout << coords << ", ";
+                         std::cout << coords << ", ";
                         }
                     }
                   AssertThrow(iteration < 5000, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
@@ -998,6 +1031,7 @@ namespace aspect
           top_depth_random_dike = ref_top_depth_random_dike + depth_change_random_dike;
         }*/
       particle_statuses.resize(0);
+}
     }
 
     template <int dim>
@@ -1598,6 +1632,128 @@ namespace aspect
             prm.declare_entry("Function expression","0.0");
           }
           prm.leave_subsection();
+          prm.enter_subsection("Melt fraction");
+          {
+              prm.declare_entry ("threshold melt fraction", "1e-8",
+                                 Patterns::Double(),
+                                 "The meltfraction threshold for computing the melt fraction extend.");
+              prm.declare_entry ("A1", "1085.7",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the solidus "
+                                 "of peridotite. "
+                                 "Units: \\si{\\degreeCelsius}.");
+              prm.declare_entry ("A2", "1.329e-7",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of peridotite. "
+                                 "\\si{\\degreeCelsius\\per\\pascal}.");
+              prm.declare_entry ("A3", "-5.1e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of peridotite. "
+                                 "\\si{\\degreeCelsius\\per\\pascal\\squared}.");
+              prm.declare_entry ("B1", "1475.0",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the lherzolite "
+                                 "liquidus used for calculating the fraction "
+                                 "of peridotite-derived melt. "
+                                 "Units: \\si{\\degreeCelsius}.");
+              prm.declare_entry ("B2", "8.0e-8",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the  lherzolite liquidus used for "
+                                 "calculating the fraction of peridotite-"
+                                 "derived melt. "
+                                 "\\si{\\degreeCelsius\\per\\pascal}.");
+              prm.declare_entry ("B3", "-3.2e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the  lherzolite liquidus used for "
+                                 "calculating the fraction of peridotite-"
+                                 "derived melt. "
+                                 "\\si{\\degreeCelsius\\per\\pascal\\squared}.");
+              prm.declare_entry ("C1", "1780.0",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the liquidus "
+                                 "of peridotite. "
+                                 "Units: \\si{\\degreeCelsius}.");
+              prm.declare_entry ("C2", "4.50e-8",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the liquidus of peridotite. "
+                                 "\\si{\\degreeCelsius\\per\\pascal}.");
+              prm.declare_entry ("C3", "-2.0e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the liquidus of peridotite. "
+                                 "\\si{\\degreeCelsius\\per\\pascal\\squared}.");
+              prm.declare_entry ("r1", "0.5",
+                                 Patterns::Double (),
+                                 "Constant in the linear function that "
+                                 "approximates the clinopyroxene reaction "
+                                 "coefficient. "
+                                 "Units: non-dimensional.");
+              prm.declare_entry ("r2", "8e-11",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the linear function that approximates "
+                                 "the clinopyroxene reaction coefficient. "
+                                 "Units: \\si{\\per\\pascal}.");
+              prm.declare_entry ("beta", "1.5",
+                                 Patterns::Double (),
+                                 "Exponent of the melting temperature in "
+                                 "the melt fraction calculation. "
+                                 "Units: non-dimensional.");
+              prm.declare_entry ("Mass fraction cpx", "0.15",
+                                 Patterns::Double (),
+                                 "Mass fraction of clinopyroxene in the "
+                                 "peridotite to be molten. "
+                                 "Units: non-dimensional.");
+              prm.declare_entry ("D1", "976.0",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the solidus "
+                                 "of pyroxenite. "
+                                 "Units: \\si{\\degreeCelsius}.");
+              prm.declare_entry ("D2", "1.329e-7",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of pyroxenite. "
+                                 "Note that this factor is different from the "
+                                 "value given in Sobolev, 2011, because they use "
+                                 "the potential temperature whereas we use the "
+                                 "absolute temperature. "
+                                 "\\si{\\degreeCelsius\\per\\pascal}.");
+              prm.declare_entry ("D3", "-5.1e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of pyroxenite. "
+                                 "\\si{\\degreeCelsius\\per\\pascal\\squared}.");
+              prm.declare_entry ("E1", "663.8",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear depletion term "
+                                 "in the quadratic function that approximates "
+                                 "the melt fraction of pyroxenite. "
+                                 "\\si{\\degreeCelsius\\per\\pascal}.");
+              prm.declare_entry ("E2", "-611.4",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic depletion term "
+                                 "in the quadratic function that approximates "
+                                 "the melt fraction of pyroxenite. "
+                                 "\\si{\\degreeCelsius\\per\\pascal\\squared}.");
+            }
+            prm.leave_subsection();
           aspect::Particle::Integrator::Interface<dim>::declare_parameters(prm);
         }
         prm.leave_subsection();
@@ -1657,6 +1813,29 @@ namespace aspect
             sim->initialize_simulator (this->get_simulator());
           particle_integrator->parse_parameters(prm);
           dynamic_cast<Particle::Integrator::RK4<dim>*>(particle_integrator.get())->set(0);
+          prm.enter_subsection("Melt fraction");
+            {
+              melt_fraction_threshold = prm.get_double("threshold melt fraction");
+              A1              = prm.get_double ("A1");
+              A2              = prm.get_double ("A2");
+              A3              = prm.get_double ("A3");
+              B1              = prm.get_double ("B1");
+              B2              = prm.get_double ("B2");
+              B3              = prm.get_double ("B3");
+              C1              = prm.get_double ("C1");
+              C2              = prm.get_double ("C2");
+              C3              = prm.get_double ("C3");
+              r1              = prm.get_double ("r1");
+              r2              = prm.get_double ("r2");
+              beta            = prm.get_double ("beta");
+              M_cpx           = prm.get_double ("Mass fraction cpx");
+              D1              = prm.get_double ("D1");
+              D2              = prm.get_double ("D2");
+              D3              = prm.get_double ("D3");
+              E1              = prm.get_double ("E1");
+              E2              = prm.get_double ("E2");
+            }
+            prm.leave_subsection();
         }
         prm.leave_subsection();
       }

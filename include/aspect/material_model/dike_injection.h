@@ -197,6 +197,51 @@ namespace aspect
          * recreating them every time we need it.
          */
         mutable std::vector<std::unique_ptr<FEPointEvaluation<1, dim>>> composition_evaluators;
+
+
+          /**
+           * Parameters for anhydrous melting of peridotite after Katz, 2003
+           */
+
+          double melt_fraction_threshold;
+
+          mutable std::mt19937 random_number_generator;
+
+          // for the solidus temperature
+          double A1;   // °C
+          double A2; // °C/Pa
+          double A3; // °C/(Pa^2)
+
+          // for the lherzolite liquidus temperature
+          double B1;   // °C
+          double B2;   // °C/Pa
+          double B3; // °C/(Pa^2)
+
+          // for the liquidus temperature
+          double C1;   // °C
+          double C2;  // °C/Pa
+          double C3; // °C/(Pa^2)
+
+          // for the reaction coefficient of pyroxene
+          double r1;     // cpx/melt
+          double r2;     // cpx/melt/GPa
+          double M_cpx;  // mass fraction of pyroxenite
+
+          // melt fraction exponent
+          double beta;
+
+          /**
+           * Parameters for melting of pyroxenite after Sobolev et al., 2011
+           */
+
+          // for the melting temperature
+          double D1;    // °C
+          double D2;  // °C/Pa
+          double D3; // °C/(Pa^2)
+
+          // for the melt-fraction dependence of productivity
+          double E1;
+          double E2;
     };
   }
 }
