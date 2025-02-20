@@ -1367,13 +1367,6 @@ namespace aspect
             bulk_piezometer[mineral_i] = 0.5;
           }
         
-        if((timestep == 1) && (initial_grains_model == CPOInitialGrainsModel::piezometer))
-        {
-          for(unsigned int i = 0; i < n_grains_init; ++i)
-          {
-            set_volume_fractions_grains(cpo_index,data,mineral_i,i,bulk_piezometer[mineral_i]);
-          }
-        }
 
         /* 
            Constants for the calculation of rheology. These are hardcoded values of olivine & pyroxene rheology (see supplementary material Dannberg et al, 2017)
@@ -1962,7 +1955,7 @@ namespace aspect
           }
           prm.leave_subsection();
 
-          prm.enter_subsection("D-Rex ++");
+          prm.enter_subsection("D-Rex++");
           {
             prm.declare_entry ("Number of initial grains","500",
                                    Patterns::List(Patterns::Double(0)),
@@ -2071,15 +2064,6 @@ namespace aspect
               {
                 initial_grains_model = CPOInitialGrainsModel::world_builder;
               }
-            if (model_name == "Piezometer")
-              {
-                if(cpo_derivative_algorithm == CPODerivativeAlgorithm::drexpp)
-                  initial_grains_model = CPOInitialGrainsModel::piezometer;
-                else
-                  AssertThrow(false,
-                            ExcMessage( model_name + "is only to be used with the D-Rex++ cpo evolution algorithm"));  
-              }
-          
             else
               {
                 AssertThrow(false,

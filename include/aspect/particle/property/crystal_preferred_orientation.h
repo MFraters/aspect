@@ -103,7 +103,7 @@ namespace aspect
        */
       enum class CPOInitialGrainsModel
       {
-        uniform_grains_and_random_uniform_rotations, world_builder, piezometer,paleowattmeter
+        uniform_grains_and_random_uniform_rotations, world_builder
       };
 
       /**
