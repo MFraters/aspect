@@ -108,10 +108,19 @@ namespace aspect
         void set_particle_lost(const typename Particles::ParticleIterator<dim> &particle,
                                const typename Triangulation<dim>::active_cell_iterator &cell);
 
-        std::vector<Tensor<1,dim>> compute_stress_largest_eigenvector(std::vector<typename DoFHandler<dim>::active_cell_iterator> &cells,
-                                                                       std::vector<Point<dim>> &positions,
-                                                                       std::vector<Point<dim>> &reference_positions,
-                                                                       const LinearAlgebra::BlockVector &input_solution);
+        /**
+         * @brief computes the velocity field based on the povided solution vector. By default it computes the stress largesest eigenvector
+         *
+         * @param cells
+         * @param positions
+         * @param reference_positions
+         * @param input_solution
+         * @return std::vector<Tensor<1,dim>>
+         */
+        std::vector<Tensor<1,dim>> compute_velocity_field(std::vector<typename DoFHandler<dim>::active_cell_iterator> &cells,
+                                                           std::vector<Point<dim>> &positions,
+                                                           std::vector<Point<dim>> &reference_positions,
+                                                           const LinearAlgebra::BlockVector &input_solution);
         /**
          * Parsed function that specifies the region and amount of
          * material that is injected into the model.
@@ -199,49 +208,49 @@ namespace aspect
         mutable std::vector<std::unique_ptr<FEPointEvaluation<1, dim>>> composition_evaluators;
 
 
-          /**
-           * Parameters for anhydrous melting of peridotite after Katz, 2003
-           */
+        /**
+         * Parameters for anhydrous melting of peridotite after Katz, 2003
+         */
 
-          double melt_fraction_threshold;
+        double melt_fraction_threshold;
 
-          mutable std::mt19937 random_number_generator;
+        mutable std::mt19937 random_number_generator;
 
-          // for the solidus temperature
-          double A1;   // °C
-          double A2; // °C/Pa
-          double A3; // °C/(Pa^2)
+        // for the solidus temperature
+        double A1;   // °C
+        double A2; // °C/Pa
+        double A3; // °C/(Pa^2)
 
-          // for the lherzolite liquidus temperature
-          double B1;   // °C
-          double B2;   // °C/Pa
-          double B3; // °C/(Pa^2)
+        // for the lherzolite liquidus temperature
+        double B1;   // °C
+        double B2;   // °C/Pa
+        double B3; // °C/(Pa^2)
 
-          // for the liquidus temperature
-          double C1;   // °C
-          double C2;  // °C/Pa
-          double C3; // °C/(Pa^2)
+        // for the liquidus temperature
+        double C1;   // °C
+        double C2;  // °C/Pa
+        double C3; // °C/(Pa^2)
 
-          // for the reaction coefficient of pyroxene
-          double r1;     // cpx/melt
-          double r2;     // cpx/melt/GPa
-          double M_cpx;  // mass fraction of pyroxenite
+        // for the reaction coefficient of pyroxene
+        double r1;     // cpx/melt
+        double r2;     // cpx/melt/GPa
+        double M_cpx;  // mass fraction of pyroxenite
 
-          // melt fraction exponent
-          double beta;
+        // melt fraction exponent
+        double beta;
 
-          /**
-           * Parameters for melting of pyroxenite after Sobolev et al., 2011
-           */
+        /**
+         * Parameters for melting of pyroxenite after Sobolev et al., 2011
+         */
 
-          // for the melting temperature
-          double D1;    // °C
-          double D2;  // °C/Pa
-          double D3; // °C/(Pa^2)
+        // for the melting temperature
+        double D1;    // °C
+        double D2;  // °C/Pa
+        double D3; // °C/(Pa^2)
 
-          // for the melt-fraction dependence of productivity
-          double E1;
-          double E2;
+        // for the melt-fraction dependence of productivity
+        double E1;
+        double E2;
     };
   }
 }
