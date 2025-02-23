@@ -263,7 +263,7 @@ namespace aspect
                               const ArrayView<double> &data,
                               const unsigned int mineral_i,
                               const std::vector<double> &recrystalized_fraction,
-                              const double bulk_piezometer,
+                              const std::vector<double> &piezometer,
                               std::vector<bool> &rx_now) const;
 
           /**
