@@ -1533,7 +1533,7 @@ namespace aspect
                                   data,
                                   mineral_i,
                                   recrystalized_fractions,
-                                  bulk_piezometer[mineral_i],
+                                  piezometer,
                                   rx_now);
         
         // Calculating mean grain size to use to calculate F_surface
