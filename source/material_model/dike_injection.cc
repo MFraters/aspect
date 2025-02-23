@@ -218,15 +218,15 @@ namespace aspect
           //std::cout << "flag 52"<< std::endl;
 
           MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
-          const MaterialModel::Interface<dim> &material_model = this->get_material_model();
-          const MaterialModel::ViscoPlastic<dim> *visco_plastic = dynamic_cast<const MaterialModel::ViscoPlastic<dim>*>(&material_model);
+          //const MaterialModel::Interface<dim> &material_model = this->get_material_model();
+          std::shared_ptr<const MaterialModel::ViscoPlastic<dim>> visco_plastic = std::dynamic_pointer_cast<const MaterialModel::ViscoPlastic<dim>>(base_model);
           Assert(visco_plastic!=nullptr,
                  ExcMessage("Can't convert material model to viscoplastic. Only the viscoplastic material model is currently supported. "
                             "In principle any material which supports the funtion is_yielding() can work."));
           if (visco_plastic->is_yielding(material_model_inputs))
             {
 
-              material_model.evaluate(material_model_inputs, material_model_outputs);
+              base_model->evaluate(material_model_inputs, material_model_outputs);
               double eta = material_model_outputs.viscosities[0];
 
               const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
@@ -442,8 +442,11 @@ namespace aspect
                     x_max = std::max(x_max,position[0][0]);
                     y_min = std::min(y_min,position[0][1]);
                     y_max = std::max(y_max,position[0][1]);
-                    z_min = std::min(z_min,position[0][2]);
-                    z_max = std::max(z_max,position[0][2]);
+                    if (dim ==3)
+                      {
+                        z_min = std::min(z_min,position[0][2]);
+                        z_max = std::max(z_max,position[0][2]);
+                      }
                   }
               }
             }
@@ -452,8 +455,11 @@ namespace aspect
       x_max = Utilities::MPI::max(x_max,this->get_mpi_communicator());
       y_min = Utilities::MPI::min(y_min,this->get_mpi_communicator());
       y_max = Utilities::MPI::max(y_max,this->get_mpi_communicator());
-      z_min = Utilities::MPI::min(z_min,this->get_mpi_communicator());
-      z_max = Utilities::MPI::max(z_max,this->get_mpi_communicator());
+      if (dim == 3)
+        {
+          z_min = Utilities::MPI::min(z_min,this->get_mpi_communicator());
+          z_max = Utilities::MPI::max(z_max,this->get_mpi_communicator());
+        }
 
       //std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
       //                            << y_min  << " : " << y_max << ", "
@@ -463,12 +469,12 @@ namespace aspect
 
       if (std::isfinite(x_min) && std::isfinite(x_max) &&
           std::isfinite(y_min) && std::isfinite(y_max) &&
-          std::isfinite(z_min) && std::isfinite(z_max))
+          (std::isfinite(z_min) && std::isfinite(z_max) || dim == 2))
         {
           //std::cout << "flag 0" << std::endl;
           std::uniform_real_distribution<double> uniform_distribution_x(x_min,x_max);
           std::uniform_real_distribution<double> uniform_distribution_y(y_min,y_max);
-          std::uniform_real_distribution<double> uniform_distribution_z(z_min,z_max);
+          std::uniform_real_distribution<double> uniform_distribution_z(dim == 3 ? z_min :0,dim == 3 ? z_max : 1);
           //std::cout << "flag 1" << std::endl;
           /**
            * The code below shows the distribution of adding two uniform distribution outputs,
@@ -648,6 +654,7 @@ namespace aspect
 
 
                   std::vector<Point<dim>> new_dike_points(particle_statuses.size(),Point<dim>());
+                  std::vector<unsigned int> reached_yielding(particle_statuses.size(),false); // TODO: should be bool, but mpi complains, so unsigned in for now.
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4" << std::endl;
                   size_t iter2 = 0;
                   do
@@ -787,12 +794,16 @@ namespace aspect
 
                               if (isnan(solution_stress[position_i][0]))
                                 {
-                                  Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[position_i]);
+                                  Tensor<1,dim> gravity_vector = -this->get_gravity_model().gravity_vector(positions[position_i]);
                                   solution_stress[position_i] = gravity_vector/gravity_vector.norm();
+                                }
+                              else
+                                {
+                                  reached_yielding[position_i] = true;
                                 }
                               if (isnan(current_linerization_point_stress[position_i][0]))
                                 {
-                                  Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[position_i]);
+                                  Tensor<1,dim> gravity_vector = -this->get_gravity_model().gravity_vector(positions[position_i]);
                                   current_linerization_point_stress[position_i] = gravity_vector/gravity_vector.norm();
                                 }
                             }
@@ -957,7 +968,20 @@ namespace aspect
                                   new_dike_location[dim_i] = Utilities::MPI::sum(new_dike_location[dim_i],this->get_mpi_communicator());
                                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: dike = " << dike_i << ", dim_i = " << dim_i << std::endl;
                                 }
-                              dike_locations[dike_i].emplace_back(new_dike_location);
+
+                              // If we have not reach the yielding region yet, replace the current bottom, otherwise, add to the dike.
+                              // This currently means that the dikes starts just below the yield area, which I think is fine.
+                              // or maybe not, because we only check change reached_yielding for the solution, not current_lin point
+
+                              reached_yielding[dike_i] = Utilities::MPI::sum(reached_yielding[dike_i],this->get_mpi_communicator());
+                              if (reached_yielding[dike_i])
+                                {
+                                  dike_locations[dike_i].emplace_back(new_dike_location);
+                                }
+                              else
+                                {
+                                  dike_locations[dike_i][dike_locations[dike_i].size()-1] = new_dike_location;
+                                }
 
                               // if particle is not lost add a new point to the dike
                               //if (std::get<1>(particle_statuses[dike_i]) == 0)
