@@ -75,12 +75,19 @@ namespace aspect
 
        // I want to add option to add initial fabric
         boost::random::uniform_real_distribution<double> uniform_distribution(0,1);
+        boost::random::uniform_real_distribution<double> uniform_distribution1(-numbers::PI/12,numbers::PI/12);
         double one = uniform_distribution(this->random_number_generator);
         double two = uniform_distribution(this->random_number_generator);
         double three = uniform_distribution(this->random_number_generator);
+        double rand_def = uniform_distribution(this->random_number_generator);
 
-        double theta = 2.0 * M_PI * one; // Rotation about the pole (Z)
-        double phi = 2.0 * M_PI * two; // For direction of pole deflection.
+        double theta;
+        if(this->get_time() != 0)
+          theta = 2.0 * rand_def; // Rotation about the pole (Z)
+        else
+          theta = 2.0 * M_PI * one;
+        
+          double phi = 2.0 * M_PI * two; // For direction of pole deflection.
         double z = 2.0* three; //For magnitude of pole deflection.
 
         // Compute a vector V used for distributing points over the sphere
@@ -1153,6 +1160,8 @@ namespace aspect
 
         for (unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
           {
+            Tensor<2,3> parent_orientation = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
+
             const double grain_size = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
             const double volume = (4.0/3.) * numbers::PI * std::pow(grain_size * 0.5 , 3.0);
             const double rx_volume = (4.0/3.) * numbers::PI * std::pow(bulk_piezometer * 0.5 , 3.0);
@@ -1198,7 +1207,7 @@ namespace aspect
                       
                         set_volume_fractions_grains(cpo_index,data,mineral_i,permutation_vector[random_var],bulk_piezometer);
                         this->compute_random_rotation_matrix(rotation_matrix);
-                        set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[random_var],rotation_matrix);            
+                        set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[random_var],rotation_matrix * parent_orientation * transpose(rotation_matrix));            
                         set_grain_status(cpo_index,data,mineral_i,permutation_vector[random_var],1);
                         set_strain_accumulated(cpo_index,data,mineral_i,permutation_vector[random_var],0.0);
                         rx_now[permutation_vector[random_var]] = true;
@@ -1214,7 +1223,7 @@ namespace aspect
                           int random_var = std::rand() % empty_buffer_vector.size();
                           set_volume_fractions_grains(cpo_index,data,mineral_i,empty_buffer_vector[random_var],bulk_piezometer);
                           this->compute_random_rotation_matrix(rotation_matrix);
-                          set_rotation_matrix_grains(cpo_index,data,mineral_i,empty_buffer_vector[random_var],rotation_matrix);            
+                          set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[random_var],rotation_matrix * parent_orientation * transpose(rotation_matrix));            
                           set_grain_status(cpo_index,data,mineral_i,empty_buffer_vector[random_var],2);
                           set_strain_accumulated(cpo_index,data,mineral_i,empty_buffer_vector[random_var],0.0);
                           rx_now[empty_buffer_vector[random_var]] = true;
@@ -1251,8 +1260,8 @@ namespace aspect
                       if(replaced_grain_volume > 0.0)
                         { 
                           set_volume_fractions_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],2.0 *std::pow((3.0/4.0)*(replaced_grain_volume/numbers::PI),1./3.));
-                          rotation_matrix = get_rotation_matrix_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter]);
-                          set_rotation_matrix_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],rotation_matrix);            
+                          this->compute_random_rotation_matrix(rotation_matrix);
+                          set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[buffer_vector_counter],rotation_matrix * parent_orientation * transpose(rotation_matrix));            
                           set_grain_status(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],3);
                           set_strain_accumulated(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],0.0);
                           rx_now[buffer_vector[buffer_vector_counter]] = true;
@@ -1261,8 +1270,8 @@ namespace aspect
                       for (unsigned int recrystalize_grain_i = 0; recrystalize_grain_i < n_recrystalized_grains  ; ++recrystalize_grain_i)
                         {
                           set_volume_fractions_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],bulk_piezometer);
-                          rotation_matrix = get_rotation_matrix_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter]);
-                          set_rotation_matrix_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],rotation_matrix);            
+                          this->compute_random_rotation_matrix(rotation_matrix);
+                          set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[buffer_vector_counter],rotation_matrix * parent_orientation * transpose(rotation_matrix));            
                           set_grain_status(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],4);
                           set_strain_accumulated(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],0.0);
                           rx_now[buffer_vector[buffer_vector_counter]] = true;
