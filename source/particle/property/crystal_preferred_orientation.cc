@@ -1289,7 +1289,7 @@ namespace aspect
       CrystalPreferredOrientation<dim>::compute_derivatives_drexpp(const unsigned int cpo_index,
                                                                       const ArrayView<double> &data,
                                                                       const unsigned int mineral_i,
-                                                                      const SymmetricTensor<2,3> &strain_rate_3d,
+                                                                      const SymmetricTensor<2,3> &strain_rate,
                                                                       const Tensor<2,3> &velocity_gradient_tensor,
                                                                       const std::array<double,4> ref_resolved_shear_stress,
                                                                       const double temperature
@@ -1320,41 +1320,11 @@ namespace aspect
         std::vector<double> surface_energy(n_grains);
         std::vector<double> strain_accumulated(n_grains);
         std::vector<double> rho_scale(n_grains);
-        std::vector<double> chi_dif(n_grains);
+        
         
         // create local variables
         std::vector<Tensor<1,3>> spin_vectors(n_grains);
         
-        // Rheology tings (Im bored and am listening to too much Masego - Queen tings)
-        std::vector<SymmetricTensor<2,3>> diffusion_strain_rate(n_grains);
-        std::vector<SymmetricTensor<2,3>> dislocation_strain_rate(n_grains);
-        std::vector<Tensor<2,3>> diffusion_velocity_gradient(n_grains);
-        std::vector<Tensor<2,3>> dislocation_velocity_gradient(n_grains); 
-
-        /*
-        // SV_comment: This is one approach for using the differential stress using the method used to determine the active slip system
-        // construct the material model inputs and outputs
-        // Since this function is only evaluating one particle,
-        // we use 1 for the amount of quadrature points.
-        MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
-        material_model_inputs.position[0] = position;
-        material_model_inputs.temperature[0] = temperature;
-        material_model_inputs.pressure[0] = pressure;
-        material_model_inputs.velocity[0] = velocity;
-        material_model_inputs.composition[0] = compositions;
-        material_model_inputs.strain_rate[0] = strain_rate;
-
-        MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
-        this->get_material_model().evaluate(material_model_inputs, material_model_outputs);
-        double eta = material_model_outputs.viscosities[0];
-
-        const SymmetricTensor<2,dim> stress = 2*eta*deviatoric_strain_rate +
-                                              pressure * unit_symmetric_tensor<dim>();
-        const std::array< double, dim > eigenvalues = dealii::eigenvalues(stress);
-        double differential_stress = eigenvalues[0]-eigenvalues[dim-1];
-        */
-
-        const double differential_stress = 2e8; //SV_uncomment : I am using a hard-coded value for differential stress 
         const double pressure = 3e8;            //SV_uncomment : I am using a hard-coded value for pressure
 
         // Constants -> the values below are for olivine alone (SV: Do I add the citations?)
@@ -1364,19 +1334,9 @@ namespace aspect
         /*
           Because the piezometer is isotropic, I declared and created the piezometer here
         */
-        std::array<double, 2> bulk_piezometer;
         std::array<double, 2> A = {{0.015,std::pow(10,3.8)}};
         std::array<double, 2> m = {{-1.33, -1.28}};
-        if (t!= 0)
-          {
-            bulk_piezometer[mineral_i] = A[mineral_i] * std::pow(differential_stress/1e6,m[mineral_i]);
-          }
-        else
-          {
-            bulk_piezometer[mineral_i] = 0.5;
-          }
         
-
         /* 
            Constants for the calculation of rheology. These are hardcoded values of olivine & pyroxene rheology (see supplementary material Dannberg et al, 2017)
         */
@@ -1397,33 +1357,7 @@ namespace aspect
         const double activation_volume_dif = 6 * std::pow(10,-6);
         const double activation_volume_dis = 1.4 * std::pow(10,-5);
 
-        // Calculating chi_diff
-        for(unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
-        {
-          if(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) > 0.)
-          {
-            const double grain_size = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-            const double strain_rate_dif = pre_exponential_dif * differential_stress * std::pow(grain_size,-1*exponent_grain_size) * exp(-1 *(activation_energy_dif + (pressure * activation_volume_dif))/(constants::gas_constant * temperature));
-            
-            chi_dif[grain_i] = strain_rate_dif/std::sqrt(std::max(-second_invariant(strain_rate_3d), 0.));
-            set_diffusion_fraction(cpo_index,data,mineral_i,grain_i,chi_dif[grain_i]);
-           
-            diffusion_strain_rate[grain_i] = chi_dif[grain_i] * strain_rate_3d;
-            dislocation_strain_rate[grain_i] = strain_rate_3d - diffusion_strain_rate[grain_i];
-
-            diffusion_velocity_gradient[grain_i] = diffusion_strain_rate[grain_i];
-            dislocation_velocity_gradient[grain_i] = velocity_gradient_tensor - diffusion_velocity_gradient[grain_i];
-          }
-          else
-          {
-            diffusion_strain_rate[grain_i] = 0.;
-            dislocation_strain_rate[grain_i] = 0.;
-
-            diffusion_velocity_gradient[grain_i] = 0.;
-            dislocation_velocity_gradient[grain_i] = 0.;
-            set_diffusion_fraction(cpo_index,data,mineral_i,grain_i,0.);
-          }
-        }
+        
 
         // first compute the amount of slip, G, strain accumulated and dislocation density for n_grains, as long as grain is initialized, i.e grain size is not equal to 0
         for(unsigned int grain_i = 0; grain_i < n_grains; ++grain_i)
@@ -1442,7 +1376,7 @@ namespace aspect
               const Tensor<1,3> slip_direction_global = rotation_matrix_transposed*slip_direction_reference[slip_system_i];
               const Tensor<2,3> slip_cross_product =(outer_product(slip_direction_global,slip_normal_global));
               
-              bigI[slip_system_i] = scalar_product(slip_cross_product,dislocation_strain_rate[grain_i]);
+              bigI[slip_system_i] = scalar_product(slip_cross_product,strain_rate);
            }
            
            if(bigI.norm() < 1e-21)
@@ -1506,12 +1440,12 @@ namespace aspect
                  // from the EPSL paper, which says gamma_nu depends on i+1
                  const unsigned int i_offset = (i==0) ? (i+2) : (i-1);
 
-                 top = top - (dislocation_velocity_gradient[grain_i][i][i_offset]-dislocation_velocity_gradient[grain_i][i_offset][i])*(schmidt_tensor[i][i_offset]-schmidt_tensor[i_offset][i]);
+                 top = top - (velocity_gradient[i][i_offset]-velocity_gradient[i_offset][i])*(schmidt_tensor[i][i_offset]-schmidt_tensor[i_offset][i]);
                  bottom = bottom - (schmidt_tensor[i][i_offset]-schmidt_tensor[i_offset][i])*(schmidt_tensor[i][i_offset]-schmidt_tensor[i_offset][i]);
 
                  for (unsigned int j = 0; j < 3; ++j)
                   {
-                    top = top + 2.0 * schmidt_tensor[i][j]*dislocation_velocity_gradient[grain_i][i][j];
+                    top = top + 2.0 * schmidt_tensor[i][j]*velocity_gradient[i][j];
                     bottom = bottom + 2.0* schmidt_tensor[i][j] * schmidt_tensor[i][j];
                   }
                }
@@ -1555,30 +1489,20 @@ namespace aspect
                     const Tensor<1,3> slip_direction_global = rotation_matrix_transposed*slip_direction_reference[slip_system_i];
                     const Tensor<2,3> slip_cross_product = outer_product(slip_direction_global,slip_normal_global);
 
-                    const double non_dimensionalization = std::sqrt(std::max(-second_invariant(dislocation_strain_rate[grain_i]), 0.));
+                    const double non_dimensionalization = std::sqrt(std::max(-second_invariant(strain_rate[grain_i]), 0.));
                     const double e_s = scalar_product(slip_cross_product,d);
 
                     double rho_scale;
                  
                     // Calculation of rho_scale
 
-                    /*
-                      //SV_comment
-                      for (unsigned int composition = 0; composition < volume_fractions.size(); composition++)
-                          {
-                            ref[composition] = std::pow(non_dimensionalization/dislocation_strain_rates[composition],1./3.5);
-                          }
-                        const double stress_ref = MaterialModel::MaterialUtilities::average_value(volume_fractions, ref, MaterialModel::MaterialUtilities::harmonic);
-                    
-                    */
-                    
                     const double ref_stress = std::pow(non_dimensionalization/(pre_exponential_dis * exp(-1 * (activation_energy_dis + (activation_volume_dis * pressure))/(constants::gas_constant * temperature))),1./3.5);
                     rho_scale = std::pow(ref_stress /(0.5 * shear_modulus * burgers_vector),exponent_p);
 
                     const double rhos = rho_scale * std::pow(tau[indices[slip_system_i]],exponent_p-stress_exponent) *
                     std::pow(std::abs(e_s/non_dimensionalization),exponent_p/stress_exponent);
 
-                    dislocation_density[slip_system_i] = rhos;
+                    dislocation_density[grain_i] = rhos;
                     strain_energy[grain_i] += 0.5 *  rhos * burgers_vector* burgers_vector * shear_modulus;
                   }
                 //set_dislocation_density(cpo_index,data,mineral_i,grain_i,dislocation_density);
