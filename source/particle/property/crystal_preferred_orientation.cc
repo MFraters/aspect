@@ -1511,7 +1511,7 @@ namespace aspect
                   recrystalized_fractions[grain_i] += (avrami_slope_input * (get_strain_accumulated(cpo_index,data,mineral_i,grain_i) - 0.25));  
                 }
                 else
-                recrystalized_fractions[grain_i] += (avrami_slope_input * strain_increment[grain_i]);
+                  recrystalized_fractions[grain_i] += (avrami_slope_input * strain_increment[grain_i]);
                 
                 if (recrystalized_fractions[grain_i] > 1.0)
                   recrystalized_fractions[grain_i] = 1.0;
