@@ -1159,25 +1159,7 @@ namespace aspect
           double interfacial_energy;
           double avrami_slope_input;
 
-          //Commented_lines          
-          /*
-          std::unique_ptr<MaterialModel::Rheology::DiffusionCreep<dim>> rheology_diff;    //Commented_lines
-          std::unique_ptr<MaterialModel::Rheology::DislocationCreep<dim>> rheology_disl;  //Commented_lines
-          std::unique_ptr<MaterialModel::Rheology::ViscoPlastic<dim>> rheology_vipl;      //Commented_lines
-          double min_strain_rate;                                                         //Commented_lines
-          std::vector<double> thermal_diffusivities;                                      //Commented_lines
-          bool define_conductivities;                                                     //Commented_lines
-
-          std::vector<double> thermal_conductivities;                                     //Commented_lines
-
-          /**
-           * Object that handles phase transitions.
-          **/
-
-          //MaterialModel::MaterialUtilities::PhaseFunction<dim> phase_function;          //Commented_lines
           
-          
-          /** @} */
 
       };
     }

@@ -177,6 +177,7 @@ namespace aspect
             volume_fractions_grains[mineral_i].resize(n_grains);
             rotation_matrices_grains[mineral_i].resize(n_grains);
             grain_status[mineral_i].resize(n_grains);
+            rx_fractions[mineral_i].resize(n_grains);
             strain_accumulated[mineral_i].resize(n_grains);
             active_slip_system[mineral_i].resize(n_grains);
             strain_rate_grains[mineral_i].resize(n_grains);
@@ -236,10 +237,12 @@ namespace aspect
                     else
                     if(grain_i >= n_grains - n_grains_buffer)
                     {
+                      volume_fractions_grains[mineral_i][grain_i] = 0;
                        grain_status[mineral_i][grain_i] = -2;
                     }
                     else
-                    {
+                    { 
+                      volume_fractions_grains[mineral_i][grain_i] = 0.;
                        grain_status[mineral_i][grain_i] = -1;
                     }
                   this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
@@ -270,6 +273,19 @@ namespace aspect
 
                       // set a uniform random rotation_matrix per grain
                       this->compute_random_rotation_matrix(rotation_matrices_grains[mineral_i][grain_i]);
+                      strain_accumulated[mineral_i][grain_i] = 0.;
+                  rx_fractions[mineral_i][grain_i] = 0.;
+                  active_slip_system[mineral_i][grain_i] = 0;
+                  strain_rate_grains[mineral_i][grain_i] = 0.;
+                  differential_stress[mineral_i][grain_i] = 0.;
+                  strain_energy[mineral_i][grain_i] = 0.;
+                  surface_energy[mineral_i][grain_i] =0.;
+                  grain_boundary_velocity[mineral_i][grain_i] = 0.;
+                  nrx_grains[mineral_i][grain_i] = 0;
+                  pre_rx_size[mineral_i][grain_i]= 0.;
+                  post_rx_size[mineral_i][grain_i]=0.;
+                  grain_size_change[mineral_i][grain_i]= 0.;
+                  dislocation_density[mineral_i][grain_i] =0.;
                     }
                 }
                 
@@ -1101,9 +1117,8 @@ namespace aspect
             int n_recrystalized_grains; 
             double replaced_grain_volume;
 
-            if(volume >= 2. * rx_volume)
+            if((volume >= 2. * rx_volume)&&(this->get_time()!= 0))
               {
-
                 n_recrystalized_grains = (std::floor(recrystalized_fraction[grain_i] * (volume/rx_volume)));
               }
             else
@@ -1235,8 +1250,7 @@ namespace aspect
 
         const double t =this-> get_time();
         const double timestep =this-> get_timestep();
-        const double time_inc = t/timestep;
-        
+                 
         // create output variables
         std::vector<double> deriv_volume_fractions(n_grains);
         std::vector<Tensor<2,3>> deriv_a_cosine_matrices(n_grains);
@@ -1414,8 +1428,12 @@ namespace aspect
                 const double non_dimensionalization = std::sqrt(std::max(-second_invariant(strain_rate), 0.));                
                 double rho_scale;
                 const double ref_stress = std::pow(non_dimensionalization/(pre_exponential_dis * exp(-1 * (activation_energy_dis + (activation_volume_dis * pressure))/(constants::gas_constant * temperature))),1./3.5);
-                rho_scale = std::pow(ref_stress /(0.5 * shear_modulus * burgers_vector),exponent_p);
-                piezometer[grain_i] = A[mineral_i] * std::pow(ref_stress/1e6,m[mineral_i]);
+                rho_scale = std::pow(ref_stress /(0.5 * shear_modulus * burgers_vector),drexpp_exponent_p[mineral_i]);
+                if(this->get_time() != 0)
+                  piezometer[grain_i] = A[mineral_i] * std::pow(ref_stress/1e6,m[mineral_i]);
+                else
+                  piezometer[grain_i] = 0.5;
+                
                 set_differential_stress(cpo_index,data,mineral_i,grain_i,ref_stress);
 
                 for (unsigned int slip_system_i = 0; slip_system_i < 4; ++slip_system_i)
@@ -1426,8 +1444,8 @@ namespace aspect
 
                     const double e_s = scalar_product(slip_cross_product,d);
 
-                    const double rhos = rho_scale * std::pow(tau[indices[slip_system_i]],exponent_p-stress_exponent) *
-                                                    std::pow(std::abs(e_s/non_dimensionalization),exponent_p/stress_exponent);
+                    const double rhos = rho_scale * std::pow(tau[indices[slip_system_i]],drexpp_exponent_p[mineral_i]-stress_exponent) *
+                                                    std::pow(std::abs(e_s/non_dimensionalization),drexpp_exponent_p[mineral_i]/stress_exponent);
 
                     dislocation_density[grain_i] += rhos;
                     strain_energy[grain_i] += 0.5 *  rhos * burgers_vector* burgers_vector * shear_modulus;
