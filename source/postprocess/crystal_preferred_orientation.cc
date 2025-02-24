@@ -436,7 +436,7 @@ namespace aspect
                             break;
                           
                           case Output::ChiDif:
-                            string_stream_content_raw << cpo_particle_property.get_diffusion_fraction(
+                            string_stream_content_raw << cpo_particle_property.get_strain_accumulated(
                                                         cpo_data_position,
                                                         properties,
                                                         write_raw_cpo[property_i].first,
@@ -520,7 +520,7 @@ namespace aspect
                             break;
                           
                           case Output::ChiDif:
-                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_diffusion_fraction(
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_strain_accumulated(
                                                         cpo_data_position,
                                                         properties,
                                                         write_draw_volume_weighted_cpo[property_i].first,
