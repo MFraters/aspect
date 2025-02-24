@@ -1280,9 +1280,7 @@ namespace aspect
         /* 
            Constants for the calculation of rheology. These are hardcoded values of olivine & pyroxene rheology (see supplementary material Dannberg et al, 2017)
         */
-        /*
-           SV_uncomment - comment out the block of code below
-        */ 
+
         const double pre_exponential_dis = 8.33 * std::pow(10,-17);
         const double exponent_dis = 3.5;
         const double activation_energy_dis = 5.3 * std::pow(10,5);
@@ -1308,7 +1306,7 @@ namespace aspect
               bigI[slip_system_i] = scalar_product(slip_cross_product,strain_rate);
            }
            
-           if(bigI.norm() < 1e-21)
+           if(bigI.norm() < 1e-30)
            {
             // The resolved shear strain rates are too small to induce significant slip. Therefore the magnitudes of \gamma and \omega will be negligible so we ignore the effect of rotaiton in this case
             // Use this condition to set the dislocation density to zero so the driving energy for GBM will only be surface energy so we can somewhat simulate static recrystalization
@@ -1398,6 +1396,9 @@ namespace aspect
              SymmetricTensor<2,3>d = symmetrize (local_strain_rate);
 
              strain_increment[grain_i] = this->get_timestep() * std::sqrt(std::max(-second_invariant(d), 0.));
+            
+             set_strain_rate(cpo_index,data,mineral_i,grain_i,std::sqrt(std::max(-second_invariant(d), 0.)));
+                          
              if(get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i) > 0.)
              {
                strain_accumulated[grain_i] =  get_strain_accumulated(cpo_index,data,mineral_i,grain_i) + strain_increment[grain_i];             
@@ -1417,6 +1418,7 @@ namespace aspect
                 const double ref_stress = std::pow(non_dimensionalization/(pre_exponential_dis * exp(-1 * (activation_energy_dis + (activation_volume_dis * pressure))/(constants::gas_constant * temperature))),1./3.5);
                 rho_scale = std::pow(ref_stress /(0.5 * shear_modulus * burgers_vector),exponent_p);
                 piezometer[grain_i] = A[mineral_i] * std::pow(ref_stress/1e6,m[mineral_i]);
+                set_differential_stress(cpo_index,data,mineral_i,grain_i,ref_stress);
 
                 for (unsigned int slip_system_i = 0; slip_system_i < 4; ++slip_system_i)
                   {
@@ -1432,8 +1434,8 @@ namespace aspect
                     dislocation_density[grain_i] += rhos;
                     strain_energy[grain_i] += 0.5 *  rhos * burgers_vector* burgers_vector * shear_modulus;
                   }
-                //set_dislocation_density(cpo_index,data,mineral_i,grain_i,dislocation_density);
-                //set_strain_energy(cpo_index,data,mineral_i,grain_i,strain_energy[grain_i]);
+                set_dislocation_density(cpo_index,data,mineral_i,grain_i,dislocation_density[grain_i]);
+                set_strain_energy(cpo_index,data,mineral_i,grain_i,strain_energy[grain_i]);
               }
            }
         }
@@ -1505,20 +1507,20 @@ namespace aspect
             if ((volume_fraction_grain != 0.0) && (rx_now[grain_i]) == false)
               {
                 const double f_surface = (interfacial_energy*((2./get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i)) ));
+                set_surface_energy(cpo_index,data,mineral_i,grain_i,f_surface);
+
                 const double f_strain  = (mean_strain_energy - strain_energy[grain_i]);
                 const double driving_force = f_strain + f_surface;
-
-                //set_surface_energy(cpo_index,data,mineral_i,grain_i,f_surface);
                 
                 // Different than D-Rex. Here we actually only compute the derivative and do not multiply it with the volume_fractions. We do that when we advect.
-                deriv_volume_fractions[grain_i] = get_volume_fraction_mineral(cpo_index,data,mineral_i) *  drexpp_mobility[mineral_i] * driving_force;
+                deriv_volume_fractions[grain_i] = get_volume_fraction_mineral(cpo_index,data,mineral_i) *  drexpp_mobility[mineral_i] * driving_force;                
                 }
             else
               {
                 deriv_volume_fractions[grain_i] = 0.;
               }
             
-            //set_grain_boundary_velocity(cpo_index,data,mineral_i,grain_i,deriv_volume_fractions[grain_i]);  
+              set_grain_boundary_velocity(cpo_index,data,mineral_i,grain_i,deriv_volume_fractions[mineral_i]);  
           }
 
         return std::pair<std::vector<double>, std::vector<Tensor<2,3>>>(deriv_volume_fractions, deriv_a_cosine_matrices);
