@@ -288,8 +288,6 @@ namespace aspect
                     const dealii::TableIndices<2> index = Tensor<2,3>::unrolled_to_component_indices(i);
                     data.emplace_back(rotation_matrices_grains[mineral_i][grain_i][index]);
                   }
-                if(cpo_derivative_algorithm == CPODerivativeAlgorithm::drexpp)
-                  {
                     data.emplace_back(grain_status[mineral_i][grain_i]);
                     data.emplace_back(strain_accumulated[mineral_i][grain_i]);
                     data.emplace_back(rx_fractions[mineral_i][grain_i]);
@@ -304,7 +302,7 @@ namespace aspect
                     data.emplace_back(post_rx_size[mineral_i][grain_i]);
                     data.emplace_back(grain_size_change[mineral_i][grain_i]);
                     data.emplace_back(dislocation_density[mineral_i][grain_i]);
-                  }
+                  
               }
             
           }

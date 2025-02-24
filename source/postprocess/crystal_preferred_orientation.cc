@@ -276,9 +276,58 @@ namespace aspect
                     string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_grain_status" << " ";
                     break;
                   
-                  case Output::ChiDif:
-                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_diffusion_fraction" << " ";
+                  case Output::StrainAccumulated:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_strain_accumulated" << " ";
                     break;
+                  
+                  case Output::ActiveSS:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_active_slip_system" << " ";
+                    break;
+                  
+                  case Output::RxStatus:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_rx_fractions" << " ";
+                    break;  
+                  
+                  case Output::StrainRate:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_strain_rate" << " ";
+                    break;  
+                  
+                  case Output::DifferentialStress:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_differential_stress" << " ";
+                    break;  
+                  
+                  case Output::StrainEnergy:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_strain_energy" << " ";
+                    break;  
+                  
+                  case Output::SurfaceEnergy:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_surface_energy" << " ";
+                    break;  
+                  
+                  case Output::GBMVelocity:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_grain_boundary_velocity" << " ";
+                    break;  
+                  
+                  case Output::NRxGrains:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_nrx_grains" << " ";
+                    break;  
+                  
+                  case Output::PreRxSize:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_pre_rx_size" << " ";
+                    break;  
+                   
+                  case Output::PostRxSize:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_post_rx_size" << " ";
+                    break;  
+                  
+                  case Output::GrainSizeChange:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_grain_size_change" << " ";
+                    break;
+                  
+                  case Output::DislocationDensity:
+                    string_stream_content_raw << "mineral_" << write_raw_cpo[property_i].first << "_dislocation_density" << " ";
+                    break;
+
                   default:
                     Assert(false, ExcMessage("Internal error: raw CPO postprocess case not found."));
                     break;
@@ -322,10 +371,58 @@ namespace aspect
                     string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_grain_status" << " ";
                     break;
                   
-                  case Output::ChiDif:
-                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_diffusion_fraction" << " ";
+                  case Output::StrainAccumulated:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_strain_accumulated" << " ";
                     break;
-
+                  
+                  case Output::ActiveSS:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_active_slip_system" << " ";
+                    break;
+                  
+                  case Output::RxStatus:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_rx_fractions" << " ";
+                    break;  
+                  
+                  case Output::StrainRate:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_strain_rate" << " ";
+                    break;  
+                  
+                  case Output::DifferentialStress:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_differential_stress" << " ";
+                    break;  
+                  
+                  case Output::StrainEnergy:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_strain_energy" << " ";
+                    break;  
+                  
+                  case Output::SurfaceEnergy:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_surface_energy" << " ";
+                    break;  
+                  
+                  case Output::GBMVelocity:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_grain_boundary_velocity" << " ";
+                    break;  
+                  
+                  case Output::NRxGrains:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_nrx_grains" << " ";
+                    break;  
+                  
+                  case Output::PreRxSize:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_pre_rx_size" << " ";
+                    break;  
+                   
+                  case Output::PostRxSize:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_post_rx_size" << " ";
+                    break;  
+                  
+                  case Output::GrainSizeChange:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_grain_size_change" << " ";
+                    break;
+                  
+                  case Output::DislocationDensity:
+                    string_stream_content_draw_volume_weighting << "mineral_" << write_raw_cpo[property_i].first << "_dislocation_density" << " ";
+                    break;
+                  
                   default:
                     Assert(false, ExcMessage("Internal error: raw CPO postprocess case not found."));
                     break;
@@ -427,19 +524,115 @@ namespace aspect
                                                       <<  euler_angles[write_raw_cpo[property_i].first][grain][2] << " ";
                             break;
                           
-                          case Output::GrainStatus:
+                            case Output::GrainStatus:
                             string_stream_content_raw << cpo_particle_property.get_grain_status(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_raw_cpo[property_i].first,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
                                                         grain) << " ";
                             break;
                           
-                          case Output::ChiDif:
-                            string_stream_content_raw << cpo_particle_property.get_strain_accumulated(
+                          case Output::StrainAccumulated:
+                            string_stream_content_raw<< cpo_particle_property.get_strain_accumulated(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_raw_cpo[property_i].first,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                          
+                          case Output::ActiveSS:
+                            string_stream_content_raw << cpo_particle_property.get_active_slip_system(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                          
+                          case Output::RxStatus:
+                            string_stream_content_raw << cpo_particle_property.get_rx_fractions(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::StrainRate:
+                            string_stream_content_raw << cpo_particle_property.get_strain_rate(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::DifferentialStress:
+                            string_stream_content_raw << cpo_particle_property.get_differential_stress(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::StrainEnergy:
+                            string_stream_content_raw << cpo_particle_property.get_strain_energy(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::SurfaceEnergy:
+                            string_stream_content_raw << cpo_particle_property.get_surface_energy(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::GBMVelocity:
+                            string_stream_content_raw << cpo_particle_property.get_grain_boundary_velocity(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::NRxGrains:
+                            string_stream_content_raw << cpo_particle_property.get_n_rx_grains(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::PreRxSize:
+                            string_stream_content_raw << cpo_particle_property.get_pre_rx_size(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                           
+                          case Output::PostRxSize:
+                            string_stream_content_raw << cpo_particle_property.get_post_rx_size(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::GrainSizeChange:
+                            string_stream_content_raw << cpo_particle_property.get_grain_size_change(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                          
+                          case Output::DislocationDensity:
+                          string_stream_content_raw << cpo_particle_property.get_dislocation_density(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
                                                         grain) << " ";
                             break;
 
@@ -519,15 +712,111 @@ namespace aspect
                                                         grain) << " ";
                             break;
                           
-                          case Output::ChiDif:
+                          case Output::StrainAccumulated:
                             string_stream_content_draw_volume_weighting << cpo_particle_property.get_strain_accumulated(
                                                         cpo_data_position,
                                                         properties,
                                                         write_draw_volume_weighted_cpo[property_i].first,
                                                         grain) << " ";
                             break;
-                            
-                          default:
+                          
+                          case Output::ActiveSS:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_active_slip_system(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                          
+                          case Output::RxStatus:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_rx_fractions(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::StrainRate:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_strain_rate(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::DifferentialStress:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_differential_stress(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::StrainEnergy:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_strain_energy(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::SurfaceEnergy:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_surface_energy(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::GBMVelocity:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_grain_boundary_velocity(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::NRxGrains:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_n_rx_grains(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::PreRxSize:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_pre_rx_size(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                           
+                          case Output::PostRxSize:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_post_rx_size(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;  
+                          
+                          case Output::GrainSizeChange:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_grain_size_change(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+                          
+                          case Output::DislocationDensity:
+                            string_stream_content_draw_volume_weighting << cpo_particle_property.get_dislocation_density(
+                                                        cpo_data_position,
+                                                        properties,
+                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        grain) << " ";
+                            break;
+
+                            default:
                             Assert(false, ExcMessage("Internal error: raw CPO postprocess case not found."));
                             break;
                         }
@@ -653,9 +942,34 @@ namespace aspect
         return Output::EulerAngles;
       if (string == "Grain status")
         return Output::GrainStatus;
-      if (string == "Diffusion fraction")
-        return Output::ChiDif;
-      return Output::not_found;
+      if (string == "Strain accumulated")
+        return Output::StrainAccumulated;
+      if (string == "Recrystalization fraction")
+        return Output::RxStatus;
+      if (string == "Active slip system")
+        return Output::ActiveSS;
+      if (string == "Differential stress")
+        return Output::DifferentialStress;
+      if (string == "Slip rate")
+        return Output::StrainRate;
+      if (string == "Strain energy")
+        return Output::StrainEnergy;
+      if (string == "Surface energy")
+        return Output::SurfaceEnergy;
+      if (string == "Grain boundary velocity")
+        return Output::GBMVelocity;
+      if (string == "NRx grains")
+        return Output::NRxGrains;
+      if (string == "Pre Rx Size")
+        return Output::PreRxSize;
+      if (string == "Post Rx Size")
+        return Output::PostRxSize;
+      if (string == " Grain Size Change")
+        return Output::GrainSizeChange;        
+      if (string == " DislocationDensity")
+        return Output::DislocationDensity;
+      else
+        return Output::not_found;
     }
 
 
