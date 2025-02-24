@@ -237,7 +237,7 @@ namespace aspect
                     else
                     if(grain_i >= n_grains - n_grains_buffer)
                     {
-                      volume_fractions_grains[mineral_i][grain_i] = 0;
+                      volume_fractions_grains[mineral_i][grain_i] = 0.;
                        grain_status[mineral_i][grain_i] = -2;
                     }
                     else
@@ -1117,7 +1117,7 @@ namespace aspect
             int n_recrystalized_grains; 
             double replaced_grain_volume;
 
-            if((volume >= 2. * rx_volume)&&(this->get_time()!= 0))
+            if((volume >= 2. * rx_volume)&&(piezometer[grain_i] > 0.))
               {
                 n_recrystalized_grains = (std::floor(recrystalized_fraction[grain_i] * (volume/rx_volume)));
               }
@@ -1427,8 +1427,10 @@ namespace aspect
               {
                 const double non_dimensionalization = std::sqrt(std::max(-second_invariant(strain_rate), 0.));                
                 double rho_scale;
-                const double ref_stress = std::pow(non_dimensionalization/(pre_exponential_dis * exp(-1 * (activation_energy_dis + (activation_volume_dis * pressure))/(constants::gas_constant * temperature))),1./3.5);
+                const double ref_stress = std::pow(non_dimensionalization/(pre_exponential_dis * exp(-1. * (activation_energy_dis + (activation_volume_dis * pressure))/(constants::gas_constant * temperature))),1./3.5);
+               
                 rho_scale = std::pow(ref_stress /(0.5 * shear_modulus * burgers_vector),drexpp_exponent_p[mineral_i]);
+                
                 if(this->get_time() != 0)
                   piezometer[grain_i] = A[mineral_i] * std::pow(ref_stress/1e6,m[mineral_i]);
                 else
