@@ -1111,9 +1111,10 @@ namespace aspect
             else
                 n_recrystalized_grains =0;
             
+            
             double left_overs = volume - (n_recrystalized_grains * rx_volume);
             double left_over_grain_size = 2.0 * std::pow(( (1.0/numbers::PI)),(1.0/2.0));
-
+            
              if(n_recrystalized_grains >= 1.)
               {
                 if(left_over_grain_size < piezometer[grain_i])
@@ -1122,6 +1123,10 @@ namespace aspect
                     left_overs = volume - (n_recrystalized_grains * rx_volume);
                     left_over_grain_size = 2.0 * std::pow((left_overs * (1.0/numbers::PI)),(1.0/2.0));
                   }
+                
+                set_pre_rx_size(cpo_index,data,mineral_i,grain_i,grain_size);
+                set_post_rx_size(cpo_index,data,mineral_i,grain_i,left_over_grain_size);
+                set_n_rx_grains(cpo_index,data,mineral_i,grain_i,n_recrystalized_grains);
                 
                 double unrx_portion;
                 if(volume != 0.)
