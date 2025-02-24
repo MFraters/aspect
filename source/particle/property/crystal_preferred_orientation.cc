@@ -1096,8 +1096,8 @@ namespace aspect
             Tensor<2,3> parent_orientation = get_rotation_matrix_grains(cpo_index,data,mineral_i,grain_i);
 
             const double grain_size = get_volume_fractions_grains(cpo_index,data,mineral_i,grain_i);
-            const double volume = (4.0/3.) * numbers::PI * std::pow(grain_size * 0.5 , 3.0);
-            const double rx_volume = (4.0/3.) * numbers::PI * std::pow(piezometer[grain_i] * 0.5 , 3.0);
+            const double volume =  numbers::PI * std::pow(grain_size * 0.5 , 2.0);
+            const double rx_volume =  numbers::PI * std::pow(piezometer[grain_i] * 0.5 , 2.0);
 
             Tensor<2,3> rotation_matrix ;
             int n_recrystalized_grains; 
@@ -1112,7 +1112,7 @@ namespace aspect
                 n_recrystalized_grains =0;
             
             double left_overs = volume - (n_recrystalized_grains * rx_volume);
-            double left_over_grain_size = 2.0 * std::pow((left_overs* (3.0/4.0) * (1.0/numbers::PI)),(1.0/3.0));
+            double left_over_grain_size = 2.0 * std::pow(( (1.0/numbers::PI)),(1.0/2.0));
 
              if(n_recrystalized_grains >= 1.)
               {
@@ -1120,7 +1120,7 @@ namespace aspect
                   {
                     n_recrystalized_grains += -1;
                     left_overs = volume - (n_recrystalized_grains * rx_volume);
-                    left_over_grain_size = 2.0 * std::pow((left_overs* (3.0/4.0) * (1.0/numbers::PI)),(1.0/3.0));
+                    left_over_grain_size = 2.0 * std::pow((left_overs * (1.0/numbers::PI)),(1.0/2.0));
                   }
                 
                 double unrx_portion;
@@ -1181,7 +1181,7 @@ namespace aspect
 
                        for (unsigned int recrystalize_grain_i = 0; recrystalize_grain_i <= n_recrystalized_grains; ++recrystalize_grain_i)
                           {
-                             replaced_grain_volume +=(4.0/3.0) * numbers::PI * std::pow(0.5 * get_volume_fractions_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter+recrystalize_grain_i]),3.0);
+                             replaced_grain_volume += numbers::PI * std::pow(0.5 * get_volume_fractions_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter+recrystalize_grain_i]),2.0);
                              set_volume_fractions_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter+recrystalize_grain_i],0.);
                           }
                        
@@ -1192,7 +1192,7 @@ namespace aspect
                     
                       if(replaced_grain_volume > 0.0)
                         { 
-                          set_volume_fractions_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],2.0 *std::pow((3.0/4.0)*(replaced_grain_volume/numbers::PI),1./3.));
+                          set_volume_fractions_grains(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],2.0 *std::pow((replaced_grain_volume/numbers::PI),1./2.));
                           this->compute_random_rotation_matrix(rotation_matrix);
                           set_rotation_matrix_grains(cpo_index,data,mineral_i,permutation_vector[buffer_vector_counter],rotation_matrix * parent_orientation * transpose(rotation_matrix));            
                           set_grain_status(cpo_index,data,mineral_i,buffer_vector[buffer_vector_counter],3);
