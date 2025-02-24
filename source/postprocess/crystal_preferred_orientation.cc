@@ -488,6 +488,18 @@ namespace aspect
                   euler_angles[mineral].resize(n_grains);
                   for (unsigned int i_grain = 0; i_grain < n_grains; ++i_grain)
                     {
+                      if(i_grain == 2)
+                      {
+                        std::cout<<"rotation matrix at slot 3 at time "<<this->get_time()<<" = "<<std::endl;
+                        for (size_t i = 0; i < 3; ++i)
+                        {
+                          for (size_t j = 0; j < 3; ++j)
+                          {
+                            std::cout<<rotation_matrices[mineral][i_grain][i][j]<<" ";
+                          }
+                          std::cout<<std::endl;
+                        }  
+                      }
                       euler_angles[mineral][i_grain] = Utilities::zxz_euler_angles_from_rotation_matrix(
                                                          rotation_matrices[mineral][i_grain]);
                     }
@@ -528,7 +540,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_grain_status(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;
                           
@@ -536,7 +548,7 @@ namespace aspect
                             string_stream_content_raw<< cpo_particle_property.get_strain_accumulated(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;
                           
@@ -544,7 +556,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_active_slip_system(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;
                           
@@ -552,7 +564,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_rx_fractions(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -560,7 +572,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_strain_rate(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -568,7 +580,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_differential_stress(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -576,7 +588,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_strain_energy(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -584,7 +596,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_surface_energy(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -592,7 +604,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_grain_boundary_velocity(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -600,7 +612,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_n_rx_grains(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -608,7 +620,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_pre_rx_size(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                            
@@ -616,7 +628,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_post_rx_size(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;  
                           
@@ -624,7 +636,7 @@ namespace aspect
                             string_stream_content_raw << cpo_particle_property.get_grain_size_change(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;
                           
@@ -632,7 +644,7 @@ namespace aspect
                           string_stream_content_raw << cpo_particle_property.get_dislocation_density(
                                                         cpo_data_position,
                                                         properties,
-                                                        write_draw_volume_weighted_cpo[property_i].first,
+                                                        write_raw_cpo[property_i].first,
                                                         grain) << " ";
                             break;
 
@@ -964,9 +976,9 @@ namespace aspect
         return Output::PreRxSize;
       if (string == "Post Rx Size")
         return Output::PostRxSize;
-      if (string == " Grain Size Change")
+      if (string == "Grain Size Change")
         return Output::GrainSizeChange;        
-      if (string == " DislocationDensity")
+      if (string == "Dislocation density")
         return Output::DislocationDensity;
       else
         return Output::not_found;

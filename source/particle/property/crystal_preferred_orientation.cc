@@ -491,12 +491,14 @@ namespace aspect
                       }
 
                     rotation_matrix = dealii::project_onto_orthogonal_tensors(rotation_matrix);
+
                     for (size_t i = 0; i < 3; ++i)
                       for (size_t j = 0; j < 3; ++j)
                         {
                           // I don't think this should happen with the projection, but D-Rex
                           // does not do the orthogonal projection, but just clamps the values
                           // to 1 and -1.
+                          
                           Assert(std::fabs(rotation_matrix[i][j]) <= 1.0,
                                  ExcMessage("The rotation_matrix has a entry larger than 1."));
 
@@ -512,6 +514,7 @@ namespace aspect
                                             + std::to_string(rotation_matrix[1][0]) + " " + std::to_string(rotation_matrix[1][1]) + " " + std::to_string(rotation_matrix[1][2]) + "\n"
                                             + std::to_string(rotation_matrix[2][0]) + " " + std::to_string(rotation_matrix[2][1]) + " " + std::to_string(rotation_matrix[2][2])));
                         }
+                      
                   }
               }
             ++p;
@@ -1358,7 +1361,7 @@ namespace aspect
              beta[indices.back()] = 0.0;
              
              Tensor<2,3> schmidt_tensor; // comment- This is not the schmidt tensor. The symmetric part of the slip cross product calculated is the actual schmidt tensor.
-             // comment- I dont have a good counter definition to explain what the variable is. 
+             
              for (unsigned int slip_system_i = 0; slip_system_i < 4; ++slip_system_i)
                {
                  const Tensor<1,3> slip_normal_global = rotation_matrix_transposed*slip_normal_reference[slip_system_i];
