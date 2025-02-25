@@ -107,6 +107,7 @@ namespace aspect
           compute_viscosity (const double pressure,
                              const double temperature,
                              const unsigned int composition,
+                             const double grain_size,
                              const std::vector<double> &phase_function_values = std::vector<double>(),
                              const std::vector<unsigned int> &n_phase_transitions_per_composition = std::vector<unsigned int>()) const;
 
