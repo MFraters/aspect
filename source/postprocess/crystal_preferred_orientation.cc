@@ -488,18 +488,6 @@ namespace aspect
                   euler_angles[mineral].resize(n_grains);
                   for (unsigned int i_grain = 0; i_grain < n_grains; ++i_grain)
                     {
-                      if(i_grain == 2)
-                      {
-                        std::cout<<"rotation matrix at slot 3 at time "<<this->get_time()<<" = "<<std::endl;
-                        for (size_t i = 0; i < 3; ++i)
-                        {
-                          for (size_t j = 0; j < 3; ++j)
-                          {
-                            std::cout<<rotation_matrices[mineral][i_grain][i][j]<<" ";
-                          }
-                          std::cout<<std::endl;
-                        }  
-                      }
                       euler_angles[mineral][i_grain] = Utilities::zxz_euler_angles_from_rotation_matrix(
                                                          rotation_matrices[mineral][i_grain]);
                     }
