@@ -331,6 +331,18 @@ namespace aspect
         }
 
       std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,update_flags);
+            const Quadrature<dim> &quadrature_formula = this->introspection().quadratures.compositional_field_max;
+                  FEValues<dim> fe_values (this->get_mapping(),
+                               this->get_fe(),
+                               quadrature_formula,
+                               update_values   |
+                               update_quadrature_points |
+                               update_JxW_values);
+
+            std::vector<Point<dim>> reference_positions = quadrature_formula.get_points();
+            //std::vector<Point<dim>> positions (reference_positions.size());
+            //std::cout << "QP: " << quadrature_formula.get_points()[0][0] << ":" << quadrature_formula.get_points()[0][1] << std::endl;
+      const unsigned int n_quadrature_points = quadrature_formula.size();
       //const unsigned int n_quadrature_points = input_data.solution_values.size();
       // TODO: generalize this for spherical
       double x_min = std::numeric_limits<double>::infinity();
@@ -339,29 +351,35 @@ namespace aspect
       double y_max = -std::numeric_limits<double>::infinity();
       double z_min = std::numeric_limits<double>::infinity();
       double z_max = -std::numeric_limits<double>::infinity();
+      double melt_volume_integrals = 0;
       for (const auto &cell : this->get_dof_handler().active_cell_iterators())
         {
           if (cell->is_locally_owned())
             {
-              std::vector<Point<dim>> position = {cell->center()};
-              std::vector<Point<dim>> reference_positions = {this->get_mapping().transform_real_to_unit_cell(cell, position[0])};
+              fe_values.reinit (cell);
+              // Note, is an approximation of the cell "volume", see https://www.dealii.org/current/doxygen/deal.II/classTriaAccessor.html#a9cecb2b7c9a1644fb5fd44bbba40ab0c 
+              double measure = cell->measure(); // in 2D in square meters in 3D in cubic meters
 
+              //std::vector<Point<dim>> reference_positions = {this->get_mapping().transform_real_to_unit_cell(cell, position[0])};
+
+              Assert(cell.state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
+              small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
+              cell->get_dof_values(this->get_solution(),
+                                   solution_values.begin(),
+                                   solution_values.end());
+
+              std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
+              solution.resize(n_quadrature_points,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
+                
+              evaluator->reinit(cell, reference_positions);
+              evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
+              
               // for now we just check the center of the cell
-//for (unsigned int q=0; q<n_quadrature_points; ++q)
+              for (unsigned int q=0; q<n_quadrature_points; ++q)
               {
-                unsigned int q = 0;
-                Assert(cell.state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
-                small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
-                cell->get_dof_values(this->get_solution(),
-                                     solution_values.begin(),
-                                     solution_values.end());
-
-                std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
-                solution.resize(1,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
+                //unsigned int q = 0;
                 solution[q] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
 
-                evaluator->reinit(cell, reference_positions);
-                evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
                 evaluator->get_solution(q, {&solution[q][0],solution[q].size()}, evaluation_flags);
 
                 const double pressure = solution[q][this->introspection().component_indices.pressure];
@@ -427,25 +445,30 @@ namespace aspect
                     melt_fraction = composition[pyroxenite_index] * pyroxenite_melt_fraction +
                                     (1-composition[pyroxenite_index]) * peridotite_melt_fraction;
                   }
-                else
+                else{
                   melt_fraction = peridotite_melt_fraction;
+                }
+                double melt_volume = melt_fraction*fe_values.JxW(q);
+                //if(melt_fraction > 0){
+                //std::cout << "melt volume = " << melt_volume <<  ", melt_fraction = " << melt_fraction << ", melt_fraction_threshold = " << melt_fraction_threshold << std::endl;
+                //}
 
-                //std::cout << "melt_fraction = " << melt_fraction << ", melt_fraction_threshold = " << melt_fraction_threshold << std::endl;
-
+                melt_volume_integrals += melt_volume;
                 if (melt_fraction > melt_fraction_threshold)
                   {
 
-                    std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
-                              << y_min  << " : " << y_max << ", "
-                              << z_min  << " : " << z_max << std::endl;
-                    x_min = std::min(x_min,position[0][0]);
-                    x_max = std::max(x_max,position[0][0]);
-                    y_min = std::min(y_min,position[0][1]);
-                    y_max = std::max(y_max,position[0][1]);
+                    Point<dim> position = this->get_mapping().transform_unit_to_real_cell(cell, reference_positions[q]);
+                    //std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
+                    //          << y_min  << " : " << y_max << ", "
+                    //          << z_min  << " : " << z_max << std::endl;
+                    x_min = std::min(x_min,position[0]);
+                    x_max = std::max(x_max,position[0]);
+                    y_min = std::min(y_min,position[1]);
+                    y_max = std::max(y_max,position[1]);
                     if (dim ==3)
                       {
-                        z_min = std::min(z_min,position[0][2]);
-                        z_max = std::max(z_max,position[0][2]);
+                        z_min = std::min(z_min,position[2]);
+                        z_max = std::max(z_max,position[2]);
                       }
                   }
               }
@@ -460,10 +483,12 @@ namespace aspect
           z_min = Utilities::MPI::min(z_min,this->get_mpi_communicator());
           z_max = Utilities::MPI::max(z_max,this->get_mpi_communicator());
         }
+      melt_volume_integrals = Utilities::MPI::sum(melt_volume_integrals,this->get_mpi_communicator());
 
-      //std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
-      //                            << y_min  << " : " << y_max << ", "
-      //                            << z_min  << " : " << z_max << std::endl;
+      std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
+                                  << y_min  << " : " << y_max << ", "
+                                  << z_min  << " : " << z_max << ", " 
+                                  << " melt volume = " <<  melt_volume_integrals/1e6 << " million sq m" << std::endl;
 
       // only make dikes if values are finite
 
