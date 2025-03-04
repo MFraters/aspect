@@ -223,6 +223,17 @@ namespace aspect
           Assert(visco_plastic!=nullptr,
                  ExcMessage("Can't convert material model to viscoplastic. Only the viscoplastic material model is currently supported. "
                             "In principle any material which supports the funtion is_yielding() can work."));
+          bool plastic_yielding = false;
+          if (this->introspection().compositional_name_exists("plastic_yielding"))
+            {
+              const unsigned int plastic_yielding_index = this->introspection().compositional_index_for_name("plastic_yielding");
+              plastic_yielding = compositions[plastic_yielding_index];
+            }
+          else
+            {
+              std::cout << "no field plastic_yielding" << std::endl;
+            }
+          std::cout << " plastic_yielding = " << plastic_yielding << ", is_yielding() = " << visco_plastic->is_yielding(material_model_inputs) << std::endl;
           if (visco_plastic->is_yielding(material_model_inputs))
             {
 
@@ -331,17 +342,17 @@ namespace aspect
         }
 
       std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,update_flags);
-            const Quadrature<dim> &quadrature_formula = this->introspection().quadratures.compositional_field_max;
-                  FEValues<dim> fe_values (this->get_mapping(),
+      const Quadrature<dim> &quadrature_formula = this->introspection().quadratures.compositional_field_max;
+      FEValues<dim> fe_values (this->get_mapping(),
                                this->get_fe(),
                                quadrature_formula,
                                update_values   |
                                update_quadrature_points |
                                update_JxW_values);
 
-            std::vector<Point<dim>> reference_positions = quadrature_formula.get_points();
-            //std::vector<Point<dim>> positions (reference_positions.size());
-            //std::cout << "QP: " << quadrature_formula.get_points()[0][0] << ":" << quadrature_formula.get_points()[0][1] << std::endl;
+      std::vector<Point<dim>> reference_positions = quadrature_formula.get_points();
+      //std::vector<Point<dim>> positions (reference_positions.size());
+      //std::cout << "QP: " << quadrature_formula.get_points()[0][0] << ":" << quadrature_formula.get_points()[0][1] << std::endl;
       const unsigned int n_quadrature_points = quadrature_formula.size();
       //const unsigned int n_quadrature_points = input_data.solution_values.size();
       // TODO: generalize this for spherical
@@ -357,7 +368,7 @@ namespace aspect
           if (cell->is_locally_owned())
             {
               fe_values.reinit (cell);
-              // Note, is an approximation of the cell "volume", see https://www.dealii.org/current/doxygen/deal.II/classTriaAccessor.html#a9cecb2b7c9a1644fb5fd44bbba40ab0c 
+              // Note, is an approximation of the cell "volume", see https://www.dealii.org/current/doxygen/deal.II/classTriaAccessor.html#a9cecb2b7c9a1644fb5fd44bbba40ab0c
               double measure = cell->measure(); // in 2D in square meters in 3D in cubic meters
 
               //std::vector<Point<dim>> reference_positions = {this->get_mapping().transform_real_to_unit_cell(cell, position[0])};
@@ -370,108 +381,109 @@ namespace aspect
 
               std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
               solution.resize(n_quadrature_points,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
-                
+
               evaluator->reinit(cell, reference_positions);
               evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
-              
+
               // for now we just check the center of the cell
               for (unsigned int q=0; q<n_quadrature_points; ++q)
-              {
-                //unsigned int q = 0;
-                solution[q] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
+                {
+                  //unsigned int q = 0;
+                  solution[q] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
 
-                evaluator->get_solution(q, {&solution[q][0],solution[q].size()}, evaluation_flags);
+                  evaluator->get_solution(q, {&solution[q][0],solution[q].size()}, evaluation_flags);
 
-                const double pressure = solution[q][this->introspection().component_indices.pressure];
-                const double temperature =solution[q][this->introspection().component_indices.temperature];
+                  const double pressure = solution[q][this->introspection().component_indices.pressure];
+                  const double temperature =solution[q][this->introspection().component_indices.temperature];
 
-                std::vector<double> composition(this->n_compositional_fields());
+                  std::vector<double> composition(this->n_compositional_fields());
 
-                for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
-                  {
-                    const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
-                    composition[i] = solution[0][solution_component];
-                  }
+                  for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
+                    {
+                      const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
+                      composition[i] = solution[0][solution_component];
+                    }
 
-                // anhydrous melting of peridotite after Katz, 2003
-                const double T_solidus  = A1 + 273.15
-                                          + A2 * pressure
-                                          + A3 * pressure * pressure;
-                const double T_lherz_liquidus = B1 + 273.15
-                                                + B2 * pressure
-                                                + B3 * pressure * pressure;
-                const double T_liquidus = C1 + 273.15
-                                          + C2 * pressure
-                                          + C3 * pressure * pressure;
+                  // anhydrous melting of peridotite after Katz, 2003
+                  const double T_solidus  = A1 + 273.15
+                                            + A2 * pressure
+                                            + A3 * pressure * pressure;
+                  const double T_lherz_liquidus = B1 + 273.15
+                                                  + B2 * pressure
+                                                  + B3 * pressure * pressure;
+                  const double T_liquidus = C1 + 273.15
+                                            + C2 * pressure
+                                            + C3 * pressure * pressure;
 
-                // melt fraction for peridotite with clinopyroxene
-                double peridotite_melt_fraction;
-                if (temperature < T_solidus || pressure > 1.3e10)
-                  peridotite_melt_fraction = 0.0;
-                else if (temperature > T_lherz_liquidus)
-                  peridotite_melt_fraction = 1.0;
-                else
-                  peridotite_melt_fraction = std::pow((temperature - T_solidus) / (T_lherz_liquidus - T_solidus),beta);
+                  // melt fraction for peridotite with clinopyroxene
+                  double peridotite_melt_fraction;
+                  if (temperature < T_solidus || pressure > 1.3e10)
+                    peridotite_melt_fraction = 0.0;
+                  else if (temperature > T_lherz_liquidus)
+                    peridotite_melt_fraction = 1.0;
+                  else
+                    peridotite_melt_fraction = std::pow((temperature - T_solidus) / (T_lherz_liquidus - T_solidus),beta);
 
-                // melt fraction after melting of all clinopyroxene
-                const double R_cpx = r1 + r2 * std::max(0.0, pressure);
-                const double F_max = M_cpx / R_cpx;
+                  // melt fraction after melting of all clinopyroxene
+                  const double R_cpx = r1 + r2 * std::max(0.0, pressure);
+                  const double F_max = M_cpx / R_cpx;
 
-                if (peridotite_melt_fraction > F_max && temperature < T_liquidus)
-                  {
-                    const double T_max = std::pow(F_max,1/beta) * (T_lherz_liquidus - T_solidus) + T_solidus;
-                    peridotite_melt_fraction = F_max + (1 - F_max) * std::pow((temperature - T_max) / (T_liquidus - T_max),beta);
-                  }
+                  if (peridotite_melt_fraction > F_max && temperature < T_liquidus)
+                    {
+                      const double T_max = std::pow(F_max,1/beta) * (T_lherz_liquidus - T_solidus) + T_solidus;
+                      peridotite_melt_fraction = F_max + (1 - F_max) * std::pow((temperature - T_max) / (T_liquidus - T_max),beta);
+                    }
 
-                // melting of pyroxenite after Sobolev et al., 2011
-                const double T_melting = D1 + 273.15
-                                         + D2 * pressure
-                                         + D3 * pressure * pressure;
+                  // melting of pyroxenite after Sobolev et al., 2011
+                  const double T_melting = D1 + 273.15
+                                           + D2 * pressure
+                                           + D3 * pressure * pressure;
 
-                const double discriminant = E1*E1/(E2*E2*4) + (temperature-T_melting)/E2;
+                  const double discriminant = E1*E1/(E2*E2*4) + (temperature-T_melting)/E2;
 
-                double pyroxenite_melt_fraction;
-                if (temperature < T_melting || pressure > 1.3e10)
-                  pyroxenite_melt_fraction = 0.0;
-                else if (discriminant < 0)
-                  pyroxenite_melt_fraction = 0.5429;
-                else
-                  pyroxenite_melt_fraction = -E1/(2*E2) - std::sqrt(discriminant);
+                  double pyroxenite_melt_fraction;
+                  if (temperature < T_melting || pressure > 1.3e10)
+                    pyroxenite_melt_fraction = 0.0;
+                  else if (discriminant < 0)
+                    pyroxenite_melt_fraction = 0.5429;
+                  else
+                    pyroxenite_melt_fraction = -E1/(2*E2) - std::sqrt(discriminant);
 
-                double melt_fraction;
-                if (this->introspection().compositional_name_exists("pyroxenite"))
-                  {
-                    const unsigned int pyroxenite_index = this->introspection().compositional_index_for_name("pyroxenite");
-                    melt_fraction = composition[pyroxenite_index] * pyroxenite_melt_fraction +
-                                    (1-composition[pyroxenite_index]) * peridotite_melt_fraction;
-                  }
-                else{
-                  melt_fraction = peridotite_melt_fraction;
+                  double melt_fraction;
+                  if (this->introspection().compositional_name_exists("pyroxenite"))
+                    {
+                      const unsigned int pyroxenite_index = this->introspection().compositional_index_for_name("pyroxenite");
+                      melt_fraction = composition[pyroxenite_index] * pyroxenite_melt_fraction +
+                                      (1-composition[pyroxenite_index]) * peridotite_melt_fraction;
+                    }
+                  else
+                    {
+                      melt_fraction = peridotite_melt_fraction;
+                    }
+                  double melt_volume = melt_fraction*fe_values.JxW(q);
+                  //if(melt_fraction > 0){
+                  //std::cout << "melt volume = " << melt_volume <<  ", melt_fraction = " << melt_fraction << ", melt_fraction_threshold = " << melt_fraction_threshold << std::endl;
+                  //}
+
+                  melt_volume_integrals += melt_volume;
+                  if (melt_fraction > melt_fraction_threshold)
+                    {
+
+                      Point<dim> position = this->get_mapping().transform_unit_to_real_cell(cell, reference_positions[q]);
+                      //std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
+                      //          << y_min  << " : " << y_max << ", "
+                      //          << z_min  << " : " << z_max << std::endl;
+                      x_min = std::min(x_min,position[0]);
+                      x_max = std::max(x_max,position[0]);
+                      y_min = std::min(y_min,position[1]);
+                      y_max = std::max(y_max,position[1]);
+                      if (dim ==3)
+                        {
+                          z_min = std::min(z_min,position[2]);
+                          z_max = std::max(z_max,position[2]);
+                        }
+                    }
                 }
-                double melt_volume = melt_fraction*fe_values.JxW(q);
-                //if(melt_fraction > 0){
-                //std::cout << "melt volume = " << melt_volume <<  ", melt_fraction = " << melt_fraction << ", melt_fraction_threshold = " << melt_fraction_threshold << std::endl;
-                //}
-
-                melt_volume_integrals += melt_volume;
-                if (melt_fraction > melt_fraction_threshold)
-                  {
-
-                    Point<dim> position = this->get_mapping().transform_unit_to_real_cell(cell, reference_positions[q]);
-                    //std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
-                    //          << y_min  << " : " << y_max << ", "
-                    //          << z_min  << " : " << z_max << std::endl;
-                    x_min = std::min(x_min,position[0]);
-                    x_max = std::max(x_max,position[0]);
-                    y_min = std::min(y_min,position[1]);
-                    y_max = std::max(y_max,position[1]);
-                    if (dim ==3)
-                      {
-                        z_min = std::min(z_min,position[2]);
-                        z_max = std::max(z_max,position[2]);
-                      }
-                  }
-              }
             }
         }
       x_min = Utilities::MPI::min(x_min,this->get_mpi_communicator());
@@ -485,10 +497,13 @@ namespace aspect
         }
       melt_volume_integrals = Utilities::MPI::sum(melt_volume_integrals,this->get_mpi_communicator());
 
+      const double melt_volume_per_diking_event = 10e6; // sq or cb meters in 2d or 3d respectfully.
+
+      const unsigned int n_dikes = (unsigned int)(melt_volume_integrals/melt_volume_per_diking_event);
       std::cout << "min:max x = " << x_min  << " : " << x_max << ", "
-                                  << y_min  << " : " << y_max << ", "
-                                  << z_min  << " : " << z_max << ", " 
-                                  << " melt volume = " <<  melt_volume_integrals/1e6 << " million sq m" << std::endl;
+                << y_min  << " : " << y_max << ", "
+                << z_min  << " : " << z_max << ", "
+                << " melt volume = " <<  melt_volume_integrals/1e6 << " million sq m" << ", n_dikes = " << n_dikes << std::endl;
 
       // only make dikes if values are finite
 
@@ -496,6 +511,8 @@ namespace aspect
           std::isfinite(y_min) && std::isfinite(y_max) &&
           (std::isfinite(z_min) && std::isfinite(z_max) || dim == 2))
         {
+
+          dike_locations.resize(n_dikes);
           //std::cout << "flag 0" << std::endl;
           std::uniform_real_distribution<double> uniform_distribution_x(x_min,x_max);
           std::uniform_real_distribution<double> uniform_distribution_y(y_min,y_max);
@@ -557,27 +574,29 @@ namespace aspect
           24 ***
           25
            */
-          double dike_x = (uniform_distribution_x(this->random_number_generator)+uniform_distribution_x(this->random_number_generator))/2.0;
-          double dike_y = y_max;//(uniform_distribution_y(this->random_number_generator)+uniform_distribution_y(this->random_number_generator))/2.0;
-          double dike_z = z_max;//(uniform_distribution_z(this->random_number_generator)+uniform_distribution_z(this->random_number_generator))/2.0;
-
-
-          //std::cout << "flag 3: dike start location = " << dike_x << ":" << dike_y << ":" << dike_z << std::endl;
-          //particle_lost = false;
-          dike_locations.resize(1);
-          dike_locations[0].resize(0);
-          //dike_locations[1].resize(0);
-
-          // TODO: To know if we need diking, we need to compute whether or not we have melting.
-          if (dim == 2)
+          for (unsigned int dike_i = 0; dike_i < n_dikes; ++dike_i)
             {
-              dike_locations[0].emplace_back(Point<dim>(dike_x,dike_y));
-              //dike_locations[0].emplace_back(Point<dim>(-1370.4997314869,40489.36393586183));//(0,50225));
-              //dike_locations[1].emplace_back(Point<dim>(-20000,40489.36393586183));//(0,50225));
-            }
-          else
-            {
-              dike_locations[0].emplace_back(Point<dim>(-1370.4997314869,50e3,40489.36393586183));//(0,50225));
+              double dike_x = (uniform_distribution_x(this->random_number_generator)+uniform_distribution_x(this->random_number_generator))/2.0;
+              double dike_y = y_max;//(uniform_distribution_y(this->random_number_generator)+uniform_distribution_y(this->random_number_generator))/2.0;
+              double dike_z = z_max;//(uniform_distribution_z(this->random_number_generator)+uniform_distribution_z(this->random_number_generator))/2.0;
+
+
+              //std::cout << "flag 3: dike start location = " << dike_x << ":" << dike_y << ":" << dike_z << std::endl;
+              //particle_lost = false;
+              dike_locations[dike_i].resize(0);
+              //dike_locations[1].resize(0);
+
+              // TODO: To know if we need diking, we need to compute whether or not we have melting.
+              if (dim == 2)
+                {
+                  dike_locations[dike_i].emplace_back(Point<dim>(dike_x,dike_y));
+                  //dike_locations[0].emplace_back(Point<dim>(-1370.4997314869,40489.36393586183));//(0,50225));
+                  //dike_locations[1].emplace_back(Point<dim>(-20000,40489.36393586183));//(0,50225));
+                }
+              else
+                {
+                  dike_locations[dike_i].emplace_back(Point<dim>(-1370.4997314869,50e3,40489.36393586183));//(0,50225));
+                }
             }
           // If we found the correct cell on this MPI process, we have found the right cell.
           //Assert(cell_it.first.state() == IteratorState::valid && cell_it.first->is_locally_owned(), ExcMessage("Internal error: could not find cell to place initial point."));
