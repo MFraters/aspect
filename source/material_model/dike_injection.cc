@@ -119,24 +119,32 @@ namespace aspect
         }
 
       std::vector<Tensor< 1, dim, double >> velocity_field;
+      std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
 
-      for (unsigned int cell_i = 0; cell_i < cells.size(); ++cell_i)
+      std::vector<std::vector<Tensor<1,dim>>> gradients(this->get_fe().dofs_per_cell);
+      solution.resize(1,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
+      gradients.resize(1,std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
+
+      int world_rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+      std::cout << world_rank << ": cells.size() = " << cells.size() << ", positions.size() = " << positions.size() << std::endl;
+      for (unsigned int position_i = 0; position_i < cells.size(); ++position_i)
         {
-          Assert(cells[cell_i].state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
+          Assert(cells[position_i].state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
           small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
-          cells[cell_i]->get_dof_values(input_solution,
+          cells[position_i]->get_dof_values(input_solution,
                                         solution_values.begin(),
                                         solution_values.end());
 
-          std::vector<std::vector<double>> solution(this->get_fe().dofs_per_cell);
-          solution.resize(1,std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>()));
+          //for (unsigned int position_i = 0; position_i < positions.size(); position_i++)
+          {
+          
           solution[0] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
 
-          std::vector<std::vector<Tensor<1,dim>>> gradients(this->get_fe().dofs_per_cell);
-          gradients.resize(1,std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
           gradients[0]=std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>());
 
-          evaluator->reinit(cells[cell_i], reference_positions);
+          std::vector<Point<dim>> reference_position = {reference_positions[position_i]};
+          evaluator->reinit(cells[position_i], reference_position);
           evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
           evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
           evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
@@ -208,13 +216,13 @@ namespace aspect
           //std::cout << "flag 51"<< std::endl;
           // compute the viscosity
           MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
-          material_model_inputs.position[0] = positions[0];
+          material_model_inputs.position[0] = positions[position_i];
           material_model_inputs.temperature[0] = temperature;
           material_model_inputs.pressure[0] = pressure;
           material_model_inputs.velocity[0] = velocity;
           material_model_inputs.composition[0] = compositions;
           material_model_inputs.strain_rate[0] = strain_rate;
-          material_model_inputs.current_cell = cells[cell_i];
+          material_model_inputs.current_cell = cells[position_i];
           //std::cout << "flag 52"<< std::endl;
 
           MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
@@ -231,9 +239,12 @@ namespace aspect
             }
           else
             {
-              std::cout << "no field plastic_yielding" << std::endl;
+              //std::cout << "no field plastic_yielding" << std::endl;
             }
-          std::cout << " plastic_yielding = " << plastic_yielding << ", is_yielding() = " << visco_plastic->is_yielding(material_model_inputs) << std::endl;
+            int world_rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+          std::cout << world_rank << ", " << position_i << ": plastic_yielding = " << plastic_yielding << ", is_yielding() = " << visco_plastic->is_yielding(material_model_inputs) 
+          << ", positions = " << positions[position_i][0] << ":" << positions[position_i][1] << std::endl;
           if (visco_plastic->is_yielding(material_model_inputs))
             {
 
@@ -274,6 +285,7 @@ namespace aspect
                 }
               velocity_field.emplace_back(velocity_tensor);
             }
+          }
         }
       return velocity_field;
 
@@ -782,7 +794,7 @@ namespace aspect
                           if (particle_it->get_surrounding_cell().state() == IteratorState::valid)
                             {
 
-                              cells.emplace_back(typename DoFHandler<dim>::active_cell_iterator(*particle_handler->begin()->get_surrounding_cell(),&(this->get_dof_handler())));
+                              cells.emplace_back(typename DoFHandler<dim>::active_cell_iterator(*particle_it->get_surrounding_cell(),&(this->get_dof_handler())));
 
                               //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9, positions.size() = " << positions.size()
                               //<< ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
@@ -833,6 +845,9 @@ namespace aspect
 
                           std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_velocity_field(cells,positions,reference_positions,this->get_current_linearization_point());
 
+                          int world_rank;
+                          MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+                          std::cout << world_rank << ": positions.size() = " << positions.size() << std::endl;
                           for (unsigned int position_i = 0; position_i < positions.size(); ++position_i)
                             {
 
