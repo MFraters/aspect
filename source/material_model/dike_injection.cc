@@ -1475,10 +1475,13 @@ namespace aspect
                         }
                     }
                 }
-              if (min_distance < 2500 && this->get_timestep_number() > 0)
+              double max_dike_distance = 2500.;
+              if (min_distance < max_dike_distance && this->get_timestep_number() > 0)
                 {
-                  out.viscosities[q] *= dike_visosity_multiply_factor;
-                  const double dike_injection_rate_double = 1;//1e-134;
+                  double distance_factor = 1-(min_distance/max_dike_distance);
+                  //std::cout << dike_visosity_multiply_factor+(1.0-dike_visosity_multiply_factor)*(1-distance_factor) << ", min_distance = " << min_distance<< ", distance_factor = " << distance_factor << ", dike_visosity_multiply_factor= " << dike_visosity_multiply_factor << std::endl;
+                  out.viscosities[q] *= dike_visosity_multiply_factor+(1.0-dike_visosity_multiply_factor)*(1-distance_factor);
+                  const double dike_injection_rate_double = 1.0*distance_factor;//1e-134;
                   dike_injection_rate[q] = this->convert_output_to_years()
                                            ? dike_injection_rate_double / year_in_seconds
                                            : dike_injection_rate_double;
