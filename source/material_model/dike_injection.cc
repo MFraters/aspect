@@ -1412,11 +1412,13 @@ namespace aspect
           if (enable_random_dike_generation)
             {
               // for now just add dike composition to this cell
-              double min_distance = std::numeric_limits<double>::max();
+              const size_t n_dikes = dike_locations.size();
+              std::vector<double> min_distance_per_dike(n_dikes,std::numeric_limits<double>::max());
+              double total_min_distance = std::numeric_limits<double>::max();
 
               double distance;
               const Point<dim> &P = in.position[q];
-              for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
+              for (unsigned int dike_i = 0; dike_i < n_dikes; ++dike_i)
                 {
                   if (dike_locations[dike_i].size() > 1)
                     {
@@ -1466,85 +1468,37 @@ namespace aspect
                               //  }
                             }
 
-                          if (distance < min_distance)
+                          if (distance < min_distance_per_dike[dike_i])
                             {
                               //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
                               // //std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
-                              min_distance = distance;
+                              min_distance_per_dike[dike_i] = distance;
+                            }
+                          if (distance < total_min_distance)
+                            {
+                              total_min_distance = distance;
                             }
                         }
                     }
                 }
               double max_dike_distance = 2500.;
-              if (min_distance < max_dike_distance && this->get_timestep_number() > 0)
+              dike_injection_rate[q] = 0;
+              for (unsigned int dike_i = 0; dike_i < n_dikes; ++dike_i)
                 {
-                  double distance_factor = 1-(min_distance/max_dike_distance);
-                  //std::cout << dike_visosity_multiply_factor+(1.0-dike_visosity_multiply_factor)*(1-distance_factor) << ", min_distance = " << min_distance<< ", distance_factor = " << distance_factor << ", dike_visosity_multiply_factor= " << dike_visosity_multiply_factor << std::endl;
-                  out.viscosities[q] *= dike_visosity_multiply_factor+(1.0-dike_visosity_multiply_factor)*(1-distance_factor);
-                  const double dike_injection_rate_double = 1.0*distance_factor;//1e-134;
-                  dike_injection_rate[q] = this->convert_output_to_years()
-                                           ? dike_injection_rate_double / year_in_seconds
-                                           : dike_injection_rate_double;
+                  if (min_distance_per_dike[dike_i] < max_dike_distance && this->get_timestep_number() > 0)
+                    {
+                      double distance_factor = 1-(min_distance_per_dike[dike_i]/max_dike_distance);
+                      //std::cout << dike_visosity_multiply_factor+(1.0-dike_visosity_multiply_factor)*(1-distance_factor) << ", min_distance = " << min_distance<< ", distance_factor = " << distance_factor << ", dike_visosity_multiply_factor= " << dike_visosity_multiply_factor << std::endl;
+                      out.viscosities[q] *= dike_visosity_multiply_factor+(1.0-dike_visosity_multiply_factor)*(1-distance_factor);
 
-                  /*
-                            // User-defined or timestep-dependent injection fraction.
-                            if (this->simulator_is_past_initialization())
-                              dike_injection_fraction = dike_injection_rate[q] * this->get_timestep();
-
-                  if (dike_injection_rate[q] > 0.0
-                                && this->get_timestep_number() > 0
-                                && in.current_cell.state() == IteratorState::valid)
-                              {
+                      out.viscosities[q] = std::min(max_dike_viscosity,std::max(min_dike_viscosity,out.viscosities[q]));
+                      const double dike_injection_rate_double = 1.0*distance_factor;//1e-134;
+                      dike_injection_rate[q] += this->convert_output_to_years()
+                                                ? dike_injection_rate_double / year_in_seconds
+                                                : dike_injection_rate_double;
 
 
-                            const UpdateFlags update_flags = update_values;// | update_gradients;//property_manager->get_needed_update_flags();
-
-                            std::unique_ptr<SolutionEvaluator<dim>> evaluator = construct_solution_evaluator(*this,
-                                                                                 update_flags);
-
-                                      small_vector<double> solution_values(this->get_fe().dofs_per_cell);
-
-                                      in.current_cell->get_dof_values(this->get_old_solution(),
-                                                           solution_values.begin(),
-                                                           solution_values.end());
-
-
-
-                                      //fe_values.reinit(cell);
-                                      //evaluator->reinit(in.current_cell, positions, {solution_values.data(), solution_values.size()}, update_flags);
-
-
-                                // If the "single Advection" nonlinear solver scheme is used,
-                                // it is necessary to set the reaction term to 0 to avoid
-                                // additional plastic deformation generated by dike injection
-                                // within the dike zone.
-                                if (this->get_parameters().nonlinear_solver ==
-                                    Parameters<dim>::NonlinearSolver::single_Advection_single_Stokes
-                                    ||
-                                    this->get_parameters().nonlinear_solver ==
-                                    Parameters<dim>::NonlinearSolver::single_Advection_iterated_Stokes
-                                    ||
-                                    this->get_parameters().nonlinear_solver ==
-                                    Parameters<dim>::NonlinearSolver::single_Advection_iterated_Newton_Stokes
-                                    ||
-                                    this->get_parameters().nonlinear_solver ==
-                                    Parameters<dim>::NonlinearSolver::single_Advection_iterated_defect_correction_Stokes)
-                                  {
-                                    if (this->introspection().compositional_name_exists("plastic_strain"))
-                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("plastic_strain")] = 0.0;
-                                    if (this->introspection().compositional_name_exists("viscous_strain"))
-                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("viscous_strain")] = 0.0;
-                                    if (this->introspection().compositional_name_exists("total_strain"))
-                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("total_strain")] = 0.0;
-                                    if (this->introspection().compositional_name_exists("noninitial_plastic_strain"))
-                                      out.reaction_terms[q][this->introspection().compositional_index_for_name("noninitial_plastic_strain")] = 0.0;
-                                  }
-                              }*/
-
-                }
-              else
-                {
-                  dike_injection_rate[q] = 0;
+                    }
                 }
             }
         }
@@ -1933,6 +1887,12 @@ namespace aspect
                                "in the quadratic function that approximates "
                                "the melt fraction of pyroxenite. "
                                "\\si{\\degreeCelsius\\per\\pascal\\squared}.");
+            prm.declare_entry("Minimum dike viscosity", "1e18",
+                              Patterns::Double(),
+                              "");
+            prm.declare_entry("Maximum dike viscosity", "1e26",
+                              Patterns::Double(),
+                              "");
           }
           prm.leave_subsection();
           aspect::Particle::Integrator::Interface<dim>::declare_parameters(prm);
@@ -2015,6 +1975,9 @@ namespace aspect
             D3              = prm.get_double ("D3");
             E1              = prm.get_double ("E1");
             E2              = prm.get_double ("E2");
+
+            min_dike_viscosity = prm.get_double("Minimum dike viscosity");
+            max_dike_viscosity = prm.get_double("Maximum dike viscosity");
           }
           prm.leave_subsection();
         }
