@@ -260,7 +260,7 @@ subsection Material model
   subsection Dike injection
     set Base model = visco plastic
     set Enable random dike generation = true
-    set Dike viscosity multiply factor = 1e-1
+    set Dike viscosity multiply factor = 1e-4
 
     set Dike material injection fraction = 1.0
     subsection Dike injection function
