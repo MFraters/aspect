@@ -100,7 +100,7 @@ namespace aspect
         std::unique_ptr<Particles::ParticleHandler<dim>> particle_handler;
         std::unique_ptr<aspect::Particle::Integrator::Interface<dim>> particle_integrator;
         //bool particle_lost;
-        // stores the 1: the index, 2 wether they are active (0), lost(1) or lost and processed (2) and 2: the location if lost.
+        // stores the 0: the index, 1 wether they are active (0), lost(1) or lost and processed (2) and 2: the location if lost.
         std::vector<std::tuple<unsigned int,unsigned int,Point<dim>>> particle_statuses;
         //unsigned int particle_lost_index;
         //Point<dim> particle_lost_location;
@@ -120,6 +120,7 @@ namespace aspect
         std::vector<Tensor<1,dim>> compute_velocity_field(std::vector<typename DoFHandler<dim>::active_cell_iterator> &cells,
                                                            std::vector<Point<dim>> &positions,
                                                            std::vector<Point<dim>> &reference_positions,
+                                                           std::vector<unsigned int> & particle_map,
                                                            const LinearAlgebra::BlockVector &input_solution);
         /**
          * Parsed function that specifies the region and amount of
