@@ -45,7 +45,7 @@ namespace aspect
     void clear_compositional_field (const SimulatorAccess<dim> &simulator_access)
     {
       const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-     //std::cout << "clear_compositional_field signal on rank " << my_rank << std::endl;
+      //std::cout << "clear_compositional_field signal on rank " << my_rank << std::endl;
       //simulator_access.get_pcout() << "Signal clear_compositional_field triggered on rank " << my_rank << ", clearing field " << clear_composition_field_index << "!" << std::endl;
       //std::cout << "Signal clear_compositional_field triggered on rank " << my_rank << ", clearing field " << clear_composition_field_index << "!" << std::endl;
       const typename Simulator<dim>::AdvectionField adv_field (Simulator<dim>::AdvectionField::composition(clear_composition_field_index));
@@ -101,7 +101,7 @@ namespace aspect
       std::vector<typename DoFHandler<dim>::active_cell_iterator> &cells,
       std::vector<Point<dim>> &positions,
       std::vector<Point<dim>> &reference_positions,
-      std::vector<unsigned int> & particle_map,
+      std::vector<unsigned int> &particle_map,
       const LinearAlgebra::BlockVector &input_solution)
     {
       const UpdateFlags update_flags = update_values | update_gradients;
@@ -128,7 +128,7 @@ namespace aspect
 
       int world_rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-     //std::cout << world_rank << ": flag cvf 5: cells.size() = " << cells.size() << ", positions.size() = " << positions.size() << std::endl;
+      //std::cout << world_rank << ": flag cvf 5: cells.size() = " << cells.size() << ", positions.size() = " << positions.size() << std::endl;
       for (unsigned int position_i = 0; position_i < cells.size(); ++position_i)
         {
 
@@ -149,163 +149,164 @@ namespace aspect
 
 
           //Assert(cells[position_i].state() == IteratorState::valid,ExcMessage("Cell state is not valid."));
-          if(cells[position_i].state() != IteratorState::valid){
-            continue;
-          }
+          if (cells[position_i].state() != IteratorState::valid)
+            {
+              continue;
+            }
           small_vector<double,50> solution_values(this->get_fe().dofs_per_cell);
           cells[position_i]->get_dof_values(input_solution,
-                                        solution_values.begin(),
-                                        solution_values.end());
+                                            solution_values.begin(),
+                                            solution_values.end());
 
           //for (unsigned int position_i = 0; position_i < positions.size(); position_i++)
           {
-          
-          solution[0] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
 
-          gradients[0]=std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>());
+            solution[0] = std::vector<double>(evaluator->n_components(), numbers::signaling_nan<double>());
 
-          std::vector<Point<dim>> reference_position = {reference_positions[position_i]};
-          evaluator->reinit(cells[position_i], reference_position);
-          evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
-          evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
-          evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
+            gradients[0]=std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>());
 
-          Tensor<1,dim> velocity;
+            std::vector<Point<dim>> reference_position = {reference_positions[position_i]};
+            evaluator->reinit(cells[position_i], reference_position);
+            evaluator->evaluate({solution_values.data(),solution_values.size()},evaluation_flags);
+            evaluator->get_solution(0, {&solution[0][0],solution[0].size()}, evaluation_flags);
+            evaluator->get_gradients(0, {&gradients[0][0],gradients[0].size()}, evaluation_flags);
 
-          for (unsigned int i = 0; i < dim; ++i)
-            velocity[i] = solution_values[this->introspection().component_indices.velocities[i]];
+            Tensor<1,dim> velocity;
 
-          Tensor<2,dim> velocity_gradient;
-          for (unsigned int i = 0; i < dim; ++i)
-            velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
+            for (unsigned int i = 0; i < dim; ++i)
+              velocity[i] = solution_values[this->introspection().component_indices.velocities[i]];
 
-          // Calculate strain rate from velocity gradients
-          const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
-          const SymmetricTensor<2,dim> deviatoric_strain_rate
-            = (this->get_material_model().is_compressible()
-               ?
-               strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
-               :
-               strain_rate);
+            Tensor<2,dim> velocity_gradient;
+            for (unsigned int i = 0; i < dim; ++i)
+              velocity_gradient[i] = gradients[0][this->introspection().component_indices.velocities[i]];
 
-          const double pressure = solution[0][this->introspection().component_indices.pressure];
+            // Calculate strain rate from velocity gradients
+            const SymmetricTensor<2,dim> strain_rate = symmetrize (velocity_gradient);
+            const SymmetricTensor<2,dim> deviatoric_strain_rate
+              = (this->get_material_model().is_compressible()
+                 ?
+                 strain_rate - 1./3 * trace(strain_rate) * unit_symmetric_tensor<dim>()
+                 :
+                 strain_rate);
 
-          const double temperature =solution[0][this->introspection().component_indices.temperature];
+            const double pressure = solution[0][this->introspection().component_indices.pressure];
 
-          //std::cout << "flag 50"<< std::endl;
-          //std::cout << "temperature = " << temperature << ", pressure = " << pressure << ",solution[0][0] = " << solution[0][0] << ",1:" << solution[0][1] << ",2:" << solution[0][2] << ",3:" << solution[0][3] << ", old: " << solution[0][this->introspection().component_indices.temperature] << ", this->introspection().component_indices.temperature = " << this->introspection().component_indices.temperature << ", pres index = " << this->introspection().component_indices.pressure << ", solution_values = " << solution_values[0] << ":" << solution_values[1] << ":" << solution_values[2] << ":" << solution_values[3] << std::endl;
+            const double temperature =solution[0][this->introspection().component_indices.temperature];
 
-          // get the composition of the particle
-          std::vector<double> compositions;
-          for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
-            {
-              const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
-              compositions.push_back(solution[0][solution_component]);
-            }
+            //std::cout << "flag 50"<< std::endl;
+            //std::cout << "temperature = " << temperature << ", pressure = " << pressure << ",solution[0][0] = " << solution[0][0] << ",1:" << solution[0][1] << ",2:" << solution[0][2] << ",3:" << solution[0][3] << ", old: " << solution[0][this->introspection().component_indices.temperature] << ", this->introspection().component_indices.temperature = " << this->introspection().component_indices.temperature << ", pres index = " << this->introspection().component_indices.pressure << ", solution_values = " << solution_values[0] << ":" << solution_values[1] << ":" << solution_values[2] << ":" << solution_values[3] << std::endl;
+
+            // get the composition of the particle
+            std::vector<double> compositions;
+            for (unsigned int i = 0; i < this->n_compositional_fields(); ++i)
+              {
+                const unsigned int solution_component = this->introspection().component_indices.compositional_fields[i];
+                compositions.push_back(solution[0][solution_component]);
+              }
 
 
-          // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
-          // adding an extra dimension which is zero.
-          SymmetricTensor<2,3> strain_rate_3d;
-          strain_rate_3d[0][0] = strain_rate[0][0];
-          strain_rate_3d[0][1] = strain_rate[0][1];
-          //sym: strain_rate_3d[1][0] = strain_rate[1][0];
-          strain_rate_3d[1][1] = strain_rate[1][1];
+            // even in 2d we need 3d strain-rates and velocity gradient tensors. So we make them 3d by
+            // adding an extra dimension which is zero.
+            SymmetricTensor<2,3> strain_rate_3d;
+            strain_rate_3d[0][0] = strain_rate[0][0];
+            strain_rate_3d[0][1] = strain_rate[0][1];
+            //sym: strain_rate_3d[1][0] = strain_rate[1][0];
+            strain_rate_3d[1][1] = strain_rate[1][1];
 
-          if (dim == 3)
-            {
-              strain_rate_3d[0][2] = strain_rate[0][2];
-              strain_rate_3d[1][2] = strain_rate[1][2];
-              //sym: strain_rate_3d[2][0] = strain_rate[0][2];
-              //sym: strain_rate_3d[2][1] = strain_rate[1][2];
-              strain_rate_3d[2][2] = strain_rate[2][2];
-            }
-          Tensor<2,3> velocity_gradient_3d;
-          velocity_gradient_3d[0][0] = velocity_gradient[0][0];
-          velocity_gradient_3d[0][1] = velocity_gradient[0][1];
-          velocity_gradient_3d[1][0] = velocity_gradient[1][0];
-          velocity_gradient_3d[1][1] = velocity_gradient[1][1];
-          if (dim == 3)
-            {
-              velocity_gradient_3d[0][2] = velocity_gradient[0][2];
-              velocity_gradient_3d[1][2] = velocity_gradient[1][2];
-              velocity_gradient_3d[2][0] = velocity_gradient[2][0];
-              velocity_gradient_3d[2][1] = velocity_gradient[2][1];
-              velocity_gradient_3d[2][2] = velocity_gradient[2][2];
-            }
+            if (dim == 3)
+              {
+                strain_rate_3d[0][2] = strain_rate[0][2];
+                strain_rate_3d[1][2] = strain_rate[1][2];
+                //sym: strain_rate_3d[2][0] = strain_rate[0][2];
+                //sym: strain_rate_3d[2][1] = strain_rate[1][2];
+                strain_rate_3d[2][2] = strain_rate[2][2];
+              }
+            Tensor<2,3> velocity_gradient_3d;
+            velocity_gradient_3d[0][0] = velocity_gradient[0][0];
+            velocity_gradient_3d[0][1] = velocity_gradient[0][1];
+            velocity_gradient_3d[1][0] = velocity_gradient[1][0];
+            velocity_gradient_3d[1][1] = velocity_gradient[1][1];
+            if (dim == 3)
+              {
+                velocity_gradient_3d[0][2] = velocity_gradient[0][2];
+                velocity_gradient_3d[1][2] = velocity_gradient[1][2];
+                velocity_gradient_3d[2][0] = velocity_gradient[2][0];
+                velocity_gradient_3d[2][1] = velocity_gradient[2][1];
+                velocity_gradient_3d[2][2] = velocity_gradient[2][2];
+              }
 
-          //std::cout << "flag 51"<< std::endl;
-          // compute the viscosity
-          MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
-          material_model_inputs.position[0] = positions[position_i];
-          material_model_inputs.temperature[0] = temperature;
-          material_model_inputs.pressure[0] = pressure;
-          material_model_inputs.velocity[0] = velocity;
-          material_model_inputs.composition[0] = compositions;
-          material_model_inputs.strain_rate[0] = strain_rate;
-          material_model_inputs.current_cell = cells[position_i];
-          //std::cout << "flag 52"<< std::endl;
+            //std::cout << "flag 51"<< std::endl;
+            // compute the viscosity
+            MaterialModel::MaterialModelInputs<dim> material_model_inputs(1,this->n_compositional_fields());
+            material_model_inputs.position[0] = positions[position_i];
+            material_model_inputs.temperature[0] = temperature;
+            material_model_inputs.pressure[0] = pressure;
+            material_model_inputs.velocity[0] = velocity;
+            material_model_inputs.composition[0] = compositions;
+            material_model_inputs.strain_rate[0] = strain_rate;
+            material_model_inputs.current_cell = cells[position_i];
+            //std::cout << "flag 52"<< std::endl;
 
-          MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
-          //const MaterialModel::Interface<dim> &material_model = this->get_material_model();
-          std::shared_ptr<const MaterialModel::ViscoPlastic<dim>> visco_plastic = std::dynamic_pointer_cast<const MaterialModel::ViscoPlastic<dim>>(base_model);
-          Assert(visco_plastic!=nullptr,
-                 ExcMessage("Can't convert material model to viscoplastic. Only the viscoplastic material model is currently supported. "
-                            "In principle any material which supports the funtion is_yielding() can work."));
-          bool plastic_yielding = false;
-          if (this->introspection().compositional_name_exists("plastic_yielding"))
-            {
-              const unsigned int plastic_yielding_index = this->introspection().compositional_index_for_name("plastic_yielding");
-              plastic_yielding = compositions[plastic_yielding_index];
-            }
-          else
-            {
-              //std::cout << "no field plastic_yielding" << std::endl;
-            }
+            MaterialModel::MaterialModelOutputs<dim> material_model_outputs(1,this->n_compositional_fields());
+            //const MaterialModel::Interface<dim> &material_model = this->get_material_model();
+            std::shared_ptr<const MaterialModel::ViscoPlastic<dim>> visco_plastic = std::dynamic_pointer_cast<const MaterialModel::ViscoPlastic<dim>>(base_model);
+            Assert(visco_plastic!=nullptr,
+                   ExcMessage("Can't convert material model to viscoplastic. Only the viscoplastic material model is currently supported. "
+                              "In principle any material which supports the funtion is_yielding() can work."));
+            bool plastic_yielding = false;
+            if (this->introspection().compositional_name_exists("plastic_yielding"))
+              {
+                const unsigned int plastic_yielding_index = this->introspection().compositional_index_for_name("plastic_yielding");
+                plastic_yielding = compositions[plastic_yielding_index];
+              }
+            else
+              {
+                //std::cout << "no field plastic_yielding" << std::endl;
+              }
             int world_rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-          //std::cout << "ifworld_rank = " << world_rank << ": position_i = " << position_i << ", particle_map[position_i] = " << particle_map[position_i] << ": plastic_yielding = " << plastic_yielding << ", is_yielding() = " << visco_plastic->is_yielding(material_model_inputs) 
-          //<< ", positions = " << positions[position_i][0] << ":" << positions[position_i][1] << std::endl;
-          if (visco_plastic->is_yielding(material_model_inputs))
-            {
+            //std::cout << "ifworld_rank = " << world_rank << ": position_i = " << position_i << ", particle_map[position_i] = " << particle_map[position_i] << ": plastic_yielding = " << plastic_yielding << ", is_yielding() = " << visco_plastic->is_yielding(material_model_inputs)
+            //<< ", positions = " << positions[position_i][0] << ":" << positions[position_i][1] << std::endl;
+            if (visco_plastic->is_yielding(material_model_inputs))
+              {
 
-              base_model->evaluate(material_model_inputs, material_model_outputs);
-              double eta = material_model_outputs.viscosities[0];
+                base_model->evaluate(material_model_inputs, material_model_outputs);
+                double eta = material_model_outputs.viscosities[0];
 
-              const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
-              //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
-              velocity_field.emplace_back(dealii::eigenvectors(stress)[0].second);
+                const SymmetricTensor<2,dim>  stress = -2. * eta * deviatoric_strain_rate;
+                //const std::array< std::pair< double, Tensor< 1, dim, double >>, std::integral_constant< int, dim >::value > stress_eigenvectors = dealii::eigenvectors(stress);
+                velocity_field.emplace_back(dealii::eigenvectors(stress)[0].second);
 
-              //std::cout << "flag 53"<< std::endl;
-              //std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
-              //          << ", " <<dealii::eigenvectors(stress)[1].first << std::endl;
+                //std::cout << "flag 53"<< std::endl;
+                //std::cout << "size eigenvectors = " <<  dealii::eigenvectors(stress)[0].first
+                //          << ", " <<dealii::eigenvectors(stress)[1].first << std::endl;
 
-              // now we have the largest stress eigenvector. We need to deterine what is up.
-              Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[0])/this->get_gravity_model().gravity_vector(positions[0]).norm();
+                // now we have the largest stress eigenvector. We need to deterine what is up.
+                Tensor<1,dim> gravity_vector = this->get_gravity_model().gravity_vector(positions[0])/this->get_gravity_model().gravity_vector(positions[0]).norm();
 
-              double angle = std::acos(velocity_field.back() * gravity_vector);
-              //std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
-              //          << ", velocity_field = " << velocity_field.back() << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
-              if (std::fabs(angle) < 0.5*numbers::PI)
-                {
-                  velocity_field.back() *= -1;
-                }
-               //std::cout << "ifworld_rank = " << world_rank << ": flag 60"<< std::endl;
+                double angle = std::acos(velocity_field.back() * gravity_vector);
+                //std::cout << "positions[0] = " << positions[0] << ", gravity_vector = " << gravity_vector << ", angle = " << angle << ":" << angle*180./numbers::PI
+                //          << ", velocity_field = " << velocity_field.back() << ",eta = " << eta << ", deviatoric_strain_rate = " << deviatoric_strain_rate << std::endl;
+                if (std::fabs(angle) < 0.5*numbers::PI)
+                  {
+                    velocity_field.back() *= -1;
+                  }
+                //std::cout << "ifworld_rank = " << world_rank << ": flag 60"<< std::endl;
 
-            }
-          else
-            {
-              // signal that
-              Tensor<1,dim,double> velocity_tensor = Tensor<1,dim,double>();
+              }
+            else
+              {
+                // signal that
+                Tensor<1,dim,double> velocity_tensor = Tensor<1,dim,double>();
 
-              velocity_tensor[0] = std::numeric_limits<double>::quiet_NaN();
-              velocity_tensor[1] = std::numeric_limits<double>::quiet_NaN();
-              if (dim == 3)
-                {
-                  velocity_tensor[2] = std::numeric_limits<double>::quiet_NaN();
-                }
-              velocity_field.emplace_back(velocity_tensor);
-            }
+                velocity_tensor[0] = std::numeric_limits<double>::quiet_NaN();
+                velocity_tensor[1] = std::numeric_limits<double>::quiet_NaN();
+                if (dim == 3)
+                  {
+                    velocity_tensor[2] = std::numeric_limits<double>::quiet_NaN();
+                  }
+                velocity_field.emplace_back(velocity_tensor);
+              }
           }
         }
       return velocity_field;
@@ -641,7 +642,7 @@ namespace aspect
 
           if (enable_random_dike_generation && this->get_timestep_number() > 0)// && cell_it.first.state() == IteratorState::valid)// && cell_it.first->is_locally_owned())
             {
-             //std::cout << "dike_locations.size() = " << dike_locations.size() << std::endl;
+              //std::cout << "dike_locations.size() = " << dike_locations.size() << std::endl;
               for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
                 {
                   std::pair<const typename parallel::distributed::Triangulation<dim>::active_cell_iterator,Point<dim>> cell_it_start = GridTools::find_active_cell_around_point<>(this->get_mapping(), this->get_triangulation(), dike_locations[dike_i].back());
@@ -657,7 +658,7 @@ namespace aspect
                       Assert(next_free_id == next_free_id_sum, ExcMessage("mpi internal error"));
                       particle_statuses.emplace_back(std::tuple<unsigned int,unsigned int,Point<dim>> {next_free_id, 0,Point<dim>()});
                       particle_handler->insert_particle(dike_locations[dike_i].back(),cell_it_start.second,next_free_id, cell_it_start.first);
-                     //std::cout << "world_rank = " << world_rank << "/" << world_size << ": next_free_id = " << next_free_id << ", dike_i = " << dike_i << ", dike_locations[dike_i].back() = " << dike_locations[dike_i].back() << std::endl;
+                      //std::cout << "world_rank = " << world_rank << "/" << world_size << ": next_free_id = " << next_free_id << ", dike_i = " << dike_i << ", dike_locations[dike_i].back() = " << dike_locations[dike_i].back() << std::endl;
                       particle_handler->update_cached_numbers();
                     }
                   else
@@ -671,12 +672,12 @@ namespace aspect
                   //       Add an Assert(next_free_id==particle_handler->get_next_free_particle_index(),ExcMessage(...)) before update_cached_numbers() to check if the number has been updated in between?
 
                 }
-             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 1.5" << std::endl;
+              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 1.5" << std::endl;
               //particle_handler->update_cached_numbers();
               particle_handler->sort_particles_into_subdomains_and_cells();
               // get the stress at the point
               // get the solutions and gradients
-             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 2" << std::endl;
+              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 2" << std::endl;
 
               const UpdateFlags update_flags = update_values | update_gradients;//property_manager->get_needed_update_flags();
 
@@ -695,10 +696,10 @@ namespace aspect
               // todo: or max number?
               int iteration = 0;
               unsigned int n_active_particles = dike_locations.size();
-             //std::cout << "n_active_particles = " << n_active_particles << std::endl;
+              //std::cout << "n_active_particles = " << n_active_particles << std::endl;
               while (n_active_particles > 0)
                 {
-                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
                   iteration++;
                   if (!(iteration < 5000))
                     {
@@ -732,13 +733,13 @@ namespace aspect
 
                   std::vector<Point<dim>> new_dike_points(particle_statuses.size(),Point<dim>());
                   std::vector<unsigned int> reached_yielding(particle_statuses.size(),false); // TODO: should be bool, but mpi complains, so unsigned in for now.
-                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4" << std::endl;
+                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4" << std::endl;
                   size_t iter2 = 0;
                   do
                     {
                       iter2++;
-                     //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4.5" << std::endl;
-                     //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":" << iteration << ":" << iter2 << std::endl;//"(1): particle lost = " << particle_lost << std::endl;
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4.5" << std::endl;
+                      //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":" << iteration << ":" << iter2 << std::endl;//"(1): particle lost = " << particle_lost << std::endl;
                       particle_handler->sort_particles_into_subdomains_and_cells();
                       //std::cout << iteration << ":" << iter2 << "(2): parwhileticle lost = " << particle_lost << std::endl;
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 5" << std::endl;
@@ -747,10 +748,10 @@ namespace aspect
 
                       // recmpute active particles
                       n_active_particles = 0;
-                     //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ": particle_statuses = " << particle_statuses.size() << "flag 5" << std::endl;
+                      //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ": particle_statuses = " << particle_statuses.size() << "flag 5" << std::endl;
                       for (auto &particle_status : particle_statuses)
                         {
-                         //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":a particle" << std::endl;
+                          //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":a particle" << std::endl;
                           //if (std::get<1>(particle_status) == 0 || std::get<1>(particle_status) == 1)
                           {
                             // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
@@ -763,19 +764,19 @@ namespace aspect
                               }
                             else
                               {
-                               //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":an active particle!" << std::endl;
+                                //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":an active particle!" << std::endl;
                                 n_active_particles++;
                               }
                           }
                         }
-                     //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":new active particles = " << n_active_particles << std::endl;
+                      //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":new active particles = " << n_active_particles << std::endl;
 
                       unsigned int particle_lost = 0;
                       particle_lost = Utilities::MPI::sum((unsigned int)particle_lost,this->get_mpi_communicator());
-                     //std::cout << iteration << ":" << iter2 << "(4): parwhileticle lost = " << particle_lost << std::endl;
+                      //std::cout << iteration << ":" << iter2 << "(4): parwhileticle lost = " << particle_lost << std::endl;
                       if (n_active_particles == 0)
                         {
-                         //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 6" << std::endl;
+                          //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 6" << std::endl;
 
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7" << std::endl;
                           //particle_handler->sort_particles_into_subdomains_and_cells();
@@ -784,7 +785,7 @@ namespace aspect
                           ////std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7.2" << std::endl;
                           do
                             {
-                             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7.3" << std::endl;
+                              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7.3" << std::endl;
                               //particle_handler->sort_particles_into_subdomains_and_cells();
                               ////std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7.1" << std::endl;
                               //Utilities::MPI::sum(particle_lost_int,this->get_mpi_communicator());
@@ -800,7 +801,7 @@ namespace aspect
                       //    continue;
                       //  }
 
-                     //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":" << iteration << "(3): particle lost = " << particle_lost << std::endl;
+                      //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":" << iteration << "(3): particle lost = " << particle_lost << std::endl;
 
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << std::endl;//": Flag 8, positions.size() = " << positions.size() << std::endl;
 
@@ -813,14 +814,14 @@ namespace aspect
 
                       for (auto particle_it = particle_handler->begin(); particle_it != particle_handler->end(); ++particle_it)
                         {
-                         //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8.4, particle_it->get_id() = " << particle_it->get_id() << ", particle location = " << particle_it->get_location() << ", dike_locations.size() = " << dike_locations.size() << std::endl;
+                          //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8.4, particle_it->get_id() = " << particle_it->get_id() << ", particle location = " << particle_it->get_location() << ", dike_locations.size() = " << dike_locations.size() << std::endl;
                           if (particle_it->get_surrounding_cell().state() == IteratorState::valid)
                             {
-                             //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8.5, particle_it->get_id() = " << particle_it->get_id() << ", dike_locations.size() = " << dike_locations.size() << std::endl;
+                              //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8.5, particle_it->get_id() = " << particle_it->get_id() << ", dike_locations.size() = " << dike_locations.size() << std::endl;
                               particle_map.emplace_back(particle_it->get_id());
                               cells.emplace_back(typename DoFHandler<dim>::active_cell_iterator(*particle_it->get_surrounding_cell(),&(this->get_dof_handler())));
 
-                             //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9, positions.size() = " << positions.size()<< std::endl;// ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
+                              //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9, positions.size() = " << positions.size()<< std::endl;// ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
 
                               //Assert(positions.size() == 1, ExcMessage("Internal error."));
                               //Assert(reference_positions.size() == 1, ExcMessage("Internal error."));
@@ -854,7 +855,7 @@ namespace aspect
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10" << std::endl;
                       // function here
                       //Tensor<1,dim> solution_stress =
-                     //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10: cells.size() = " << cells.size() << ", positions.size() = " << positions.size() << std::endl;
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 10: cells.size() = " << cells.size() << ", positions.size() = " << positions.size() << std::endl;
                       if (cells.size() > 0)
                         {
                           // TODO: should this not be the stress on the previous particle location?
@@ -875,40 +876,40 @@ namespace aspect
                           unsigned int position_i = 0;
                           //std::cout << world_rank << ": positions.size() = " << positions.size() << std::endl;
                           for (auto particle_it = particle_handler->begin(); particle_it != particle_handler->end(); ++particle_it)
-                          {
-                           //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8.4, particle_it->get_id() = " << particle_it->get_id() << ", particle location = " << particle_it->get_location() << ", dike_locations.size() = " << dike_locations.size() << std::endl;
-                            if (particle_it->get_surrounding_cell().state() == IteratorState::valid)
-                              {
-                          //for (unsigned int position_i = 0; position_i < positions.size(); ++position_i)
-                          //  {
+                            {
+                              //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8.4, particle_it->get_id() = " << particle_it->get_id() << ", particle location = " << particle_it->get_location() << ", dike_locations.size() = " << dike_locations.size() << std::endl;
+                              if (particle_it->get_surrounding_cell().state() == IteratorState::valid)
+                                {
+                                  //for (unsigned int position_i = 0; position_i < positions.size(); ++position_i)
+                                  //  {
 
-                              if (isnan(solution_stress[position_i][0]))
-                                {
-                                  Tensor<1,dim> gravity_vector = -this->get_gravity_model().gravity_vector(positions[position_i]);
-                                  solution_stress[position_i] = gravity_vector/gravity_vector.norm();
-                                 //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", position_i = " << position_i << ",solution nan" << std::endl;
+                                  if (isnan(solution_stress[position_i][0]))
+                                    {
+                                      Tensor<1,dim> gravity_vector = -this->get_gravity_model().gravity_vector(positions[position_i]);
+                                      solution_stress[position_i] = gravity_vector/gravity_vector.norm();
+                                      //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", position_i = " << position_i << ",solution nan" << std::endl;
+                                    }
+                                  else
+                                    {
+                                      reached_yielding[particle_it->get_id()] = true;
+                                      //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", position_i = " << position_i << ",reached yielding" << std::endl;
+                                    }
+                                  if (isnan(current_linerization_point_stress[position_i][0]))
+                                    {
+                                      Tensor<1,dim> gravity_vector = -this->get_gravity_model().gravity_vector(positions[position_i]);
+                                      current_linerization_point_stress[position_i] = gravity_vector/gravity_vector.norm();
+                                      //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", position_i = " << position_i << ",current_linerization_point_stress nan" << std::endl;
+                                    }
                                 }
-                              else
-                                {
-                                  reached_yielding[particle_it->get_id()] = true;
-                                 //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", position_i = " << position_i << ",reached yielding" << std::endl;
-                                }
-                              if (isnan(current_linerization_point_stress[position_i][0]))
-                                {
-                                  Tensor<1,dim> gravity_vector = -this->get_gravity_model().gravity_vector(positions[position_i]);
-                                  current_linerization_point_stress[position_i] = gravity_vector/gravity_vector.norm();
-                                 //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", position_i = " << position_i << ",current_linerization_point_stress nan" << std::endl;
-                                }
+                              ++position_i;
                             }
-                            ++position_i;
-                          }
                           // set the new point at half the cell size away from the current point and check if that is still in the domain.
                           const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
 
                           //auto old_position = particle_it->get_location();
                           //}
 
-                         //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
+                          //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
                           particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
                         }
                       //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
@@ -978,7 +979,7 @@ namespace aspect
                           }
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.25" << std::endl;
                         }*/
-                     //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.5" << std::endl;
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.5" << std::endl;
                     }
                   while (particle_integrator->new_integration_step());
 
@@ -1010,66 +1011,66 @@ namespace aspect
                     }*/
 
 
-                   //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 20.5" << std::endl;
-                    std::vector<unsigned int> particle_dike_map;
-                    std::vector<Point<dim>> new_dike_locations(particle_statuses.size(), Point<dim>());
-                              for (auto it = particle_handler->begin(); it != particle_handler->end(); ++it)
-                                {
-                                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 21: it->get_id() = " << it->get_id() << std::endl;
-                                  // if the indexes are equal we found a match
-                                  //std::cout << "std::get<0>(particle_statuses[dike_i]) = " << std::get<0>(particle_statuses[dike_i]) << ", it->get_id() = " << it->get_id() << std::endl;
-                                  //if (std::get<0>(particle_statuses[local_position_i]) == it->get_id())
-                                    {
-                                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 22: dike = " << local_position_i << ", it->get_id() = " << it->get_id() << ", it->get_location()= " << it->get_location() <<std::endl;
-                                      particle_dike_map.emplace_back(it->get_id());
-                                      new_dike_locations[it->get_id()] = it->get_location();
-                                      //break;
-                                    }
-                                }
-                                
+                  //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 20.5" << std::endl;
+                  std::vector<unsigned int> particle_dike_map;
+                  std::vector<Point<dim>> new_dike_locations(particle_statuses.size(), Point<dim>());
+                  for (auto it = particle_handler->begin(); it != particle_handler->end(); ++it)
+                    {
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 21: it->get_id() = " << it->get_id() << std::endl;
+                      // if the indexes are equal we found a match
+                      //std::cout << "std::get<0>(particle_statuses[dike_i]) = " << std::get<0>(particle_statuses[dike_i]) << ", it->get_id() = " << it->get_id() << std::endl;
+                      //if (std::get<0>(particle_statuses[local_position_i]) == it->get_id())
+                      {
+                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 22: dike = " << local_position_i << ", it->get_id() = " << it->get_id() << ", it->get_location()= " << it->get_location() <<std::endl;
+                        particle_dike_map.emplace_back(it->get_id());
+                        new_dike_locations[it->get_id()] = it->get_location();
+                        //break;
+                      }
+                    }
+
                   // recmpute active particles
                   n_active_particles = 0;
-                 //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 13.5" << std::endl;
+                  //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 13.5" << std::endl;
                   for (unsigned int local_position_i = 0; local_position_i < particle_statuses.size(); ++local_position_i)
                     {
-                     //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 14: local_position_i = " << local_position_i << std::endl;
+                      //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 14: local_position_i = " << local_position_i << std::endl;
                       //if(std::get<1>(particle_statuses[local_position_i]) == 1){
                       //}
                       if (std::get<1>(particle_statuses[local_position_i]) == 0 || std::get<1>(particle_statuses[local_position_i]) == 1)
                         {
-                         //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 15: dike = " << local_position_i << ", particle_statuses.size() = " << particle_statuses.size() << ", particle_statuses[local_position_i] = " << std::get<1>(particle_statuses[local_position_i]) << std::endl;
+                          //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 15: dike = " << local_position_i << ", particle_statuses.size() = " << particle_statuses.size() << ", particle_statuses[local_position_i] = " << std::get<1>(particle_statuses[local_position_i]) << std::endl;
                           // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
                           if (Utilities::MPI::sum(std::get<1>(particle_statuses[local_position_i]),this->get_mpi_communicator()))
                             {
-                             //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 16: dike = " << local_position_i << std::endl;
+                              //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 16: dike = " << local_position_i << std::endl;
                               // particle lost on some processor, so set it to 1 on all processors
                               Point<dim> new_dike_location = std::get<2>(particle_statuses[local_position_i]);
                               for (unsigned int dim_i = 0; dim_i < dim; ++dim_i)
                                 {
                                   new_dike_location[dim_i] = Utilities::MPI::sum(new_dike_location[dim_i],this->get_mpi_communicator());
                                 }
-                                unsigned int dike_i = std::get<0>(particle_statuses[local_position_i]);
+                              unsigned int dike_i = std::get<0>(particle_statuses[local_position_i]);
                               dike_locations[dike_i].emplace_back(new_dike_location);
                               std::get<1>(particle_statuses[local_position_i]) = 2;
 
-                             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 19: dike = " << dike_i << ", local_position_i = " << local_position_i << std::endl;
+                              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 19: dike = " << dike_i << ", local_position_i = " << local_position_i << std::endl;
                             }
                           else
                             {
-                             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 20: dike = " << local_position_i << std::endl;
+                              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 20: dike = " << local_position_i << std::endl;
                               n_active_particles++;
 
                               //new_dike_points[dike_i] = particle_lost ? particle_lost_location : particle_handler->[dike_i]->get_location();
-                              
-                             //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 23.5: local_position_i = " << local_position_i << ", new_dike_locations[local_position_i]= " << new_dike_locations[local_position_i] << std::endl;
+
+                              //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 23.5: local_position_i = " << local_position_i << ", new_dike_locations[local_position_i]= " << new_dike_locations[local_position_i] << std::endl;
 
                               for (unsigned int dim_i = 0; dim_i < dim; ++dim_i)
                                 {
                                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 24: dike = " << dike_i << ", dim_i = " << dim_i << std::endl;
                                   new_dike_locations[local_position_i][dim_i] = Utilities::MPI::sum(new_dike_locations[local_position_i][dim_i],this->get_mpi_communicator());
-                                 //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: local_position_i = " << local_position_i << ", dim_i = " << dim_i << std::endl;
+                                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: local_position_i = " << local_position_i << ", dim_i = " << dim_i << std::endl;
                                 }
-                                //
+                              //
 
                               // If we have not reach the yielding region yet, replace the current bottom, otherwise, add to the dike.
                               // This currently means that the dikes starts just below the yield area, which I think is fine.
@@ -1082,13 +1083,13 @@ namespace aspect
                                   // The dike locations contain all dikes across all processes
                                   // particle_dike_map contains a map from the local_position_i to the dike entry.
                                   dike_locations[local_position_i].emplace_back(new_dike_locations[local_position_i]);
-                                 //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", local_position_i = " << local_position_i << ", dike_i = " << dike_i << ", emplace back " << new_dike_locations[local_position_i] << std::endl;
+                                  //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", local_position_i = " << local_position_i << ", dike_i = " << dike_i << ", emplace back " << new_dike_locations[local_position_i] << std::endl;
                                 }
                               else
                                 {
                                   // overwrite the last entry when not yielding
                                   dike_locations[local_position_i].back() = new_dike_locations[local_position_i];
-                                 //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", local_position_i = " << local_position_i << ", dike_i = " << dike_i << ", overwrite back " << new_dike_locations[local_position_i] <<  std::endl;
+                                  //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", local_position_i = " << local_position_i << ", dike_i = " << dike_i << ", overwrite back " << new_dike_locations[local_position_i] <<  std::endl;
                                 }
 
                               // if particle is not lost add a new point to the dike

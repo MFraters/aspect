@@ -120,7 +120,7 @@ namespace aspect
         std::vector<Tensor<1,dim>> compute_velocity_field(std::vector<typename DoFHandler<dim>::active_cell_iterator> &cells,
                                                            std::vector<Point<dim>> &positions,
                                                            std::vector<Point<dim>> &reference_positions,
-                                                           std::vector<unsigned int> & particle_map,
+                                                           std::vector<unsigned int> &particle_map,
                                                            const LinearAlgebra::BlockVector &input_solution);
         /**
          * Parsed function that specifies the region and amount of
