@@ -1508,7 +1508,7 @@ namespace aspect
           // Activate the dike injection by adding the additional RHS
           // terms of injection to Stokes equations.
           if (prescribed_dilation != nullptr)
-            prescribed_dilation->dilation[q] = dike_injection_rate[q];
+            prescribed_dilation->dilation[q] = dike_injection_rate[q]*1e-10;
 
           // User-defined or timestep-dependent injection fraction.
           if (this->simulator_is_past_initialization())

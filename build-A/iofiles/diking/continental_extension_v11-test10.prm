@@ -76,6 +76,7 @@ end
 # Governing equations
 subsection Formulation
   set Formulation = Boussinesq approximation
+  set Enable prescribed dilation = true
 end
 
 # Globally refine the mesh to 2.5 km spacing, and then
