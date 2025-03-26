@@ -135,6 +135,10 @@ namespace aspect
 
         double dike_visosity_multiply_factor;
 
+        double min_dike_viscosity;
+
+        double max_dike_viscosity;
+
         /**
          * Temperature at the bottom of the generated dike.
          * It usually equals to the temperature at the
