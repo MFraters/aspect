@@ -1474,7 +1474,7 @@ namespace aspect
                         }
                     }
                 }
-              if (min_distance < 1000 && this->get_timestep_number() > 0)
+              if (min_distance < 2500 && this->get_timestep_number() > 0)
                 {
                   out.viscosities[q] *= dike_visosity_multiply_factor;
                   const double dike_injection_rate_double = 1;//1e-134;
