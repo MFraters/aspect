@@ -35,6 +35,43 @@ namespace aspect
   {
     using namespace dealii;
 
+class MPIChain{
+    // Uses a chained MPI message (T) to coordinate serial execution of code (the content of the message is irrelevant).
+    private:
+        int message_out; // The messages aren't really used here
+        int message_in;
+        int size;
+        int rank;
+
+    public:
+        void next(){
+            // Send message to next core (if there is one)
+            if(rank + 1 < size) {
+            // MPI_Send - Performs a standard-mode blocking send.
+            MPI_Send(& message_out, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD);
+            }
+        }
+
+        void wait(int & msg_count) {
+            // Waits for message to arrive. Message is well-formed if msg_count = 1
+            MPI_Status status;
+
+            // MPI_Probe - Blocking test for a message.
+            MPI_Probe(MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, & status);
+            // MPI_Get_count - Gets the number of top level elements.
+            MPI_Get_count(& status, MPI_INT, & msg_count);
+
+            if(msg_count == 1) {
+                // MPI_Recv - Performs a standard-mode blocking receive.
+                MPI_Recv(& message_in, msg_count, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, & status);
+            }
+        }
+
+        MPIChain(int message_init, int c_rank, int c_size): message_out(message_init), size(c_size), rank(c_rank) {}
+
+        int get_rank() const { return rank;}
+        int get_size() const { return size;}
+};
     /**
      * This dike injection function defines material injection throug a narrow
      * dike by prescribing a dilation term applied to the mass equation, a
@@ -138,6 +175,8 @@ namespace aspect
         double min_dike_viscosity;
 
         double max_dike_viscosity;
+
+        unsigned dikes_created;
 
         /**
          * Temperature at the bottom of the generated dike.

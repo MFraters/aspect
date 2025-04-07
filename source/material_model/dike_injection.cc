@@ -34,6 +34,7 @@
 
 
 #include <deal.II/grid/grid_tools.h>
+#include <mpi.h>
 namespace aspect
 {
 
@@ -41,6 +42,41 @@ namespace aspect
   unsigned int clear_composition_field_index;
   namespace MaterialModel
   {
+
+class ChainStream : public MPIChain {
+    // Uses the MPIChain class to implement a ostream with a serial operator<< implementation.
+    private:
+        std::ostream & s_out;
+
+    public:
+        ChainStream(std::ostream & os, int c_rank, int c_size)
+            : MPIChain(0, c_rank, c_size), s_out(os) {};
+
+        ChainStream & operator<<(const std::string & os){
+            if(this->get_rank() == 0) {
+                this->s_out << os;
+                // Initiate chain of MPI messages
+                this->next();
+            } else {
+                int msg_count;
+                // Wait untill a message arrives (MPIChain::wait uses a blocking test)
+                this->wait(msg_count);
+                if(msg_count == 1) {
+                    // If the message is well-formed (i.e. only one message is recieved): output string
+                    this->s_out << os;
+                    // Pass onto the next member of the chain (if there is one)
+                    this->next();
+                }
+            }
+
+            // Ensure that the chain is resolved before returning the stream
+            MPI_Barrier(MPI_COMM_WORLD);
+
+            // Don't output the ostream! That would break the serial-in-time exuction.
+            return *this;
+       };
+};
+
     template <int dim>
     void clear_compositional_field (const SimulatorAccess<dim> &simulator_access)
     {
@@ -61,8 +97,9 @@ namespace aspect
     void
     DikeInjection<dim>::initialize()
     {
+      std::cout << "run initialize" << std::endl;
       base_model->initialize();
-      const unsigned int my_rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+      const unsigned int my_rank = Utilities::MPI::this_mpi_process(this->get_mpi_communicator());
       unsigned int random_number_seed = 1;
       // The random number generator needs to be exactly the same on all processors
       // so don't do + my_rank!!! If you need an random number generator which is different
@@ -127,7 +164,7 @@ namespace aspect
       gradients.resize(1,std::vector<Tensor<1,dim>>(evaluator->n_components(), numbers::signaling_nan<Tensor<1,dim>>()));
 
       int world_rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+      MPI_Comm_rank(this->get_mpi_communicator(), &world_rank);
       //std::cout << world_rank << ": flag cvf 5: cells.size() = " << cells.size() << ", positions.size() = " << positions.size() << std::endl;
       for (unsigned int position_i = 0; position_i < cells.size(); ++position_i)
         {
@@ -264,7 +301,7 @@ namespace aspect
                 //std::cout << "no field plastic_yielding" << std::endl;
               }
             int world_rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+            MPI_Comm_rank(this->get_mpi_communicator(), &world_rank);
             //std::cout << "ifworld_rank = " << world_rank << ": position_i = " << position_i << ", particle_map[position_i] = " << particle_map[position_i] << ": plastic_yielding = " << plastic_yielding << ", is_yielding() = " << visco_plastic->is_yielding(material_model_inputs)
             //<< ", positions = " << positions[position_i][0] << ":" << positions[position_i][1] << std::endl;
             if (visco_plastic->is_yielding(material_model_inputs))
@@ -356,11 +393,13 @@ namespace aspect
 
       // Set mpi variables
       int world_rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+      MPI_Comm_rank(this->get_mpi_communicator(), &world_rank);
 
       int world_size;
-      MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+      MPI_Comm_size(this->get_mpi_communicator(), &world_size);
 
+      ChainStream cs(std::cout, world_rank, world_size);
+      std::stringstream strs; // str_6,str_7,str_8,str_9,str_10,str_11,str_12,str_13,str_14,str_15;
       // find the melt to deterimne the dike loctations
       Point<dim> min_dim_melt;
       Point<dim> max_dim_melt;
@@ -541,6 +580,8 @@ namespace aspect
 
       // only make dikes if values are finite
 
+      dikes_created += n_dikes;
+      std::cout << "dikes_created = " << dikes_created << std::endl;
       if (std::isfinite(x_min) && std::isfinite(x_max) &&
           std::isfinite(y_min) && std::isfinite(y_max) &&
           (std::isfinite(z_min) && std::isfinite(z_max) || dim == 2))
@@ -615,7 +656,7 @@ namespace aspect
               double dike_z = z_max;//(uniform_distribution_z(this->random_number_generator)+uniform_distribution_z(this->random_number_generator))/2.0;
 
 
-              //std::cout << "flag 3: dike start location = " << dike_x << ":" << dike_y << ":" << dike_z << std::endl;
+              this->get_pcout() << "flag 3: dike start location = " << dike_x << ":" << dike_y << ":" << dike_z << std::endl;
               //particle_lost = false;
               dike_locations[dike_i].resize(0);
               //dike_locations[1].resize(0);
@@ -639,7 +680,7 @@ namespace aspect
           //<< ", this->get_timestep_number() = " << this->get_timestep_number() << ", cell_it.first.state() = " << cell_it.first.state()
           ////<< ", cell_it.first->is_locally_owned() =" << cell_it.first->is_locally_owned()
           //<< std::endl;
-
+          double distance = 150.;
           if (enable_random_dike_generation && this->get_timestep_number() > 0)// && cell_it.first.state() == IteratorState::valid)// && cell_it.first->is_locally_owned())
             {
               //std::cout << "dike_locations.size() = " << dike_locations.size() << std::endl;
@@ -701,20 +742,35 @@ namespace aspect
                 {
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
                   iteration++;
-                  if (!(iteration < 5000))
+                      if(iteration == 2500){
+                        distance *= 2.;
+                      }
+		      if(iteration == 3000){
+			distance *= 2.;
+		      }
+                      if(iteration == 3500){
+                        distance *= 2.;
+                      }
+                      if(iteration == 4000){
+                        distance *= 2.;
+                      }
+                      if(iteration == 4500){
+                        distance *= 2.;
+                      }
+                  if (!(iteration < 100)) // 5000))
                     {
                       std::string concat = "";
-                      std::cout << "Failing at iteration " << iteration << ", current dike path: ";
+                      this->get_pcout() << "Failing at iteration " << iteration << ", current dike path: ";
                       for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
                         {
-                          std::cout << std::endl << "dike " << dike_i << ": ";
+                          this->get_pcout() << std::endl << "dike " << dike_i << ": ";
                           for (auto coords : dike_locations[dike_i])
                             {
                               //concat += std::to_string(coords);
-                              std::cout << coords << ", ";
+                              this->get_pcout() << coords << ", ";
                             }
                         }
-                      AssertThrow(iteration < 5000, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
+                      AssertThrow(iteration < 100, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
                     }
                   //std::vector<Point<dim>> positions = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
                   //std::vector<Point<dim>> reference_positions = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
@@ -738,9 +794,30 @@ namespace aspect
                   do
                     {
                       iter2++;
+                      unsigned int value1 = 1;
+                      unsigned int value2 = 1;
+                      int ierr = MPI_Barrier(this->get_mpi_communicator());
+                      AssertThrowMPI(ierr);
+                      value1 = Utilities::MPI::sum((unsigned int)value1,this->get_mpi_communicator());
+                      std::cout << "Flag 04, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", value 1 = " << value1 << ", value 2 = " << value2 << std::endl << std::flush;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      value2=2;
+                      value2 = Utilities::MPI::sum((unsigned int)value2,MPI_COMM_WORLD);
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      std::cout << "Flag A4, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", value 1 = " << value1 << ", value 2 = " << value2 << std::endl << std::flush;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      //cs << strs.str();
+                      //strs.str() = "";
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //AssertThrowMPI(ierr);
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4.5" << std::endl;
                       //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":" << iteration << ":" << iter2 << std::endl;//"(1): particle lost = " << particle_lost << std::endl;
-                      particle_handler->sort_particles_into_subdomains_and_cells();
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4.6, locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl;
+                      //particle_handler->sort_particles_into_subdomains_and_cells();
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 4.7, locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl;
                       //std::cout << iteration << ":" << iter2 << "(2): parwhileticle lost = " << particle_lost << std::endl;
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 5" << std::endl;
                       //unsigned int particle_lost_int = (unsigned int)particle_lost;
@@ -772,10 +849,26 @@ namespace aspect
                       //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":new active particles = " << n_active_particles << std::endl;
 
                       unsigned int particle_lost = 0;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      AssertThrowMPI(ierr);
+                      usleep(500);
+                      std::cout << "Flag 05, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
                       particle_lost = Utilities::MPI::sum((unsigned int)particle_lost,this->get_mpi_communicator());
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      std::cout << "Flag 06, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
                       //std::cout << iteration << ":" << iter2 << "(4): parwhileticle lost = " << particle_lost << std::endl;
                       if (n_active_particles == 0)
                         {
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      std::cout << "Flag 07, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 6" << std::endl;
 
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7" << std::endl;
@@ -801,6 +894,11 @@ namespace aspect
                       //    continue;
                       //  }
 
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      std::cout << "Flag 08, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
                       //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":" << iteration << "(3): particle lost = " << particle_lost << std::endl;
 
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << std::endl;//": Flag 8, positions.size() = " << positions.size() << std::endl;
@@ -845,6 +943,11 @@ namespace aspect
                       //{
 
 
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      std::cout << "Flag 09, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
 
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.7" << std::endl;
 
@@ -872,7 +975,7 @@ namespace aspect
                           std::vector<Tensor<1,dim>> current_linerization_point_stress = compute_velocity_field(cells,positions,reference_positions,particle_map,this->get_current_linearization_point());
 
                           int world_rank;
-                          MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+                          MPI_Comm_rank(this->get_mpi_communicator(), &world_rank);
                           unsigned int position_i = 0;
                           //std::cout << world_rank << ": positions.size() = " << positions.size() << std::endl;
                           for (auto particle_it = particle_handler->begin(); particle_it != particle_handler->end(); ++particle_it)
@@ -906,16 +1009,28 @@ namespace aspect
                           // set the new point at half the cell size away from the current point and check if that is still in the domain.
                           const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
 
-                          //auto old_position = particle_it->get_location();
+                          auto old_position = particle_handler->begin()->get_location();
                           //}
 
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
+                      std::cout << "Flag 10, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
                           //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
                           particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
-                        }
-                      //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", solution_stress = " << solution_stress[0] << ", current_linerization_point_stress = " << current_linerization_point_stress[0]
-                      //          << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << std::endl;
+                      std::cout << "Flag 11, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << ", locally owned part = " << particle_handler->n_locally_owned_particles()<< std::endl;
 
-                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12" << std::endl;
+                        }
+          
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(1000);
+                      std::cout << "Flag 12, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(1000);
+                      //particle_handler->sort_particles_into_subdomains_and_cells();
+                      //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12, locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl;
                       //}
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.25" << std::endl;
                       //  }
@@ -982,6 +1097,15 @@ namespace aspect
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.5" << std::endl;
                     }
                   while (particle_integrator->new_integration_step());
+                  int ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      std::cout << "Flag 14, it: " << iteration << ":" << iter2 <<  ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;;
+                  particle_handler->sort_particles_into_subdomains_and_cells();
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                      std::cout << "Flag 15, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;;
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
 
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 13: " << std::endl; //particle_lost = " << particle_lost << ", cell_it.first.state() = " << cell_it.first.state() << std::endl;
                   //if (particle_handler->n_locally_owned_particles() > 0) //cell_it.first.state() == IteratorState::valid) {
@@ -1011,7 +1135,9 @@ namespace aspect
                     }*/
 
 
-                  //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 20.5" << std::endl;
+                  std::cout << "Flag 20, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned particles = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
                   std::vector<unsigned int> particle_dike_map;
                   std::vector<Point<dim>> new_dike_locations(particle_statuses.size(), Point<dim>());
                   for (auto it = particle_handler->begin(); it != particle_handler->end(); ++it)
@@ -1021,12 +1147,15 @@ namespace aspect
                       //std::cout << "std::get<0>(particle_statuses[dike_i]) = " << std::get<0>(particle_statuses[dike_i]) << ", it->get_id() = " << it->get_id() << std::endl;
                       //if (std::get<0>(particle_statuses[local_position_i]) == it->get_id())
                       {
-                        //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 22: dike = " << local_position_i << ", it->get_id() = " << it->get_id() << ", it->get_location()= " << it->get_location() <<std::endl;
+                        std::cout << "Flag 22, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it->get_id() = " << it->get_id() << ", it->get_location()= " << it->get_location() <<std::endl << std::flush;;
                         particle_dike_map.emplace_back(it->get_id());
                         new_dike_locations[it->get_id()] = it->get_location();
                         //break;
                       }
                     }
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                  AssertThrowMPI(ierr);
+
 
                   // recmpute active particles
                   n_active_particles = 0;
@@ -1038,6 +1167,10 @@ namespace aspect
                       //}
                       if (std::get<1>(particle_statuses[local_position_i]) == 0 || std::get<1>(particle_statuses[local_position_i]) == 1)
                         {
+                      
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                  AssertThrowMPI(ierr);
+
                           //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 15: dike = " << local_position_i << ", particle_statuses.size() = " << particle_statuses.size() << ", particle_statuses[local_position_i] = " << std::get<1>(particle_statuses[local_position_i]) << std::endl;
                           // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
                           if (Utilities::MPI::sum(std::get<1>(particle_statuses[local_position_i]),this->get_mpi_communicator()))
@@ -1068,8 +1201,9 @@ namespace aspect
                                 {
                                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 24: dike = " << dike_i << ", dim_i = " << dim_i << std::endl;
                                   new_dike_locations[local_position_i][dim_i] = Utilities::MPI::sum(new_dike_locations[local_position_i][dim_i],this->get_mpi_communicator());
-                                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: local_position_i = " << local_position_i << ", dim_i = " << dim_i << std::endl;
+                                  //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: local_position_i = " << local_position_i << ", dim_i = " << dim_i << "value = " <<  std::endl;
                                 }
+                                  std::cout << "Flag 25, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it: " << iteration << ", local_position_i = " << local_position_i << ", position = " << new_dike_locations[local_position_i] <<  ", distance p = " << distance << ", distance c = " << (new_dike_locations[local_position_i]-dike_locations[local_position_i].back()).norm() <<std::endl << std::flush;;
                               //
 
                               // If we have not reach the yielding region yet, replace the current bottom, otherwise, add to the dike.
@@ -1102,7 +1236,12 @@ namespace aspect
                         }
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 32: dike = " << dike_i << std::endl;
                     }
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
+                  std::cout << "Flag 40, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned particles = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 40" << std::endl;
+                  ierr = MPI_Barrier(this->get_mpi_communicator());
+                      usleep(500);
                   //for (size_t i = 0; i < dim; i++)
                   //  {
                   //    MPI_Bcast(&new_dike_point[i], 1, MPI_DOUBLE, cell_global_rank, this->get_mpi_communicator());
@@ -1508,7 +1647,7 @@ namespace aspect
           // Activate the dike injection by adding the additional RHS
           // terms of injection to Stokes equations.
           if (prescribed_dilation != nullptr)
-            prescribed_dilation->dilation[q] = dike_injection_rate[q]*1e-10;
+            prescribed_dilation->dilation[q] = dike_injection_rate[q]*1e-9; // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
 
           // User-defined or timestep-dependent injection fraction.
           if (this->simulator_is_past_initialization())
@@ -2002,10 +2141,10 @@ namespace aspect
               advection_direction = prm.get("Surface velocity projection");
             }
             prm.leave_subsection();
-            AssertThrow(advection_direction == "vertical",
-                        ExcMessage("The projection is " + advection_direction +
-                                   ". However, this function currently prefers to use "
-                                   "vertical projection if using free surface."));
+            //AssertThrow(advection_direction == "vertical",
+            //            ExcMessage("The projection is " + advection_direction +
+            //                       ". However, this function currently prefers to use "
+            //                       "vertical projection if using free surface."));
           }
       }
       prm.leave_subsection();
