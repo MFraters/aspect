@@ -757,7 +757,7 @@ class ChainStream : public MPIChain {
                       if(iteration == 4500){
                         distance *= 2.;
                       }
-                  if (!(iteration < 100)) // 5000))
+                  if (!(iteration < 10000))
                     {
                       std::string concat = "";
                       this->get_pcout() << "Failing at iteration " << iteration << ", current dike path: ";
@@ -770,7 +770,7 @@ class ChainStream : public MPIChain {
                               this->get_pcout() << coords << ", ";
                             }
                         }
-                      AssertThrow(iteration < 100, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
+                      AssertThrow(iteration < 10000, ExcMessage ("too many iterations for the dike to reach the surface. rank: " + std::to_string(world_rank)));
                     }
                   //std::vector<Point<dim>> positions = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
                   //std::vector<Point<dim>> reference_positions = {dim == 3 ? Point<dim>(0,0,0) : Point<dim>(0,0)};
@@ -794,21 +794,21 @@ class ChainStream : public MPIChain {
                   do
                     {
                       iter2++;
-                      unsigned int value1 = 1;
-                      unsigned int value2 = 1;
-                      int ierr = MPI_Barrier(this->get_mpi_communicator());
-                      AssertThrowMPI(ierr);
-                      value1 = Utilities::MPI::sum((unsigned int)value1,this->get_mpi_communicator());
-                      std::cout << "Flag 04, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", value 1 = " << value1 << ", value 2 = " << value2 << std::endl << std::flush;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      value2=2;
-                      value2 = Utilities::MPI::sum((unsigned int)value2,MPI_COMM_WORLD);
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      std::cout << "Flag A4, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", value 1 = " << value1 << ", value 2 = " << value2 << std::endl << std::flush;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                      //unsigned int value1 = 1;
+                      //unsigned int value2 = 1;
+                      //int ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //AssertThrowMPI(ierr);
+                      //value1 = Utilities::MPI::sum((unsigned int)value1,this->get_mpi_communicator());
+                      //std::cout << "Flag 04, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", value 1 = " << value1 << ", value 2 = " << value2 << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
+                      //value2=2;
+                      //value2 = Utilities::MPI::sum((unsigned int)value2,MPI_COMM_WORLD);
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
+                      //std::cout << "Flag A4, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", value 1 = " << value1 << ", value 2 = " << value2 << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
                       //cs << strs.str();
                       //strs.str() = "";
                       //ierr = MPI_Barrier(this->get_mpi_communicator());
@@ -849,26 +849,26 @@ class ChainStream : public MPIChain {
                       //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":new active particles = " << n_active_particles << std::endl;
 
                       unsigned int particle_lost = 0;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      AssertThrowMPI(ierr);
-                      usleep(500);
-                      std::cout << "Flag 05, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //AssertThrowMPI(ierr);
+                      //usleep(500);
+                      //std::cout << "Flag 05, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
                       particle_lost = Utilities::MPI::sum((unsigned int)particle_lost,this->get_mpi_communicator());
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      std::cout << "Flag 06, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
+                      //std::cout << "Flag 06, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
                       //std::cout << iteration << ":" << iter2 << "(4): parwhileticle lost = " << particle_lost << std::endl;
                       if (n_active_particles == 0)
                         {
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      std::cout << "Flag 07, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
+                      //std::cout << "Flag 07, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 6" << std::endl;
 
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7" << std::endl;
@@ -894,11 +894,11 @@ class ChainStream : public MPIChain {
                       //    continue;
                       //  }
 
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      std::cout << "Flag 08, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
+                      //std::cout << "Flag 08, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
                       //std::cout <<  "ifworld_rank = " << world_rank << "/" << world_size << ":" << iteration << "(3): particle lost = " << particle_lost << std::endl;
 
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << std::endl;//": Flag 8, positions.size() = " << positions.size() << std::endl;
@@ -918,6 +918,8 @@ class ChainStream : public MPIChain {
                               //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 8.5, particle_it->get_id() = " << particle_it->get_id() << ", dike_locations.size() = " << dike_locations.size() << std::endl;
                               particle_map.emplace_back(particle_it->get_id());
                               cells.emplace_back(typename DoFHandler<dim>::active_cell_iterator(*particle_it->get_surrounding_cell(),&(this->get_dof_handler())));
+                              // set the new point at half the cell size away from the current point and check if that is still in the domain.
+                              distance = std::min(distance,cells.back()->minimum_vertex_distance()*this->get_parameters().CFL_number); //613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
 
                               //std::cout << iteration << ": ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9, positions.size() = " << positions.size()<< std::endl;// ", cell_it.first.state() = " << cell->state() << ":" << IteratorState::valid << std::endl;
 
@@ -943,11 +945,11 @@ class ChainStream : public MPIChain {
                       //{
 
 
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      std::cout << "Flag 09, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
+                      //std::cout << "Flag 09, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //usleep(500);
 
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 9.7" << std::endl;
 
@@ -1006,29 +1008,23 @@ class ChainStream : public MPIChain {
                                 }
                               ++position_i;
                             }
-                          // set the new point at half the cell size away from the current point and check if that is still in the domain.
-                          const double distance = 613.181;//cell->minimum_vertex_distance()*this->get_parameters().CFL_number;
 
                           auto old_position = particle_handler->begin()->get_location();
                           //}
 
-                      //ierr = MPI_Barrier(this->get_mpi_communicator());
                       //usleep(500);
-                      std::cout << "Flag 10, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      //ierr = MPI_Barrier(this->get_mpi_communicator());
+                      //std::cout << "Flag 10, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
                       //usleep(500);
                           //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
                           particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
-                      std::cout << "Flag 11, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                      //std::cout << "Flag 11, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
                       //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << ", locally owned part = " << particle_handler->n_locally_owned_particles()<< std::endl;
 
                         }
           
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(1000);
-                      std::cout << "Flag 12, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(1000);
+                      //usleep(1000);
+                      //std::cout << "Flag 12, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
+                      //usleep(1000);
                       //particle_handler->sort_particles_into_subdomains_and_cells();
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12, locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl;
                       //}
@@ -1097,15 +1093,15 @@ class ChainStream : public MPIChain {
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 12.5" << std::endl;
                     }
                   while (particle_integrator->new_integration_step());
-                  int ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      std::cout << "Flag 14, it: " << iteration << ":" << iter2 <<  ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;;
+                  //int ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //usleep(500);
+                  //std::cout << "Flag 14, it: " << iteration << ":" << iter2 <<  ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;;
                   particle_handler->sort_particles_into_subdomains_and_cells();
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                      std::cout << "Flag 15, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;;
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                  //ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //usleep(500);
+                  //std::cout << "Flag 15, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;;
+                  //ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //usleep(500);
 
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 13: " << std::endl; //particle_lost = " << particle_lost << ", cell_it.first.state() = " << cell_it.first.state() << std::endl;
                   //if (particle_handler->n_locally_owned_particles() > 0) //cell_it.first.state() == IteratorState::valid) {
@@ -1135,9 +1131,9 @@ class ChainStream : public MPIChain {
                     }*/
 
 
-                  std::cout << "Flag 20, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned particles = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                  //std::cout << "Flag 20, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned particles = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
+                  //ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //usleep(500);
                   std::vector<unsigned int> particle_dike_map;
                   std::vector<Point<dim>> new_dike_locations(particle_statuses.size(), Point<dim>());
                   for (auto it = particle_handler->begin(); it != particle_handler->end(); ++it)
@@ -1147,14 +1143,14 @@ class ChainStream : public MPIChain {
                       //std::cout << "std::get<0>(particle_statuses[dike_i]) = " << std::get<0>(particle_statuses[dike_i]) << ", it->get_id() = " << it->get_id() << std::endl;
                       //if (std::get<0>(particle_statuses[local_position_i]) == it->get_id())
                       {
-                        std::cout << "Flag 22, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it->get_id() = " << it->get_id() << ", it->get_location()= " << it->get_location() <<std::endl << std::flush;;
+                        //std::cout << "Flag 22, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it->get_id() = " << it->get_id() << ", it->get_location()= " << it->get_location() <<std::endl << std::flush;;
                         particle_dike_map.emplace_back(it->get_id());
                         new_dike_locations[it->get_id()] = it->get_location();
                         //break;
                       }
                     }
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                  AssertThrowMPI(ierr);
+                  //ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //AssertThrowMPI(ierr);
 
 
                   // recmpute active particles
@@ -1168,8 +1164,8 @@ class ChainStream : public MPIChain {
                       if (std::get<1>(particle_statuses[local_position_i]) == 0 || std::get<1>(particle_statuses[local_position_i]) == 1)
                         {
                       
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                  AssertThrowMPI(ierr);
+                  //ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //AssertThrowMPI(ierr);
 
                           //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 15: dike = " << local_position_i << ", particle_statuses.size() = " << particle_statuses.size() << ", particle_statuses[local_position_i] = " << std::get<1>(particle_statuses[local_position_i]) << std::endl;
                           // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
@@ -1203,7 +1199,7 @@ class ChainStream : public MPIChain {
                                   new_dike_locations[local_position_i][dim_i] = Utilities::MPI::sum(new_dike_locations[local_position_i][dim_i],this->get_mpi_communicator());
                                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: local_position_i = " << local_position_i << ", dim_i = " << dim_i << "value = " <<  std::endl;
                                 }
-                                  std::cout << "Flag 25, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it: " << iteration << ", local_position_i = " << local_position_i << ", position = " << new_dike_locations[local_position_i] <<  ", distance p = " << distance << ", distance c = " << (new_dike_locations[local_position_i]-dike_locations[local_position_i].back()).norm() <<std::endl << std::flush;;
+                                  //std::cout << "Flag 25, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it: " << iteration << ", local_position_i = " << local_position_i << ", position = " << new_dike_locations[local_position_i] <<  ", distance p = " << distance << ", distance c = " << (new_dike_locations[local_position_i]-dike_locations[local_position_i].back()).norm() <<std::endl << std::flush;;
                               //
 
                               // If we have not reach the yielding region yet, replace the current bottom, otherwise, add to the dike.
@@ -1236,12 +1232,12 @@ class ChainStream : public MPIChain {
                         }
                       //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 32: dike = " << dike_i << std::endl;
                     }
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
-                  std::cout << "Flag 40, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned particles = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
+                  //ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //usleep(500);
+                  //std::cout << "Flag 40, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned particles = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 40" << std::endl;
-                  ierr = MPI_Barrier(this->get_mpi_communicator());
-                      usleep(500);
+                  //ierr = MPI_Barrier(this->get_mpi_communicator());
+                  //usleep(500);
                   //for (size_t i = 0; i < dim; i++)
                   //  {
                   //    MPI_Bcast(&new_dike_point[i], 1, MPI_DOUBLE, cell_global_rank, this->get_mpi_communicator());
@@ -1545,6 +1541,7 @@ class ChainStream : public MPIChain {
       // of injected material to original material for the existence
       // duration of a dike.
       double dike_injection_fraction = 0.0;
+      double max_dike_distance = dike_width/2.0;
 
       for (unsigned int q=0; q < in.n_evaluation_points(); ++q)
         {
@@ -1620,7 +1617,6 @@ class ChainStream : public MPIChain {
                         }
                     }
                 }
-              double max_dike_distance = 2500.;
               dike_injection_rate[q] = 0;
               for (unsigned int dike_i = 0; dike_i < n_dikes; ++dike_i)
                 {
@@ -1646,8 +1642,10 @@ class ChainStream : public MPIChain {
         {
           // Activate the dike injection by adding the additional RHS
           // terms of injection to Stokes equations.
-          if (prescribed_dilation != nullptr)
-            prescribed_dilation->dilation[q] = dike_injection_rate[q]*1e-9; // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
+          if (prescribed_dilation != nullptr){
+            prescribed_dilation->dilation[q] = dike_injection_rate[q]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
+           prescribed_dilation->dilation[q] = this->convert_output_to_years() ? prescribed_dilation->dilation[q] *year_in_seconds : prescribed_dilation->dilation[q];
+          }
 
           // User-defined or timestep-dependent injection fraction.
           if (this->simulator_is_past_initialization())
@@ -1892,7 +1890,9 @@ class ChainStream : public MPIChain {
                             "reference top depth. Units: m.");
           prm.declare_entry("Range of randomly generated dike depth change", "0.0", Patterns::Double(0),
                             "Full range of randomly generated dike top depth change. Units: m.");
-          prm.declare_entry("Width of randomly generated dike", "0.0", Patterns::Double(0),
+          prm.declare_entry("Dike width", "5000.", Patterns::Double(0),
+                            "Width of the generated dike. Units: m.");
+          prm.declare_entry("Dike dilation velocity", "0.0125", Patterns::Double(0),
                             "Width of the generated dike. Units: m.");
           prm.declare_entry("Enable random dike generation", "false", Patterns::Bool (),
                             "Whether the dikes are generated randomly. If the dike is generated randomly, "
@@ -2068,8 +2068,9 @@ class ChainStream : public MPIChain {
           seed = prm.get_double ("Random number generator seed");
           ref_top_depth_random_dike = prm.get_double ("Reference top depth of randomly generated dike");
           range_depth_change_random_dike = prm.get_double ("Range of randomly generated dike depth change");
-          width_random_dike = prm.get_double ("Width of randomly generated dike");
+          dike_width = prm.get_double ("Dike width");
           dike_visosity_multiply_factor = prm.get_double("Dike viscosity multiply factor");
+          dike_dilation_velocity = prm.get_double ("Dike dilation velocity");
 
           //prm.enter_subsection("Dike injection function");
           //{

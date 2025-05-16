@@ -129,14 +129,14 @@ namespace aspect
 
                 // Compressive stress is positive in geoscience applications
                 stress = -2. * out.viscosities[q] * deviatoric_strain_rate;
-                if (in.position[q][0] > -1000. && in.position[q][0] < 1000. && in.position[q][1] > 49000 && in.position[q][1] < 51000)
-                  {
-                    std::cout << in.position[q] << ", viscosity: " << out.viscosities[q] << ", deviatoric_strain_rate = " << deviatoric_strain_rate
-                              << ", stress 1" << eigenvectors(stress)[0].second << std::endl;
+                //if (in.position[q][0] > -1000. && in.position[q][0] < 1000. && in.position[q][1] > 49000 && in.position[q][1] < 51000)
+                //  {
+                //    std::cout << in.position[q] << ", viscosity: " << out.viscosities[q] << ", deviatoric_strain_rate = " << deviatoric_strain_rate
+                //              << ", stress 1" << eigenvectors(stress)[0].second << std::endl;
 
-                    std::cout << "position = " << in.position[q] << ", temperature = " << in.temperature[q] << ", pressure = " << in.pressure[q]
-                              << ", velocity = " << in.velocity[q] << ", strain_rate = " << in.strain_rate[q] << std::endl;
-                  }
+                //    std::cout << "position = " << in.position[q] << ", temperature = " << in.temperature[q] << ", pressure = " << in.pressure[q]
+                //              << ", velocity = " << in.velocity[q] << ", strain_rate = " << in.strain_rate[q] << std::endl;
+                //  }
               }
             else
               {

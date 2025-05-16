@@ -178,6 +178,10 @@ class MPIChain{
 
         unsigned dikes_created;
 
+        double dike_width;
+
+        double dike_dilation_velocity;
+
         /**
          * Temperature at the bottom of the generated dike.
          * It usually equals to the temperature at the
@@ -225,7 +229,7 @@ class MPIChain{
         /**
          * Width of the randomly generated dike.
          */
-        double width_random_dike;
+        //double width_random_dike;
 
         /**
          * Seed for the random number generator
