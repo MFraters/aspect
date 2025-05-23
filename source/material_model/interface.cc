@@ -103,7 +103,7 @@ namespace aspect
 
     template <int dim>
     std::unique_ptr<Interface<dim>>
-    create_material_model (const std::string &model_name)
+                                 create_material_model (const std::string &model_name)
     {
       return std::get<dim>(registered_plugins).create_plugin (model_name, "Material model::Model name");
     }
@@ -112,7 +112,7 @@ namespace aspect
 
     template <int dim>
     std::unique_ptr<Interface<dim>>
-    create_material_model (ParameterHandler &prm)
+                                 create_material_model (ParameterHandler &prm)
     {
       std::string model_name;
       prm.enter_subsection ("Material model");
@@ -340,7 +340,7 @@ namespace aspect
 
       // Vectors for evaluating the compositional field parts of the finite element solution
       std::vector<std::vector<double>> composition_values (introspection.n_compositional_fields,
-                                                            std::vector<double> (fe_values.n_quadrature_points));
+                                                           std::vector<double> (fe_values.n_quadrature_points));
       for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
         fe_values[introspection.extractors.compositional_fields[c]]
         .get_function_values(solution_vector,composition_values[c]);
@@ -1000,8 +1000,8 @@ namespace aspect
 
     template <int dim>
     PrescribedPlasticDilation<dim>::PrescribedPlasticDilation (const unsigned int n_points)
-      : NamedAdditionalMaterialOutputs<dim>(std::vector<std::string>(1, "prescribed_dilation")),
-        dilation(n_points, numbers::signaling_nan<double>())
+      : NamedAdditionalMaterialOutputs<dim>(std::vector<std::string>(3, "prescribed_dilation")),
+        dilation(dim, std::vector<double>(n_points,numbers::signaling_nan<double>()))
     {}
 
 
@@ -1010,8 +1010,17 @@ namespace aspect
     std::vector<double> PrescribedPlasticDilation<dim>::get_nth_output(const unsigned int idx) const
     {
       (void)idx;
-      Assert(idx==0, ExcInternalError());
-      return dilation;
+      Assert(idx<3, ExcInternalError());
+      switch (idx)
+        {
+          case 0:
+            return dilation[0];
+          case 1:
+            return dilation[1];
+          case 2:
+            return dilation[2];
+        }
+      return std::vector<double>();
     }
 
 
@@ -1187,11 +1196,11 @@ namespace aspect
     {
       template <>
       std::list<internal::Plugins::PluginList<MaterialModel::Interface<2>>::PluginInfo> *
-      internal::Plugins::PluginList<MaterialModel::Interface<2>>::plugins = nullptr;
+                                                                        internal::Plugins::PluginList<MaterialModel::Interface<2>>::plugins = nullptr;
 
       template <>
       std::list<internal::Plugins::PluginList<MaterialModel::Interface<3>>::PluginInfo> *
-      internal::Plugins::PluginList<MaterialModel::Interface<3>>::plugins = nullptr;
+                                                                        internal::Plugins::PluginList<MaterialModel::Interface<3>>::plugins = nullptr;
     }
   }
 

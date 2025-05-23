@@ -208,7 +208,9 @@ namespace aspect
                 }
               if (prescribed_dilation)
                 {
-                  prescribed_dilation->dilation[i] = x;
+                  prescribed_dilation->dilation[0][i] = x;
+                  prescribed_dilation->dilation[1][i] = x;
+                  prescribed_dilation->dilation[2][i] = x;
                 }
 
             }

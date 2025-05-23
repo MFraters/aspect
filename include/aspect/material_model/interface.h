@@ -1160,7 +1160,7 @@ namespace aspect
          * A scalar value per evaluation point that specifies the prescribed dilation
          * in that point.
          */
-        std::vector<double> dilation;
+        std::vector<std::vector<double>> dilation;
     };
 
 
@@ -1394,7 +1394,7 @@ namespace aspect
      */
     template <int dim>
     std::unique_ptr<Interface<dim>>
-    create_material_model (const std::string &model_name);
+                                 create_material_model (const std::string &model_name);
 
 
     /**
@@ -1410,7 +1410,7 @@ namespace aspect
      */
     template <int dim>
     std::unique_ptr<Interface<dim>>
-    create_material_model (ParameterHandler &prm);
+                                 create_material_model (ParameterHandler &prm);
 
 
     /**
@@ -1529,11 +1529,11 @@ namespace aspect
   namespace ASPECT_REGISTER_MATERIAL_MODEL_ ## classname \
   { \
     aspect::internal::Plugins::RegisterHelper<aspect::MaterialModel::Interface<2>,classname<2>> \
-    dummy_ ## classname ## _2d (&aspect::MaterialModel::register_material_model<2>, \
-                                name, description); \
+        dummy_ ## classname ## _2d (&aspect::MaterialModel::register_material_model<2>, \
+                                    name, description); \
     aspect::internal::Plugins::RegisterHelper<aspect::MaterialModel::Interface<3>,classname<3>> \
-    dummy_ ## classname ## _3d (&aspect::MaterialModel::register_material_model<3>, \
-                                name, description); \
+        dummy_ ## classname ## _3d (&aspect::MaterialModel::register_material_model<3>, \
+                                    name, description); \
   }
   }
 }

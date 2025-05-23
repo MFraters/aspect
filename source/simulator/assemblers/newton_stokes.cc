@@ -436,22 +436,28 @@ namespace aspect
                                      * JxW;
 
               if (enable_prescribed_dilation)
-                data.local_rhs(i) += (
-                                       // RHS of - (div u,q) = - (R,q)
-                                       - pressure_scaling
-                                       * prescribed_dilation->dilation[q]
-                                       * scratch.phi_p[i]
-                                     ) * JxW;
+                {
+                  const unsigned int index_horizon=fe.system_to_component_index(i).first;
+                  data.local_rhs(i) += (
+                                         // RHS of - (div u,q) = - (R,q)
+                                         - pressure_scaling
+                                         * prescribed_dilation->dilation[index_horizon][q]
+                                         * scratch.phi_p[i]
+                                       ) * JxW;
+                }
 
               // Only assemble this term if we are running incompressible, otherwise this term
               // is already included on the LHS of the equation.
               if (enable_prescribed_dilation && !material_model_is_compressible)
-                data.local_rhs(i) += (
-                                       // RHS of momentum eqn: - \int 2/3 eta R, div v
-                                       - 2.0 / 3.0 * eta
-                                       * prescribed_dilation->dilation[q]
-                                       * scratch.div_phi_u[i]
-                                     ) * JxW;
+                {
+                  const unsigned int index_horizon=fe.system_to_component_index(i).first;
+                  data.local_rhs(i) += (
+                                         // RHS of momentum eqn: - \int 2/3 eta R, div v
+                                         - 2.0 / 3.0 * eta
+                                         * prescribed_dilation->dilation[index_horizon][q]
+                                         * scratch.div_phi_u[i]
+                                       ) * JxW;
+                }
             }
 
           // and then the matrix, if necessary
@@ -622,8 +628,19 @@ namespace aspect
 
       Assert(!this->get_parameters().enable_prescribed_dilation
              ||
-             outputs.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation.size()
+             outputs.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation[0].size()
              == n_points, ExcInternalError());
+
+      Assert(!this->get_parameters().enable_prescribed_dilation
+             ||
+             outputs.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation[1].size()
+             == n_points, ExcInternalError());
+
+      if (dim == 3)
+        Assert(!this->get_parameters().enable_prescribed_dilation
+               ||
+               outputs.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation[2].size()
+               == n_points, ExcInternalError());
 
       if (this->get_newton_handler().parameters.newton_derivative_scaling_factor != 0)
         NewtonHandler<dim>::create_material_model_outputs(outputs);
