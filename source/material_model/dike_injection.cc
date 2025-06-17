@@ -1643,9 +1643,12 @@ class ChainStream : public MPIChain {
           // Activate the dike injection by adding the additional RHS
           // terms of injection to Stokes equations.
           if (prescribed_dilation != nullptr){
-            prescribed_dilation->dilation[q] = dike_injection_rate[q]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
-           prescribed_dilation->dilation[q] = this->convert_output_to_years() ? prescribed_dilation->dilation[q] *year_in_seconds : prescribed_dilation->dilation[q];
+	    for(unsigned int dim_i = 0; dim_i < dim; ++dim_i){
+            prescribed_dilation->dilation[dim_i][q] = dike_injection_rate[q]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
+           prescribed_dilation->dilation[dim_i][q] = this->convert_output_to_years() ? prescribed_dilation->dilation[dim_i][q] *year_in_seconds : prescribed_dilation->dilation[dim_i][q];
+				
           }
+		}
 
           // User-defined or timestep-dependent injection fraction.
           if (this->simulator_is_past_initialization())
