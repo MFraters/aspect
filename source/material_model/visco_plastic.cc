@@ -18,6 +18,7 @@
   <http://www.gnu.org/licenses/>.
 */
 
+#include "aspect/material_model/interface.h"
 #include <aspect/material_model/visco_plastic.h>
 #include <aspect/utilities.h>
 #include <deal.II/fe/fe_values.h>
@@ -104,6 +105,11 @@ namespace aspect
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
+      PrescribedDirectionalDilation<dim>
+      *prescribed_directional_dilation = (this->get_parameters().enable_prescribed_directional_dilation)
+                                         ? out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()
+                                         : nullptr;
+
       EquationOfStateOutputs<dim> eos_outputs (this->introspection().get_number_of_fields_of_type(CompositionalFieldDescription::chemical_composition)+1);
       EquationOfStateOutputs<dim> eos_outputs_all_phases (n_phases);
 
@@ -120,6 +126,18 @@ namespace aspect
       // Loop through all requested points
       for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
         {
+          // Activate the dike injection by adding the additional RHS
+          // terms of injection to Stokes equations.
+          if (prescribed_directional_dilation != nullptr)
+            {
+              if (std::fabs(in.position[i][0]) < 10e3)
+                {
+                  prescribed_directional_dilation->dilation_term[0][i] = 1;
+                  prescribed_directional_dilation->dilation_term[1][i] = 0;
+                  prescribed_directional_dilation->dilation_term[2][i] = 0;
+                }
+            }
+
           // First compute the equation of state variables and thermodynamic properties
           equation_of_state.evaluate(in, i, eos_outputs_all_phases);
 

@@ -68,12 +68,17 @@ namespace aspect
                     ExcMessage("Error: The Newton method requires ElasticOutputs when elasticity is enabled."));
 
       const bool enable_prescribed_dilation = this->get_parameters().enable_prescribed_dilation;
+      const bool enable_prescribed_directional_dilation = this->get_parameters().enable_prescribed_directional_dilation;
 
       const std::shared_ptr<const MaterialModel::PrescribedPlasticDilation<dim>>
       prescribed_dilation = enable_prescribed_dilation ?
                             scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
                             : nullptr;
 
+      const std::shared_ptr<const MaterialModel::PrescribedDirectionalDilation<dim>>
+      prescribed_directional_dilation = enable_prescribed_directional_dilation ?
+                                        scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
+                                        : nullptr;
       // First loop over all dofs and find those that are in the Stokes system
       // save the component (pressure and dim velocities) each belongs to.
       for (unsigned int i = 0, i_stokes = 0; i_stokes < stokes_dofs_per_cell; /*increment at end of loop*/)
@@ -512,6 +517,13 @@ namespace aspect
           scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
           : nullptr;
 
+      const bool enable_prescribed_directional_dilation = this->get_parameters().enable_prescribed_directional_dilation;
+
+      const std::shared_ptr<const MaterialModel::PrescribedDirectionalDilation<dim>> prescribed_directional_dilation
+        = enable_prescribed_directional_dilation ?
+          scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
+          : nullptr;
+
       const std::shared_ptr<const MaterialModel::MaterialModelDerivatives<dim>> derivatives
         = scratch.material_model_outputs.template get_additional_output_object<MaterialModel::MaterialModelDerivatives<dim>>();
 
@@ -627,6 +639,16 @@ namespace aspect
                                           scratch.material_model_inputs.pressure[q])
                                        * scratch.phi_p[i]
                                      ) * JxW;
+
+              // add the prescribed directional dilation
+              if (enable_prescribed_directional_dilation)
+                {
+                  const unsigned int index_horizon=fe.system_to_component_index(i).first;
+                  if (introspection.is_stokes_component(index_horizon) && index_horizon < dim)
+                    {
+                      data.local_rhs(i) +=  2.0 * eta * prescribed_directional_dilation->dilation_term[index_horizon][q] * scratch.div_phi_u[i] * JxW;
+                    }
+                }
             }
 
           // and then the matrix, if necessary
@@ -819,6 +841,22 @@ namespace aspect
              ||
              (outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation_lhs_term.size() == n_points &&
               outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation_rhs_term.size() == n_points),
+             ExcInternalError());
+
+      // prescribed directional dilation:
+      if (this->get_parameters().enable_prescribed_directional_dilation
+          && outputs.template has_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>() == false)
+        {
+          outputs.additional_outputs.push_back(
+            std::make_unique<MaterialModel::PrescribedDirectionalDilation<dim>> (n_points));
+        }
+
+      Assert(!this->get_parameters().enable_prescribed_directional_dilation
+             ||
+             (outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term.size() == dim &&
+              outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term[0].size() == n_points &&
+              outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term[1].size() == n_points &&
+              outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term[dim-1].size() == n_points),
              ExcInternalError());
 
       if (this->get_newton_handler().parameters.newton_derivative_scaling_factor != 0)

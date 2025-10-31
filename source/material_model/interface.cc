@@ -1039,6 +1039,38 @@ namespace aspect
     }
 
 
+    template <int dim>
+    PrescribedDirectionalDilation<dim>::PrescribedDirectionalDilation (const unsigned int n_points)
+      : NamedAdditionalMaterialOutputs<dim>(make_prescribed_dilation_outputs_names()),
+        dilation_term(dim,std::vector<double>(n_points, numbers::signaling_nan<double>()))
+    {}
+
+
+
+    template <int dim>
+    std::vector<double> PrescribedDirectionalDilation<dim>::get_nth_output(const unsigned int idx) const
+    {
+      AssertIndexRange (idx, dim);
+      switch (idx)
+        {
+          case 0:
+            return dilation_term[0];
+
+          case 1:
+            return dilation_term[1];
+
+          case 2:
+            AssertThrow(dim>2, ExcInternalError());
+            return dilation_term[2];
+
+          default:
+            AssertThrow(false, ExcInternalError());
+        }
+      // we will never get here, so just return something
+      return std::vector<double>();
+    }
+
+
 
     namespace
     {
@@ -1266,6 +1298,8 @@ namespace aspect
   template class PhaseOutputs<dim>; \
   \
   template class PrescribedPlasticDilation<dim>; \
+  \
+  template class PrescribedDirectionalDilation<dim>; \
   \
   template class PrescribedFieldOutputs<dim>; \
   \
