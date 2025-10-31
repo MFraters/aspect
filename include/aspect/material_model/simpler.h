@@ -41,7 +41,8 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class Simpler : public Interface<dim>
+    class Simpler : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+
     {
       public:
 
@@ -68,6 +69,8 @@ namespace aspect
         void
         parse_parameters (ParameterHandler &prm) override;
 
+        void
+        create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const override;
         /**
          * @}
          */

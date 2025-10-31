@@ -1254,6 +1254,30 @@ namespace aspect
     };
 
 
+    /**
+     * An AdditionalOutput that allows prescribing a directional dilation applied to the
+     * Stokes solution.
+     */
+    template <int dim>
+    class PrescribedDirectionalDilation : public NamedAdditionalMaterialOutputs<dim>
+    {
+      public:
+        /**
+         * Constructor
+         */
+        explicit PrescribedDirectionalDilation (const unsigned int n_points);
+
+        /**
+         * Function for NamedAdditionalMaterialOutputs interface
+         */
+        std::vector<double> get_nth_output(const unsigned int idx) const override;
+
+        /**
+         * A vector containing the scalar value per evaluation point
+         */
+        std::vector<std::vector<double>> dilation_term;
+
+    };
 
     /**
      * A class for an elastic force term to be added to the RHS of the

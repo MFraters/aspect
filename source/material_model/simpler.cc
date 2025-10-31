@@ -21,6 +21,7 @@
 
 #include <aspect/material_model/simpler.h>
 #include <aspect/material_model/equation_of_state/interface.h>
+#include <aspect/simulator_access.h>
 
 
 namespace aspect
@@ -41,13 +42,171 @@ namespace aspect
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
+      PrescribedDirectionalDilation<dim> *prescribed_directional_dilation = out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>();
+      PrescribedPlasticDilation<dim> *prescribed_plastic_dilation = out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>();
+
       // The Simpler model does not depend on composition
       EquationOfStateOutputs<dim> eos_outputs (1);
 
       thermal_conductivity.evaluate(in,out);
 
+      const double model_height = 3.;
+      const double model_width = 2.;
+      const double zone_width= model_width/8.;
+      const double zone_height= model_height/12.;
+      constexpr int test_number = 4;
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
+          if (prescribed_directional_dilation != nullptr)
+            {
+              if (test_number == 2)
+                {
+                  if (std::fabs(in.position[i][0]-1.0)<zone_width)
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = 0.5*(1.0+cos((dealii::numbers::PI * (in.position[i][0]-model_width/2.0))/zone_width));//0.75e-16;
+
+                      //prescribed_directional_dilation->dilation_term[1][i] = 0.5*(1.0-cos((dealii::numbers::PI * in.position[i][0])/width));
+                    }
+                  else
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = 0.;
+                      //prescribed_directional_dilation->dilation_term[1][i] = 0.;
+                    }
+
+
+                  const double dilation_y = 0;//1e-16;//1e-16;
+                  const double dilation_z = 0;//1.25e-16;//1e-16;
+                  prescribed_directional_dilation->dilation_term[1][i] = dilation_y;
+                  if (dim == 3)
+                    {
+                      prescribed_directional_dilation->dilation_term[2][i] = dilation_z;
+                    }
+                  /*if (std::fabs(in.position[i][0]) > -25e3 && std::fabs(in.position[i][0]) < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3 &&  in.position[i][2] > -25e3 && in.position[i][2] < 25e3 )
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = dilation_x;
+                      prescribed_directional_dilation->dilation_term[1][i] = dilation_y;//1e-18;
+                      if (dim == 3)
+                        {
+                          prescribed_directional_dilation->dilation_term[2][i] = dilation_z;
+                        }
+                      //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                    }
+                  else if ((((std::fabs(in.position[i][0]) > -400e3 && std::fabs(in.position[i][0]) < -350e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3  && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) ))|| (std::fabs(in.position[i][0]) > 350e3 && std::fabs(in.position[i][0]) < 400e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3  && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) )))
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = -0.5*dilation_x;
+                      prescribed_directional_dilation->dilation_term[1][i] = 0;
+                      if (dim == 3)
+                        {
+                          prescribed_directional_dilation->dilation_term[2][i] = 0;//1e-18;
+                        }
+                    }
+                  else if (((std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3   && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) )|| (std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3  && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) )))
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = 0;
+                      prescribed_directional_dilation->dilation_term[1][i] = -0.5*dilation_y;
+                      if (dim == 3)
+                        {
+                          prescribed_directional_dilation->dilation_term[2][i] = 0;//1e-18;
+                        }
+                      //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                    }
+                  else if (dim == 3 && ((std::fabs(in.position[i][2]) > 350e3 && std::fabs(in.position[i][2]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3 )|| (std::fabs(in.position[i][2]) > 350e3 && std::fabs(in.position[i][2]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3  )))// && in.position[i][1] > 5e3 && in.position[i][1] < 95e3)
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = 0;
+                      prescribed_directional_dilation->dilation_term[1][i] = 0;
+                      if (dim == 3)
+                        {
+                          prescribed_directional_dilation->dilation_term[2][i] = -0.5*dilation_z;//1e-18;
+                        }
+                      //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                    }
+                  else
+                    {
+
+                      prescribed_directional_dilation->dilation_term[0][i] = 0;
+                      prescribed_directional_dilation->dilation_term[1][i] = 0;
+                      if (dim == 3)
+                        {
+                          prescribed_directional_dilation->dilation_term[2][i] = 0;//1e-18;
+                        }
+                    }*/
+                }
+              else if (test_number == 3)
+                {
+                  if (std::fabs(in.position[i][0]-1.0)<zone_width)
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = 0.5*(1.0+cos((dealii::numbers::PI * (in.position[i][0]-model_width/2.0))/zone_width));
+                    }
+                  else
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = 0.;
+                    }
+
+
+
+                  if (std::fabs(in.position[i][1]-0.5)<zone_height)
+                    {
+                      prescribed_directional_dilation->dilation_term[1][i] = 0.5*(1.0+cos((dealii::numbers::PI * (in.position[i][1]-model_height/2.0))/zone_height));
+                    }
+                  else
+                    {
+                      prescribed_directional_dilation->dilation_term[1][i] = 0.;
+                    }
+                  const double dilation_z = 0;//1.25e-16;//1e-16;
+                }
+              else if (test_number == 4)
+                {
+                  double delta=model_width/8;
+                  double x = in.position[i][0];
+                  double y = in.position[i][1];
+                  double Lx = model_width;
+                  double Ly = model_height;
+                  double pi = dealii::numbers::PI;
+                  double theta = dealii::numbers::PI/18.;;//0;//dealii::numbers::PI/6.;
+                  double xp = ((x-Lx/2.)*cos(theta) + (y-Ly/2)*sin(theta))+Lx/2;
+
+                  if (abs(xp-Lx/2)<=delta)
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] =  0.5*(1.+cos(pi*(xp-Lx/2)/delta))*cos(theta)*cos(theta);//0.5*(1+cos(pi*(xp-Lx/2)/delta))*cos(theta)*cos(theta);//0.5*(1.0+cos((dealii::numbers::PI * (in.position[i][1]-model_height/2.0))/zone_height))*cos(theta)*cos(theta);//0.5*(xp-Lx/2+delta/dealii::numbers::PI*sin(dealii::numbers::PI(xp-Lx/2)/delta))*cos(dealii::numbers::PI);
+                      prescribed_directional_dilation->dilation_term[1][i] =  0.5*(1.+cos(pi*(xp-Lx/2)/delta))*sin(theta)*sin(theta);
+                    }
+                  else
+                    {
+                      prescribed_directional_dilation->dilation_term[0][i] = 0.;
+                      prescribed_directional_dilation->dilation_term[1][i] = 0.;
+                    }
+                  /*
+                          dud_dx:
+                         delta4=Lx/w4
+                         xp=((x-Lx/2)*np.cos(theta)+(y-Ly/2)*np.sin(theta))+Lx/2
+                         if abs(xp-Lx/2)<=delta4:
+                            return 0.5*(1+np.cos(np.pi*(xp-Lx/2)/delta4))*np.cos(theta)*np.cos(theta)
+                         else:
+                            return 0
+
+                            dvd_dy:
+                            delta4=Lx/w4
+                            xp=((x-Lx/2)*np.cos(theta)+(y-Ly/2)*np.sin(theta))+Lx/2
+                            if abs(xp-Lx/2)<=delta4:
+                               return 0.5*(1+np.cos(np.pi*(xp-Lx/2)/delta4))*np.sin(theta)*np.sin(theta)
+                            else:
+                               return 0
+                               */
+
+
+                  /*if (abs(xp-Lx/2)<=delta)
+                  {
+                    prescribed_directional_dilation->dilation_term[1][i] = 0.5*(1.+cos(pi*(xp-Lx/2)/delta))*sin(theta)*sin(theta);//0.5*pi/delta*sin(pi*(xp-Lx/2)/delta)*cos(theta)*cos(theta)*cos(theta);//0.5*(1.0+cos((dealii::numbers::PI * (in.position[i][1]-model_height/2.0))/zone_height))*sin(theta)*cos(theta);
+                  }
+                  else
+                  {
+                    prescribed_directional_dilation->dilation_term[1][i] = 0.;
+                  }*/
+                  const double dilation_z = 0;//1.25e-16;//1e-16;
+                }
+            }
+
+
           equation_of_state.evaluate(in, i, eos_outputs);
 
           out.viscosities[i] = constant_rheology.compute_viscosity();
@@ -104,6 +263,25 @@ namespace aspect
       this->model_dependence.compressibility = NonlinearDependence::none;
       this->model_dependence.specific_heat = NonlinearDependence::none;
       this->model_dependence.thermal_conductivity = NonlinearDependence::none;
+    }
+
+    template <int dim>
+    void
+    Simpler<dim>::create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const
+    {
+
+      //Stokes additional RHS for prescribed dilation
+      const unsigned int n_points = out.n_evaluation_points();
+      if (out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>() == nullptr)
+        {
+          out.additional_outputs.push_back(
+            std::make_unique<MaterialModel::PrescribedDirectionalDilation<dim>> (n_points));
+        }
+
+      AssertThrow(!true //this->get_parameters().enable_prescribed_directional_dilation
+                  ||
+                  out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term.size()
+                  == dim, ExcInternalError());
     }
   }
 }
