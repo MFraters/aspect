@@ -130,11 +130,18 @@ namespace aspect
           // terms of injection to Stokes equations.
           if (prescribed_directional_dilation != nullptr)
             {
-              if (std::fabs(in.position[i][0]) < 10e3)
+              if (std::fabs(in.position[i][0]) > 95e3 && std::fabs(in.position[i][0]) < 105e3)
                 {
-                  prescribed_directional_dilation->dilation_term[0][i] = 1;
+                  prescribed_directional_dilation->dilation_term[0][i] = 1e-17;
                   prescribed_directional_dilation->dilation_term[1][i] = 0;
-                  prescribed_directional_dilation->dilation_term[2][i] = 0;
+                  prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                }
+              else
+                {
+
+                  prescribed_directional_dilation->dilation_term[0][i] = 0;
+                  prescribed_directional_dilation->dilation_term[1][i] = 0;
+                  prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
                 }
             }
 
@@ -497,6 +504,20 @@ namespace aspect
 
       if (this->get_parameters().enable_elasticity)
         rheology->elastic_rheology.create_elastic_additional_outputs(out);
+
+      //Stokes additional RHS for prescribed dilation
+      const unsigned int n_points = out.n_evaluation_points();
+      if (this->get_parameters().enable_prescribed_directional_dilation
+          && out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>() == nullptr)
+        {
+          out.additional_outputs.push_back(
+            std::make_unique<MaterialModel::PrescribedDirectionalDilation<dim>> (n_points));
+        }
+
+      AssertThrow(!this->get_parameters().enable_prescribed_directional_dilation
+                  ||
+                  out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term.size()
+                  == dim, ExcInternalError());
     }
 
   }
