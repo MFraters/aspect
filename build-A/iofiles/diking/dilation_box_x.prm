@@ -1,31 +1,16 @@
-#### Continental Extension Cookbook
-# This cookbook is based off numerous published studies, five of which are listed below.
-# For additional information, see these publications and references therein.
-#   1. Brune, S., Heine, C., Perez-Gussinye, M., and Sobolev, S.V. (2014), Nat. Comm., v.5, n.4014,
-#      Rift migration explains continental margin asymmetry and crustal hyperextension
-#   2. Huismans, R., and Beaumont, C. (2011), Nature, v.473, p.71-75.
-#      Depth-dependent extension, two-stage breakup and cratonic underplating at rifted margins
-#   3. Naliboff, J., and Buiter, S.H. (2015), Earth Planet. Sci. Lett., v.421, p.58-67,
-#      "Rift Reactivation and migration during multiphase extension"
-#   4. Naliboff, J., Glerum, A., Sascha, S., Peron-Pinvidic, G., and Wrona, T. (2020), Geophys.
-#      Res. Lett., 47, e2019GL086611, "Development of 3‐D rift heterogeneity through fault
-#      network evolution"
-#   5. Sandiford, D., Brune, S., Glerum, A., Naliboff, J., and Whittaker, J.M. (2021), Geophys.
-#      Geochem. Geosys., 22, e2021GC009681, "Kinematics of footwall exhumation at oceanic
-#      detachment faults: Solid-block rotation and apparent unbending"
-
 ####  Global parameters
 set Dimension                              = 2
 set Start time                             = 0
-set End time                               = 5e6
+set End time                               = 5e60
 set Use years instead of seconds           = true
-set Nonlinear solver scheme                = iterated Advection and defect correction Stokes
+set Nonlinear solver scheme                = single Advection, iterated defect correction Stokes
+set Nonlinear solver scheme                = single Advection, iterated Stokes
 set Nonlinear solver tolerance             = 1e-5
 set Max nonlinear iterations               = 10 #200
 set CFL number                             = 0.5
-set Maximum time step                      = 10e3
-set Output directory                       = iofiles/diking/dilation_box_x
-set Pressure normalization                 = no
+set Maximum time step                      = 10e30
+set Output directory                       = iofiles/diking/dilation_box_v04_x_1e-16
+set Pressure normalization                 = no #surface
 
 # Governing equations
 subsection Formulation
@@ -38,13 +23,17 @@ subsection Geometry model
   set Model name = box
 
   subsection Box
-    set X repetitions = 10
+    set X repetitions = 50
     set Y repetitions = 5
-    set X extent      = 200e3
+    set X extent      = 1000e3
     set Y extent      = 100e3
+    set Box origin X coordinate = -500e3
   end
 end
 
+subsection Nullspace removal
+  #set Remove nullspace = net translation
+end
 # Globally refine the mesh to 2.5 km spacing, and then
 # adaptively refine the mesh to 1.25 km spacing above y=50 km
 # and between x=40 and x=160 km. These values ensure areas
@@ -72,29 +61,10 @@ subsection Solver parameters
   subsection Stokes solver parameters
     set Stokes solver type = block AMG
     set Number of cheap Stokes solver steps = 4000
-    set Linear solver tolerance             = 1e-8
+    set Linear solver tolerance             = 1e-12
     set GMRES solver restart length         = 100
     set Use full A block as preconditioner  = true
   end
-end
-
-# Advecting the free surface using a normal, rather than vertical,
-# projection. To reduce mesh instabilities and associated solver
-# issues when deformation becomes large, diffusion is applied to
-# the free surface at each time step.
-subsection Mesh deformation
-  set Mesh deformation boundary indicators        = top: free surface, top: diffusion
-
-  subsection Free surface
-    set Surface velocity projection = normal
-  end
-  subsection Diffusion
-    # Diffusivity term. Increasing this value will result
-    # in a smoother free surface and lower topography
-    # amplitudes.
-    set Hillslope transport coefficient = 1.e-8
-  end
-  set Additional tangential mesh velocity boundary indicators = left, right
 end
 
 # Velocity on boundaries characterized by functions
@@ -103,12 +73,20 @@ end
 # Velocity components parallel to the base (x-velocity) and side walls (y-velocity)
 # are unconstrained (i.e. 'free').
 subsection Boundary velocity model
-  set Prescribed velocity boundary indicators = left x: function, right x:function, bottom y:function
+  set Prescribed velocity boundary indicators = #left x: function, right x:function, bottom y:function
+  set Tangential velocity boundary indicators = top, bottom, right, left
 
   subsection Function
     set Variable names      = x,y
     set Function constants  = v=0.0, w=200.e3, d=100.e3
-    set Function expression = if (x < w/2 , -v, v) ; v*2*d/w
+    set Function expression = 0 #if (x < w/2 , -v, v) ; v*2*d/w
+  end
+end
+
+subsection Boundary traction model 
+  set Prescribed traction boundary indicators =  #left: initial lithostatic pressure, right: initial lithostatic pressure
+  subsection Initial lithostatic pressure
+    set Representative point = 100e3,0e3 #6371e3,-100.41,32.01
   end
 end
 
@@ -120,12 +98,12 @@ end
 # 4. The lower crust
 # 5. The mantle lithosphere
 subsection Compositional fields
-  set Number of fields = 5
-  set Names of fields  = noninitial_plastic_strain, \
-                         plastic_strain, \
-                         crust_upper, \
-                         crust_lower, \
-                         mantle_lithosphere
+  set Number of fields = 1
+  #set Names of fields  = noninitial_plastic_strain, \
+  #                       plastic_strain, \
+  #                       crust_upper, \
+  #                       crust_lower, \
+  #                       mantle_lithosphere
   #set Types of fields = strain, \
   #                      strain, \
   #                      chemical composition, \
@@ -150,18 +128,19 @@ subsection Initial composition model
 
   subsection Function
     set Variable names      = x,y
-    set Function expression = 0; \
-                              if(x>50.e3 && x<150.e3 && y>50.e3, 0.5 + rand_seed(1), 0); \
-                              if(y>=80.e3, 1, 0); \
-                              if(y<80.e3 && y>=60.e3, 1, 0); \
-                              if(y<60.e3, 1, 0);
+    set Function expression = if(x>-5e3 && x < 5e3,1,if(x>-400e3 && x<-390e3,1,0))
+#    set Function expression = 0; \
+#                              if(x>50.e3 && x<150.e3 && y>50.e3, 0.5 + rand_seed(1), 0); \
+#                              if(y>=80.e3, 1, 0); \
+#                              if(y<80.e3 && y>=60.e3, 1, 0); \
+#                              if(y<60.e3, 1, 0);
   end
 end
 
 # Composition: fixed on bottom (inflow boundary), free on sides and top
 subsection Boundary composition model
-  set Fixed composition boundary indicators = bottom
-  set List of model names = initial composition
+ # set Fixed composition boundary indicators = bottom
+ # set List of model names = #initial composition
 end
 
 # Temperature boundary conditions
@@ -170,12 +149,14 @@ end
 # not used as the sides are not specified "Fixed temperature boundaries".  Rather,
 # these boundaries are insulating (zero net heat flux).
 subsection Boundary temperature model
-  set Fixed temperature boundary indicators = bottom, top
+  set Fixed temperature boundary indicators = bottom, top, left, right
   set List of model names = box
 
   subsection Box
-    set Bottom temperature = 1613
-    set Top temperature    =  273
+    set Bottom temperature = 600
+    set Top temperature    =  600
+    set Left temperature = 600
+    set Right temperature = 600
   end
 end
 
@@ -209,23 +190,23 @@ subsection Initial temperature model
                              A1=1.e-6, A2=0.25e-6, A3=0.0, \
                              k1=2.5, k2=2.5, k3=2.5, \
                              qs1=0.055, qs2=0.035, qs3=0.030
-    set Function expression = if( (h-y)<=20.e3, \
-                                  ts1 + (qs1/k1)*(h-y) - (A1*(h-y)*(h-y))/(2.0*k1), \
-                                  if( (h-y)>20.e3 && (h-y)<=40.e3, \
-                                      ts2 + (qs2/k2)*(h-y-20.e3) - (A2*(h-y-20.e3)*(h-y-20.e3))/(2.0*k2), \
-                                      ts3 + (qs3/k3)*(h-y-40.e3) - (A3*(h-y-40.e3)*(h-y-40.e3))/(2.0*k3) ) );
+    set Function expression = 600 #if( (h-y)<=20.e3, \
+                                  #ts1 + (qs1/k1)*(h-y) - (A1*(h-y)*(h-y))/(2.0*k1), \
+                                  #if( (h-y)>20.e3 && (h-y)<=40.e3, \
+                                  #    ts2 + (qs2/k2)*(h-y-20.e3) - (A2*(h-y-20.e3)*(h-y-20.e3))/(2.0*k2), \
+                                  #    ts3 + (qs3/k3)*(h-y-40.e3) - (A3*(h-y-40.e3)*(h-y-40.e3))/(2.0*k3) ) );
   end
 end
 
 # Constant internal heat production values (W/m^3) for background material
 # and compositional fields.
 subsection Heating model
-  set List of model names = compositional heating
+  #set List of model names = compositional heating
 
-  subsection Compositional heating
-    set Use compositional field for heat production averaging = 1, 0, 0, 1, 1, 1
-    set Compositional heating values = 0.0, 0.0, 0.0, 1.0e-6, 0.25e-6, 0.
-  end
+  #subsection Compositional heating
+  #  set Use compositional field for heat production averaging = 1, 0, 0, 1, 1, 1
+  #  set Compositional heating values = 0.0, 0.0, 0.0, 1.0e-6, 0.25e-6, 0.
+  #end
 end
 
 # Material model
@@ -236,7 +217,7 @@ end
 # crust (wet anorthite) and mantle (dry olivine).  Table 1 of Naliboff and Buiter (2015),
 # Earth Planet. Sci. Lett., v.421, p. 58-67 contains values for each of these flow laws.
 subsection Material model
-  set Model name = visco plastic
+  set Model name = simpler #visco plastic
 
   subsection Visco Plastic
     # Reference temperature and viscosity
@@ -367,10 +348,10 @@ subsection Postprocess
                                velocity statistics, visualization
 
   subsection Visualization
-    set List of output variables = material properties, heat flux map, named additional outputs, strain rate
+    set List of output variables = material properties, heat flux map, strain rate, named additional outputs #, strain rate
     set Output format                 = vtu
     set Time between graphical output = 0 #100.e3
-    set Interpolate output            = true
+    set Interpolate output            = false #true
 
     subsection Material properties
       set List of material properties = density, viscosity

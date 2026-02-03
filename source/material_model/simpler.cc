@@ -21,6 +21,7 @@
 
 #include <aspect/material_model/simpler.h>
 #include <aspect/material_model/equation_of_state/interface.h>
+#include <aspect/simulator_access.h>
 
 
 namespace aspect
@@ -41,6 +42,9 @@ namespace aspect
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
+      PrescribedDirectionalDilation<dim> *prescribed_directional_dilation = out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>();
+      PrescribedPlasticDilation<dim> *prescribed_plastic_dilation = out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>();
+
       // The Simpler model does not depend on composition
       EquationOfStateOutputs<dim> eos_outputs (1);
 
@@ -48,6 +52,37 @@ namespace aspect
 
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
+          if (prescribed_directional_dilation != nullptr)
+            {
+              const double dilation_x = 2e-16;
+              const double dilation_y = 1e-16;//1e-16;
+              if (std::fabs(in.position[i][0]) > -25e3 && std::fabs(in.position[i][0]) < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3)
+                {
+                  prescribed_directional_dilation->dilation_term[0][i] = dilation_x;
+                  prescribed_directional_dilation->dilation_term[1][i] = dilation_y;//1e-18;
+                  //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                }
+              else if ((((std::fabs(in.position[i][0]) > -400e3 && std::fabs(in.position[i][0]) < -350e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3))|| (std::fabs(in.position[i][0]) > 350e3 && std::fabs(in.position[i][0]) < 400e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3)))
+                {
+                  prescribed_directional_dilation->dilation_term[0][i] = -0.5*dilation_x;
+                  prescribed_directional_dilation->dilation_term[1][i] = 0;
+                }
+              else if (((std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3)|| (std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3)))// && in.position[i][1] > 5e3 && in.position[i][1] < 95e3)
+                {
+                  prescribed_directional_dilation->dilation_term[1][i] = -0.5*dilation_y;
+                  prescribed_directional_dilation->dilation_term[0][i] = 0;
+                  //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                }
+              else
+                {
+
+                  prescribed_directional_dilation->dilation_term[0][i] = 0;
+                  prescribed_directional_dilation->dilation_term[1][i] = 0;
+                  prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                }
+            }
+
+
           equation_of_state.evaluate(in, i, eos_outputs);
 
           out.viscosities[i] = constant_rheology.compute_viscosity();
@@ -104,6 +139,25 @@ namespace aspect
       this->model_dependence.compressibility = NonlinearDependence::none;
       this->model_dependence.specific_heat = NonlinearDependence::none;
       this->model_dependence.thermal_conductivity = NonlinearDependence::none;
+    }
+
+    template <int dim>
+    void
+    Simpler<dim>::create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const
+    {
+
+      //Stokes additional RHS for prescribed dilation
+      const unsigned int n_points = out.n_evaluation_points();
+      if (out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>() == nullptr)
+        {
+          out.additional_outputs.push_back(
+            std::make_unique<MaterialModel::PrescribedDirectionalDilation<dim>> (n_points));
+        }
+
+      AssertThrow(!true //this->get_parameters().enable_prescribed_directional_dilation
+                  ||
+                  out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term.size()
+                  == dim, ExcInternalError());
     }
   }
 }

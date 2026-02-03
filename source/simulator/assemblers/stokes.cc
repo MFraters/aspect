@@ -49,6 +49,12 @@ namespace aspect
         ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
         : nullptr;
 
+      const std::shared_ptr<const MaterialModel::PrescribedDirectionalDilation<dim>>
+      prescribed_directional_dilation =
+        this->get_parameters().enable_prescribed_directional_dilation
+        ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
+        : nullptr;
+
       // First loop over all dofs and find those that are in the Stokes system
       // save the component (pressure and dim velocities) each belongs to.
       for (unsigned int i = 0, i_stokes = 0; i_stokes < stokes_dofs_per_cell; /*increment at end of loop*/)
@@ -116,9 +122,14 @@ namespace aspect
               if (introspection.is_stokes_component(fe.system_to_component_index(i).first))
                 {
                   if (this->get_parameters().use_full_A_block_preconditioner == false)
-                    scratch.grads_phi_u[i_stokes] =
-                      scratch.finite_element_values[introspection.extractors
-                                                    .velocities].symmetric_gradient(i, q);
+                    {
+                      scratch.grads_phi_u[i_stokes] =
+                        scratch.finite_element_values[introspection.extractors
+                                                      .velocities].symmetric_gradient(i, q);
+                      scratch.div_phi_u[i_stokes] =
+                        scratch.finite_element_values[introspection.extractors
+                                                      .velocities].divergence(i, q);
+                    }
                   scratch.phi_p[i_stokes] = scratch.finite_element_values[introspection
                                                                           .extractors.pressure].value(i, q);
                   if (this->get_parameters().use_bfbt == true)
@@ -346,6 +357,13 @@ namespace aspect
           ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
           : nullptr;
 
+      const bool enable_prescribed_directional_dilation = this->get_parameters().enable_prescribed_directional_dilation;
+
+      const std::shared_ptr<const MaterialModel::PrescribedDirectionalDilation<dim>> prescribed_directional_dilation
+        = enable_prescribed_directional_dilation ?
+          scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
+          : nullptr;
+
       // When using the Q1-Q1 equal order element, we need to compute the
       // projection of the Q1 pressure shape functions onto the constants
       // and use this projection in the computation of matrix terms.
@@ -401,7 +419,7 @@ namespace aspect
                 {
                   scratch.phi_u[i_stokes] = scratch.finite_element_values[introspection.extractors.velocities].value (i,q);
                   scratch.phi_p[i_stokes] = scratch.finite_element_values[introspection.extractors.pressure].value (i, q);
-                  if (scratch.rebuild_stokes_matrix)
+                  if (scratch.rebuild_stokes_matrix || prescribed_directional_dilation)
                     {
                       scratch.grads_phi_u[i_stokes] = scratch.finite_element_values[introspection.extractors.velocities].symmetric_gradient(i,q);
                       scratch.div_phi_u[i_stokes]   = scratch.finite_element_values[introspection.extractors.velocities].divergence (i, q);
@@ -417,7 +435,7 @@ namespace aspect
 
 
           // Viscosity scalar
-          const double eta = ((scratch.rebuild_stokes_matrix || prescribed_dilation)
+          const double eta = ((scratch.rebuild_stokes_matrix || prescribed_dilation || prescribed_directional_dilation)
                               ?
                               scratch.material_model_outputs.viscosities[q]
                               :
@@ -456,29 +474,69 @@ namespace aspect
                                        * prescribed_dilation->dilation_rhs_term[q]
                                        * scratch.phi_p[i]
                                      ) * JxW;
-
-              if (scratch.rebuild_stokes_matrix)
-                for (unsigned int j=0; j<stokes_dofs_per_cell; ++j)
-                  {
-                    data.local_matrix(i,j) += ( (eta * 2.0 * (scratch.grads_phi_u[i] * scratch.grads_phi_u[j]))
-                                                // assemble \nabla p as -(p, div v):
-                                                - (pressure_scaling *
-                                                   scratch.div_phi_u[i] * scratch.phi_p[j])
-                                                // assemble the term -div(u) as -(div u, q).
-                                                // Note the negative sign to make this
-                                                // operator adjoint to the grad p term:
-                                                - (pressure_scaling *
-                                                   scratch.phi_p[i] * scratch.div_phi_u[j])
-                                                // assemble -\bar\alpha\alpha pq / eta^{ve}
-                                                // if plastic dilation is enabled
-                                                - (prescribed_dilation == nullptr ? 0.0 :
-                                                   pressure_scaling * pressure_scaling *
-                                                   prescribed_dilation->dilation_lhs_term[q] *
-                                                   scratch.phi_p[i] * scratch.phi_p[j])
-                                              )
-                                              * JxW;
-                  }
             }
+          // This is customized for the dike injection process that the dike only opens in the direction of horizontal extension.
+          bool material_model_is_compressible = (this->get_material_model().is_compressible());
+          //if (this->get_parameters()if (prescribed_dilation != nullptr)
+          if (prescribed_directional_dilation != nullptr)
+            {
+              // If the dike injection is activated in the incompressible model,
+              // we wanna the deviatoric strain rate on the left-hand matrix.
+              //if (scratch.rebuild_stokes_matrix)
+              if (!material_model_is_compressible && prescribed_directional_dilation->dilation_term[0][q] != 0)
+                {
+                  for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i)
+                    for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
+                      {
+                        data.local_matrix(i, j) += (-2.0 / 3.0 * eta * (scratch.div_phi_u[i] * scratch.div_phi_u[j])) * JxW;
+                      }
+                }
+              // If we expect the effect of the prescribed dilation term to
+              // occur only in the horizontal x-direction (dike opening), the
+              // horizontal (x) momentum equation is then additionally augmented
+              // by the RHS：- \int 2 eta R, div v
+              for (unsigned int i=0, i_stokes=0; i_stokes<stokes_dofs_per_cell; /*increment at end of loop*/)
+                {
+                  data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])/2) * scratch.phi_p[i_stokes]*JxW;
+                  const unsigned int index_horizon=fe.system_to_component_index(i).first;
+                  if (introspection.is_stokes_component(index_horizon))
+                    {
+                      if (index_horizon<dim) //horizontal x direction
+                        {
+                          data.local_rhs(i_stokes) += 2.0 * eta * prescribed_directional_dilation->dilation_term[index_horizon][q] * scratch.div_phi_u[i_stokes] * JxW;
+                        }
+                      else //if (index_horizon == dim)
+                        {
+                          //data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])/3) * scratch.phi_p[i_stokes]*JxW;
+                        }
+                      ++i_stokes;
+                    }
+                  ++i;
+                }
+            }
+          if (scratch.rebuild_stokes_matrix)
+            for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
+              for (unsigned int j=0; j<stokes_dofs_per_cell; ++j)
+                {
+                  data.local_matrix(i,j) += ( (eta * 2.0 * (scratch.grads_phi_u[i] * scratch.grads_phi_u[j]))
+                                              // assemble \nabla p as -(p, div v):
+                                              - (pressure_scaling *
+                                                 scratch.div_phi_u[i] * scratch.phi_p[j])
+                                              // assemble the term -div(u) as -(div u, q).
+                                              // Note the negative sign to make this
+                                              // operator adjoint to the grad p term:
+                                              - (pressure_scaling *
+                                                 scratch.phi_p[i] * scratch.div_phi_u[j])
+                                              // assemble -\bar\alpha\alpha pq / eta^{ve}
+                                              // if plastic dilation is enabled
+                                              - (prescribed_dilation == nullptr ? 0.0 :
+                                                 pressure_scaling * pressure_scaling *
+                                                 prescribed_dilation->dilation_lhs_term[q] *
+                                                 scratch.phi_p[i] * scratch.phi_p[j])
+                                            )
+                                            * JxW;
+                }
+
 
           // If we are using the equal order Q1-Q1 element, then we also need
           // to put the stabilization term into the (P,P) block of the matrix:
@@ -533,6 +591,14 @@ namespace aspect
              (outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation_lhs_term.size() == n_points &&
               outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation_rhs_term.size() == n_points),
              ExcInternalError());
+
+      // prescribed directional dilation:
+      if (this->get_parameters().enable_prescribed_directional_dilation
+          && outputs.template has_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>() == false)
+        {
+          outputs.additional_outputs.push_back(
+            std::make_unique<MaterialModel::PrescribedDirectionalDilation<dim>> (n_points));
+        }
 
       // Elasticity:
       if ((this->get_parameters().enable_elasticity) &&
