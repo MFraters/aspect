@@ -132,7 +132,7 @@ namespace aspect
             {
               if (std::fabs(in.position[i][0]) > 95e3 && std::fabs(in.position[i][0]) < 105e3)
                 {
-                  prescribed_directional_dilation->dilation_term[0][i] = 1e-17;
+                  prescribed_directional_dilation->dilation_term[0][i] = 0;//1e-24;
                   prescribed_directional_dilation->dilation_term[1][i] = 0;
                   prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
                 }

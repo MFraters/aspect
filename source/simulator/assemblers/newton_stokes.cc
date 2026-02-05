@@ -641,12 +641,15 @@ namespace aspect
                                      ) * JxW;
 
               // add the prescribed directional dilation
-              if (enable_prescribed_directional_dilation)
+              // TODO: 3D
+              if (enable_prescribed_directional_dilation)// && (prescribed_directional_dilation->dilation_term[0][q] != 0 || prescribed_directional_dilation->dilation_term[1][q] != 0))
                 {
+                  // If the dike injection is activated in the incompressible model,
+                  // we wanna the deviatoric strain rate on the left-hand matrix.
                   const unsigned int index_horizon=fe.system_to_component_index(i).first;
-                  if (introspection.is_stokes_component(index_horizon) && index_horizon < dim)
+                  if (introspection.is_stokes_component(index_horizon) && index_horizon  < dim)
                     {
-                      data.local_rhs(i) +=  2.0 * eta * prescribed_directional_dilation->dilation_term[index_horizon][q] * scratch.div_phi_u[i] * JxW;
+                      data.local_rhs(i) += 2.0 * eta * prescribed_directional_dilation->dilation_term[index_horizon][q] * scratch.div_phi_u[i] * JxW;
                     }
                 }
             }
@@ -678,7 +681,15 @@ namespace aspect
                                               )
                                               * JxW;
                   }
-
+              if (enable_prescribed_directional_dilation)
+                if (!this->get_material_model().is_compressible())
+                  {
+                    for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i)
+                      for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
+                        {
+                          data.local_matrix(i, j) += (-2.0 / 3.0 * eta * (scratch.div_phi_u[i] * scratch.div_phi_u[j])) * JxW;
+                        }
+                  }
               // then also see whether we have to add terms due to the
               // Newton linearization
               if (derivative_scaling_factor != 0)

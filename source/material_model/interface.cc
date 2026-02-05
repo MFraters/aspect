@@ -1017,6 +1017,7 @@ namespace aspect
         std::vector<std::string> names;
         names.emplace_back("dilation_term_x");
         names.emplace_back("dilation_term_y");
+        names.emplace_back("dilation_term_z");
         return names;
       }
     }

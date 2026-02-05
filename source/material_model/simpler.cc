@@ -54,23 +54,46 @@ namespace aspect
         {
           if (prescribed_directional_dilation != nullptr)
             {
-              const double dilation_x = 2e-16;
+              const double dilation_x = 0.75e-16;
               const double dilation_y = 1e-16;//1e-16;
-              if (std::fabs(in.position[i][0]) > -25e3 && std::fabs(in.position[i][0]) < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3)
+              const double dilation_z = 1.25e-16;//1e-16;
+              if (std::fabs(in.position[i][0]) > -25e3 && std::fabs(in.position[i][0]) < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3 &&  in.position[i][2] > -25e3 && in.position[i][2] < 25e3 )
                 {
                   prescribed_directional_dilation->dilation_term[0][i] = dilation_x;
                   prescribed_directional_dilation->dilation_term[1][i] = dilation_y;//1e-18;
+                  if (dim == 3)
+                    {
+                      prescribed_directional_dilation->dilation_term[2][i] = dilation_z;
+                    }
                   //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
                 }
-              else if ((((std::fabs(in.position[i][0]) > -400e3 && std::fabs(in.position[i][0]) < -350e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3))|| (std::fabs(in.position[i][0]) > 350e3 && std::fabs(in.position[i][0]) < 400e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3)))
+              else if ((((std::fabs(in.position[i][0]) > -400e3 && std::fabs(in.position[i][0]) < -350e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3  && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) ))|| (std::fabs(in.position[i][0]) > 350e3 && std::fabs(in.position[i][0]) < 400e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3  && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) )))
                 {
                   prescribed_directional_dilation->dilation_term[0][i] = -0.5*dilation_x;
                   prescribed_directional_dilation->dilation_term[1][i] = 0;
+                  if (dim == 3)
+                    {
+                      prescribed_directional_dilation->dilation_term[2][i] = 0;//1e-18;
+                    }
                 }
-              else if (((std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3)|| (std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3)))// && in.position[i][1] > 5e3 && in.position[i][1] < 95e3)
+              else if (((std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3   && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) )|| (std::fabs(in.position[i][1]) > 350e3 && std::fabs(in.position[i][1]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3  && (dim ==2 ||  in.position[i][2] > -25e3 && in.position[i][2] < 25e3) )))
                 {
-                  prescribed_directional_dilation->dilation_term[1][i] = -0.5*dilation_y;
                   prescribed_directional_dilation->dilation_term[0][i] = 0;
+                  prescribed_directional_dilation->dilation_term[1][i] = -0.5*dilation_y;
+                  if (dim == 3)
+                    {
+                      prescribed_directional_dilation->dilation_term[2][i] = 0;//1e-18;
+                    }
+                  //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                }
+              else if (dim == 3 && ((std::fabs(in.position[i][2]) > 350e3 && std::fabs(in.position[i][2]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3 )|| (std::fabs(in.position[i][2]) > 350e3 && std::fabs(in.position[i][2]) < 400e3 && in.position[i][0] > -25e3 && in.position[i][0] < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3  )))// && in.position[i][1] > 5e3 && in.position[i][1] < 95e3)
+                {
+                  prescribed_directional_dilation->dilation_term[0][i] = 0;
+                  prescribed_directional_dilation->dilation_term[1][i] = 0;
+                  if (dim == 3)
+                    {
+                      prescribed_directional_dilation->dilation_term[2][i] = -0.5*dilation_z;//1e-18;
+                    }
                   //prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
                 }
               else
@@ -78,7 +101,10 @@ namespace aspect
 
                   prescribed_directional_dilation->dilation_term[0][i] = 0;
                   prescribed_directional_dilation->dilation_term[1][i] = 0;
-                  prescribed_directional_dilation->dilation_term[dim-1][i] = 0;
+                  if (dim == 3)
+                    {
+                      prescribed_directional_dilation->dilation_term[2][i] = 0;//1e-18;
+                    }
                 }
             }
 
