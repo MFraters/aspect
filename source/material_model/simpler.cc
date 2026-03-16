@@ -50,14 +50,33 @@ namespace aspect
 
       thermal_conductivity.evaluate(in,out);
 
+      const double model_width = 2.;
+      const double zone_width= 0.25;
       for (unsigned int i=0; i<in.n_evaluation_points(); ++i)
         {
           if (prescribed_directional_dilation != nullptr)
             {
-              const double dilation_x = 0.75e-16;
-              const double dilation_y = 1e-16;//1e-16;
-              const double dilation_z = 1.25e-16;//1e-16;
-              if (std::fabs(in.position[i][0]) > -25e3 && std::fabs(in.position[i][0]) < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3 &&  in.position[i][2] > -25e3 && in.position[i][2] < 25e3 )
+              if (std::fabs(in.position[i][0]-1.0)<zone_width)
+                {
+                  prescribed_directional_dilation->dilation_term[0][i] = 0.5*(1.0+cos((dealii::numbers::PI * (in.position[i][0]-model_width/2.0))/zone_width));//0.75e-16;
+
+                  //prescribed_directional_dilation->dilation_term[1][i] = 0.5*(1.0-cos((dealii::numbers::PI * in.position[i][0])/width));
+                }
+              else
+                {
+                  prescribed_directional_dilation->dilation_term[0][i] = 0.;
+                  //prescribed_directional_dilation->dilation_term[1][i] = 0.;
+                }
+
+
+              const double dilation_y = 0;//1e-16;//1e-16;
+              const double dilation_z = 0;//1.25e-16;//1e-16;
+              prescribed_directional_dilation->dilation_term[1][i] = dilation_y;
+              if (dim == 3)
+                {
+                  prescribed_directional_dilation->dilation_term[2][i] = dilation_z;
+                }
+              /*if (std::fabs(in.position[i][0]) > -25e3 && std::fabs(in.position[i][0]) < 25e3 && in.position[i][1] > -25e3 && in.position[i][1] < 25e3 &&  in.position[i][2] > -25e3 && in.position[i][2] < 25e3 )
                 {
                   prescribed_directional_dilation->dilation_term[0][i] = dilation_x;
                   prescribed_directional_dilation->dilation_term[1][i] = dilation_y;//1e-18;
@@ -105,7 +124,7 @@ namespace aspect
                     {
                       prescribed_directional_dilation->dilation_term[2][i] = 0;//1e-18;
                     }
-                }
+                }*/
             }
 
 

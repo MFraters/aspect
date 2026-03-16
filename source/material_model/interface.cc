@@ -1012,12 +1012,13 @@ namespace aspect
 
     namespace
     {
-      std::vector<std::string> make_prescribed_directional_dilation_outputs_names()
+      std::vector<std::string> make_prescribed_directional_dilation_outputs_names(unsigned int dim)
       {
         std::vector<std::string> names;
         names.emplace_back("dilation_term_x");
         names.emplace_back("dilation_term_y");
-        names.emplace_back("dilation_term_z");
+        if (dim == 3)
+          names.emplace_back("dilation_term_z");
         return names;
       }
     }
@@ -1054,7 +1055,7 @@ namespace aspect
 
     template <int dim>
     PrescribedDirectionalDilation<dim>::PrescribedDirectionalDilation (const unsigned int n_points)
-      : NamedAdditionalMaterialOutputs<dim>(make_prescribed_directional_dilation_outputs_names()),
+      : NamedAdditionalMaterialOutputs<dim>(make_prescribed_directional_dilation_outputs_names(dim)),
         dilation_term(dim,std::vector<double>(n_points, numbers::signaling_nan<double>()))
     {}
 

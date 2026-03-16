@@ -44,16 +44,16 @@ namespace aspect
       const double pressure_scaling = this->get_pressure_scaling();
 
       const std::shared_ptr<const MaterialModel::PrescribedPlasticDilation<dim>>
-                                                                              prescribed_dilation =
-                                                                                this->get_parameters().enable_prescribed_dilation
-                                                                                ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
-                                                                                : nullptr;
+      prescribed_dilation =
+        this->get_parameters().enable_prescribed_dilation
+        ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
+        : nullptr;
 
       const std::shared_ptr<const MaterialModel::PrescribedDirectionalDilation<dim>>
-                                                                                  prescribed_directional_dilation =
-                                                                                    this->get_parameters().enable_prescribed_directional_dilation
-                                                                                    ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
-                                                                                    : nullptr;
+      prescribed_directional_dilation =
+        this->get_parameters().enable_prescribed_directional_dilation
+        ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
+        : nullptr;
 
       // First loop over all dofs and find those that are in the Stokes system
       // save the component (pressure and dim velocities) each belongs to.
@@ -347,22 +347,22 @@ namespace aspect
       const double pressure_scaling = this->get_pressure_scaling();
 
       const std::shared_ptr<const MaterialModel::AdditionalMaterialOutputsStokesRHS<dim>> force
-          = scratch.material_model_outputs.template get_additional_output_object<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim>>();
+        = scratch.material_model_outputs.template get_additional_output_object<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim>>();
 
       const std::shared_ptr<const MaterialModel::ElasticOutputs<dim>> elastic_outputs
-                                                                   = scratch.material_model_outputs.template get_additional_output_object<MaterialModel::ElasticOutputs<dim>>();
+        = scratch.material_model_outputs.template get_additional_output_object<MaterialModel::ElasticOutputs<dim>>();
 
       const std::shared_ptr<const MaterialModel::PrescribedPlasticDilation<dim>> prescribed_dilation
-                                                                              = (this->get_parameters().enable_prescribed_dilation)
-                                                                                ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
-                                                                                : nullptr;
+        = (this->get_parameters().enable_prescribed_dilation)
+          ? scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedPlasticDilation<dim>>()
+          : nullptr;
 
       const bool enable_prescribed_directional_dilation = this->get_parameters().enable_prescribed_directional_dilation;
 
       const std::shared_ptr<const MaterialModel::PrescribedDirectionalDilation<dim>> prescribed_directional_dilation
-                                                                                  = enable_prescribed_directional_dilation ?
-                                                                                    scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
-                                                                                    : nullptr;
+        = enable_prescribed_directional_dilation ?
+          scratch.material_model_outputs.template get_additional_output_object<MaterialModel::PrescribedDirectionalDilation<dim>>()
+          : nullptr;
 
       // When using the Q1-Q1 equal order element, we need to compute the
       // projection of the Q1 pressure shape functions onto the constants
@@ -499,10 +499,10 @@ namespace aspect
                 {
                   //data.local_rhs(i_stokes) += -pressure_scaling * scratch.phi_p[i_stokes]*JxW;
                   if (dim == 2)
-                    data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])/2) * scratch.phi_p[i_stokes]*JxW;
+                    data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])) * scratch.phi_p[i_stokes]*JxW;
                   else
                     ///std::cout << prescribed_directional_dilation->dilation_term[0][q] << ":" << prescribed_directional_dilation->dilation_term[1][q] << ":" << prescribed_directional_dilation->dilation_term[2][q] << std::endl;
-                    data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q]+prescribed_directional_dilation->dilation_term[2][q])/3) * scratch.phi_p[i_stokes]*JxW;
+                    data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q]+prescribed_directional_dilation->dilation_term[2][q])) * scratch.phi_p[i_stokes]*JxW;
                   const unsigned int index_horizon=fe.system_to_component_index(i).first;
                   if (introspection.is_stokes_component(index_horizon))
                     {
