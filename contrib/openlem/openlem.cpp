@@ -1603,9 +1603,12 @@ class Grid
 
   double computeFluxes ( Point p, double dt = 0. )
   {
+        //printf("Flag computeFluxes 1");
 // Computes the discharge of a node
     Node  *pn = getNode(p);
+        //printf("Flag computeFluxes 2");
     if ( pn->m )  return pn->q;
+        //printf("Flag computeFluxes 3");
     pn->m = 1;
     Point   dest = pn->d;
     Node    *destn = getNode(dest);
@@ -1891,6 +1894,8 @@ class Grid
       destn->channel += 10*pn->channel;
 #endif
     }
+        //printf("Flag computeFluxes end: %d",pn->q);
+        assert(pn->q);
     return  pn->q;
   }  
 
@@ -2040,12 +2045,15 @@ class Grid
     }
 //    printf ( "qdev = %e\n", qdev );
 #else        
+        printf("Flag precomputeFluxes 0 ");
     int  q = 0;
     for ( int i = 0; i < m; ++i )
       for ( int j = 0; j < n; ++j )
       {
         auto point = Point(i,j);
+        //printf("Flag precomputeFluxes 1");
         int  tmp = computeFluxes ( point, dt );
+        //printf("Flag postcomputeFluxes 2");
 	if ( getNode(i,j)->b )  q += tmp;
       }	
 #if !defined(PRECIP) && !defined(DEFORM)

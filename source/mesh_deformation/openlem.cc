@@ -23,6 +23,7 @@
 #include "aspect/global.h"
 #include <cmath>
 #include <deal.II/base/exceptions.h>
+#include <deal.II/base/mpi.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <aspect/mesh_deformation/openlem.h>
 #include <aspect/geometry_model/box.h>
@@ -219,6 +220,13 @@ namespace aspect
 
         // Compute initial flow pattern and water level
         deepest_point = openlem::Point(0,0);
+        for (unsigned int x_i = 0; x_i < openlem_nx; ++x_i)
+          for (unsigned int y_i= 0; y_i < openlem_ny; ++y_i)
+            {
+              //if(x_i == 1)
+              //    std::cout << "a x:y = " << x_i << ":" << y_i << " = " << connector.x[x_i][y_i] << ":" << connector.y[x_i][y_i] << std::endl;
+              //connector.interpolation(connector.x[x_i][y_i], connector.y[x_i][y_i]);
+            }
         for ( int i = 0; i < grid_new.m; ++i )
           for ( int j = 0; j < grid_new.n; ++j )
             {
@@ -236,7 +244,8 @@ namespace aspect
         for (unsigned int x_i = 0; x_i < openlem_nx; ++x_i)
           for (unsigned int y_i= 0; y_i < openlem_ny; ++y_i)
             {
-              //std::cout << "a x:y = " << x_i << ":" << y_i << " = " << connector.x[x_i][y_i] << ":" << connector.y[x_i][y_i] << std::endl;
+              //if(x_i == 1)
+              //    std::cout << "b x:y = " << x_i << ":" << y_i << " = " << connector.x[x_i][y_i] << ":" << connector.y[x_i][y_i] << std::endl;
               //connector.interpolation(connector.x[x_i][y_i], connector.y[x_i][y_i]);
             }
         //connector = openlem::Connector(&grid_new,openlem_dy,grid_extent[0].first, grid_extent[1].first  );
@@ -376,8 +385,8 @@ namespace aspect
                   if (dim == 3)
                     {
                       mesh_locations[x_i][y_i] = Point<dim>(connector.x[x_i][y_i],connector.y[x_i][y_i],grid_extent[dim-1].second + grid_new[x_i][y_i].h);
-                      //if (x_i == 10)
-                      //  std::cout << "A: rank = " <<Utilities::MPI::this_mpi_process(this->get_mpi_communicator())  << ", x:y = " << x_i << ":" << y_i << ", mesh_locations[x_i][y_i] = " << mesh_locations[x_i][y_i] << ", connector x:y = " <<  connector.x[x_i][y_i] << ":" << connector.x[x_i][y_i] << std::endl;
+                      //if (x_i == 1)
+                      //std::cout << "A: rank = " <<Utilities::MPI::this_mpi_process(this->get_mpi_communicator())  << ", x:y = " << x_i << ":" << y_i << ", mesh_locations[x_i][y_i] = " << mesh_locations[x_i][y_i] << ", connector x:y = " <<  connector.x[x_i][y_i] << ":" << connector.x[x_i][y_i] << std::endl;
                       // NOTE: at timestep 0
                       //if (this->get_timestep_number() == 0)
                       //  {
@@ -395,7 +404,7 @@ namespace aspect
         }
 
 
-      std::cout << "before  broadcast mesh_locations" << std::endl;
+      std::cout << "before  broadcast mesh_locations. openlem nx:ny = " << openlem_nx <<":" << openlem_ny << std::endl;
       mesh_locations = Utilities::MPI::broadcast(this->get_mpi_communicator(),mesh_locations,0);
       std::cout << "after  broadcast mesh_locations" << std::endl;
 
@@ -471,6 +480,8 @@ namespace aspect
               // get corresponding aspect index
               Point<2> openlem_point_2d(connector.x[xi][yi],connector.y[xi][yi]);
 
+              //if(xi == 1 && yi == 1)
+              //std::cout <<"Flag openlem.cc A: before x:y " << connector.x[xi][yi] << ":" << connector.y[xi][yi] << std::endl;
               double x_coord = connector.x[xi][yi] - grid_extent[0].first;
               double y_coord = connector.y[xi][yi] - grid_extent[1].first;
               if (
@@ -483,7 +494,8 @@ namespace aspect
                   const size_t xia = std::floor(x_coord/aspect_dx);
                   const size_t yia = std::floor(y_coord/aspect_dy);
                   //if (xi < openlem_nx-2 && yi > 30 && yi < 50)
-                  //  std::cout << "F:  openlem_point_2d = " << openlem_point_2d << ", x:ycoord = " <<  x_coord << ":" << y_coord << ", x:ycoord/dx:dy = " << x_coord/aspect_dx << ":" << y_coord/aspect_dy << ", xia:yia = " << xia << ":" << yia << ", aspect dx:dy = " << aspect_dx << ":" << aspect_dy << std::endl;
+                  //    if(xi == 237 && yi == 168 )
+                  //std::cout << "F:  openlem_point_2d = " << openlem_point_2d << ", x:ycoord = " <<  x_coord << ":" << y_coord << ", x:ycoord/dx:dy = " << x_coord/aspect_dx << ":" << y_coord/aspect_dy << ", xia:yia = " << xia << ":" << yia << ", aspect dx:dy = " << aspect_dx << ":" << aspect_dy << ", openlem_point_2d = " << openlem_point_2d << ", grid_extent = " << grid_extent[0].first << ":" << grid_extent[1].first << std::endl;
 
                   if (aspect_mesh_aspect_cell_id[xia][yia].get_coarse_cell_id() != numbers::invalid_coarse_cell_id)
                     {
@@ -513,7 +525,8 @@ namespace aspect
                                 const double distance_to_unit_cell = GeometryInfo<dim>::distance_to_unit_cell(unit_point[0]);
 
                                 //if (xi < openlem_nx-2 && yi > 30 && yi < 50)
-                                //  std::cout << "U1: velocity " << xi << ":" << yi << ", aspect x:y = " << xia << ":" <<yia << ", distance_to_unit_cell = " << distance_to_unit_cell << ", closest_distance_cell = " << closest_distance_cell << ", unit_point[0] = " << unit_point[0] << ", mesh_locations[xia][yia] = " << mesh_locations[xi][yi] << std::endl;
+                                //if(xi == 237 && yi == 168 )
+                                //         std::cout << "U1: velocity " << xi << ":" << yi << ", aspect x:y = " << xia << ":" <<yia << ", distance_to_unit_cell = " << distance_to_unit_cell << ", closest_distance_cell = " << closest_distance_cell << ", unit_point[0] = " << unit_point[0] << ", mesh_locations[xia][yia] = " << mesh_locations[xi][yi] << std::endl;
                                 if (distance_to_unit_cell < closest_distance_cell)
                                   {
                                     std::vector<Point<dim>> closest_point = {cell->reference_cell().closest_point(unit_point[0])};
@@ -549,7 +562,9 @@ namespace aspect
                                     //Point<3> velocity_analytical(-openlem_point_2d[1],openlem_point_2d[0],0.0);
                                     Tensor<1,dim> velocity = velocity_evaluator.get_value(0)*year_in_seconds;
                                     //if (xi < openlem_nx-2 && yi > 30 && yi < 50)
-                                    //  std::cout << "X: velocity " << xi << ":" << yi << " = " << velocity << std::endl;
+                                    //if(xi == 237 && yi >= 161 && yi <= 176)
+                                    //if(xi == 237 && yi == 168 )
+                                    //              std::cout << "X: velocity " << xi << ":" << yi << " = " << velocity << std::endl;
 
                                     if (!isnan(velocity[0]))
                                       {
@@ -821,6 +836,14 @@ namespace aspect
 
                 }
             }
+          for (size_t xi = 0; xi < aspect_nx; ++xi)
+            {
+              for (size_t yi = 0; yi < aspect_ny; ++yi)
+                {
+                  if (isnan(aspect_mesh_z[xi][yi]))
+                    aspect_mesh_z[xi][yi] = 0;
+                }
+            }
           //std::cout << "mesh_velocties_vectors = " << mesh_velocties_vectors.size() << std::endl;
           for (auto &openlem_mesh_velocities_vector : mesh_velocties_vectors)
             {
@@ -832,22 +855,51 @@ namespace aspect
                       //if (std::get<0>(position_velocity) == 10)
                       //  std::cout << counter << "a: rank = " <<Utilities::MPI::this_mpi_process(this->get_mpi_communicator())  << ", mesh velocties x:y = " << std::get<0>(position_velocity) << ":" << std::get<1>(position_velocity) << ", velo = " << std::get<3>(position_velocity) << ", distance = " <<  std::get<2>(position_velocity)<< ", mesh_velocity_distances  = " << mesh_velocity_distances[std::get<0>(position_velocity)][std::get<1>(position_velocity)] << std::endl;
                       //if (xi == 2 && yi > 0 && yi < 10)
-                      //  std::cout << "Flag 102: openlem_mesh_velocities " << xi << ":" << yi << " = " << openlem_mesh_velocities_vector[xi][yi]  << std::endl;
+                      //if(xi == 1 && yi == 1)
+                      //if(xi == 237 && yi >= 161 && yi <= 176)
+                      //std::cout << "Flag 102("<<Utilities::MPI::this_mpi_process(this->get_mpi_communicator())  << "): openlem_mesh_velocities " << xi << ":" << yi << " = " << openlem_mesh_velocities_vector[xi][yi]  << std::endl;
                       if (!std::isnan(openlem_mesh_velocities_vector[xi][yi][0]))
                         {
                           //   if (std::get<0>(position_velocity) == 10)
+                          //if(xi == 1 && yi == 1)
+                          //if(xi == 237 && yi >= 161 && yi <= 176)
+                          //  std::cout << "Flag 102.1 ("<<Utilities::MPI::this_mpi_process(this->get_mpi_communicator())  << "): openlem_mesh_velocities " << xi << ":" << yi << " = " << openlem_mesh_velocities_vector[xi][yi]  << std::endl;
                           //     std::cout << counter << "b: rank = " <<Utilities::MPI::this_mpi_process(this->get_mpi_communicator())  << ", mesh velocties x:y = " << std::get<0>(position_velocity) << ":" << std::get<1>(position_velocity) << ", velo = " << std::get<3>(position_velocity) << ", distance = " <<  std::get<2>(position_velocity)<< std::endl;
                           openlem_mesh_velocities[xi][yi] = openlem_mesh_velocities_vector[xi][yi];
                           //if (xi == 2 && yi > 0 && yi < 10)
-                          //  std::cout << "Flag 103: openlem_mesh_velocities " << xi << ":" << yi << " = " << openlem_mesh_velocities[xi][yi]  << std::endl;
+                          //if(xi == 1 && yi == 1)
+                          //   std::cout << "Flag 103: openlem_mesh_velocities " << xi << ":" << yi << " = " << openlem_mesh_velocities[xi][yi]  << std::endl;
                           //mesh_velocity_locations[std::get<0>(position_velocity)][std::get<1>(position_velocity)] = std::get<3>(position_velocity);
                           //mesh_velocity_distances[std::get<0>(position_velocity)][std::get<1>(position_velocity)] = std::get<2>(position_velocity);
                         }
+                      //if(xi == 1 && yi == 1)
+                      //   std::cout << "Flag 103.5: openlem_mesh_velocities " << xi << ":" << yi << " = " << openlem_mesh_velocities[xi][yi]  << std::endl;
                     }
                 }
             }
           // TODO: check whether the x and y of the closest_point_real and the original connector point are actually the same (or close enought)
 
+          for (size_t xi = 0; xi < openlem_nx; ++xi)
+            {
+              for (size_t yi = 0; yi < openlem_ny; ++yi)
+                {
+                  //if(xi > 125 && xi < 275 && yi > 125 && yi < 275 && isnan(openlem_mesh_velocities[xi][yi][0]))
+                  //std::cout << "====================>>>>>>>>>>>>>>> ERROR!!!!!!!!!!!!!" << xi << ":" << yi << " = " << openlem_mesh_velocities[xi][yi] << std::endl;
+                  //AssertThrow(xi > 125 && xi < 275 && yi > 125 && yi < 275 && isnan(openlem_mesh_velocities[xi][yi][0]), ExcMessage("error"));
+                  if (isnan(openlem_mesh_velocities[xi][yi][0]))
+                    {
+                      openlem_mesh_velocities[xi][yi][0] = 0;
+                    }
+                  if (isnan(openlem_mesh_velocities[xi][yi][1]))
+                    {
+                      openlem_mesh_velocities[xi][yi][1] = 0;
+                    }
+                  if (isnan(openlem_mesh_velocities[xi][yi][2]))
+                    {
+                      openlem_mesh_velocities[xi][yi][2] = 0;
+                    }
+                }
+            }
 
           //std::vector<std::vector<double>> local_aspect_values = get_aspect_values();
           // Because there is no increase in time during timestep 0, we return and only
@@ -1132,6 +1184,83 @@ namespace aspect
       // Todo: interpolate hight_diff to velocties on nodes
       // Todo: move info to all other processes
       // Todo: copy grid_new to grid_old
+      //Utilities::MPI::broadcast()
+      for (unsigned int xi = 0; xi < openlem_nx; ++xi)
+        {
+          for (unsigned int yi = 0; yi < openlem_ny; ++yi)
+            {
+              // get corresponding aspect index
+              Point<2> openlem_point_2d(connector.x[xi][yi],connector.y[xi][yi]);
+
+              //if(xi == 1 && yi == 1)
+              //std::cout <<"Flag openlem.cc A: before x:y " << connector.x[xi][yi] << ":" << connector.y[xi][yi] << std::endl;
+              double x_coord = connector.x[xi][yi] - grid_extent[0].first;
+              double y_coord = connector.y[xi][yi] - grid_extent[1].first;
+              if (
+                x_coord >= 0 && x_coord <= grid_extent[0].second &&
+                y_coord >= 0 && y_coord <= grid_extent[1].second
+              )
+                {
+                  const double x_coord = openlem_point_2d[0] - grid_extent[0].first;
+                  const double y_coord = openlem_point_2d[1] - grid_extent[1].first;
+                  const size_t xia = std::floor(x_coord/aspect_dx);
+                  const size_t yia = std::floor(y_coord/aspect_dy);
+                  //   if(xi == 237 && yi == 168 )
+                  //std::cout << "Y: " << Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) << " => openlem_point_2d = " << openlem_point_2d << ", x:ycoord = " <<  x_coord << ":" << y_coord << ", x:ycoord/dx:dy = " << x_coord/aspect_dx << ":" << y_coord/aspect_dy << ", xia:yia = " << xia << ":" << yia << ", aspect dx:dy = " << aspect_dx << ":" << aspect_dy << ", openlem_point_2d = " << openlem_point_2d << ", grid_extent = " << grid_extent[0].first << ":" << grid_extent[1].first << std::endl;
+                }
+            }
+        }
+      std::cout << "Y1: " << Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) << " => " << connector.x[237][168] << std::endl;
+      for (unsigned int xi = 0; xi < openlem_nx;  ++xi)
+        {
+
+          MPI_Bcast(
+            connector.x[xi].data(),
+            connector.x[xi].size(),
+            MPI_DOUBLE,
+            0,
+            this->get_mpi_communicator());
+          MPI_Bcast(
+            connector.y[xi].data(),
+            connector.y[xi].size(),
+            MPI_DOUBLE,
+            0,
+            this->get_mpi_communicator());
+        }
+
+//Utilities::MPI::broadcast   (   connector.x,
+//    connector.x.size(),
+//    0,
+//    this->get_mpi_communicator()
+//  )
+      //Utilities::MPI::broadcast(this->get_mpi_communicator(), connector.x[237][168], 0);
+      //Utilities::MPI::broadcast(this->get_mpi_communicator(), connector.y, 0);
+      std::cout << "Y2: " << Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) << " => " << connector.x[237][168] << std::endl;
+      for (unsigned int xi = 0; xi < openlem_nx; ++xi)
+        {
+          for (unsigned int yi = 0; yi < openlem_ny; ++yi)
+            {
+              // get corresponding aspect index
+              Point<2> openlem_point_2d(connector.x[xi][yi],connector.y[xi][yi]);
+
+              //if(xi == 1 && yi == 1)
+              //std::cout <<"Flag openlem.cc A: before x:y " << connector.x[xi][yi] << ":" << connector.y[xi][yi] << std::endl;
+              double x_coord = connector.x[xi][yi] - grid_extent[0].first;
+              double y_coord = connector.y[xi][yi] - grid_extent[1].first;
+              if (
+                x_coord >= 0 && x_coord <= grid_extent[0].second &&
+                y_coord >= 0 && y_coord <= grid_extent[1].second
+              )
+                {
+                  const double x_coord = openlem_point_2d[0] - grid_extent[0].first;
+                  const double y_coord = openlem_point_2d[1] - grid_extent[1].first;
+                  const size_t xia = std::floor(x_coord/aspect_dx);
+                  const size_t yia = std::floor(y_coord/aspect_dy);
+                  //    if(xi == 237 && yi == 168 )
+                  //std::cout << "Z: " << Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) << " openlem_point_2d = " << openlem_point_2d << ", x:ycoord = " <<  x_coord << ":" << y_coord << ", x:ycoord/dx:dy = " << x_coord/aspect_dx << ":" << y_coord/aspect_dy << ", xia:yia = " << xia << ":" << yia << ", aspect dx:dy = " << aspect_dx << ":" << aspect_dy << ", openlem_point_2d = " << openlem_point_2d << ", grid_extent = " << grid_extent[0].first << ":" << grid_extent[1].first << std::endl;
+                }
+            }
+        }
     }
 
 
@@ -1347,7 +1476,7 @@ namespace aspect
             //grid.computeWaterLevel();
             //grid.clearOceans();
             connector.update (openlem_timestep_in_years);
-            grid.markOcean(deepest_point, sea_level);
+            //grid.markOcean(deepest_point, sea_level);
             int nc = grid.computeFlowDirection();
             double ch = grid.erode(openlem_timestep_in_years);
             //grid.findDeltas(openlem_timestep_in_years);

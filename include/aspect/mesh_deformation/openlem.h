@@ -26,6 +26,7 @@
 #include <aspect/simulator_access.h>
 #include <deal.II/base/exceptions.h>
 #include <limits>
+//#include <math.h>
 #include <openlem.cpp>
 #include <deal.II/base/parsed_function.h>
 
@@ -241,21 +242,29 @@ namespace openlem
         for ( int i = 0; i < g->m; ++i )
           for ( int j = 0; j < g->n; ++j )
             {
+              //if(i == 1 && j == 1)
+              //std::cout <<"openlem construct before x:y " << x[i][j] << ":" << y[i][j] << std::endl;
               x[i][j] = x0 + hscale*(c*g->getNode(i,j)->x-s*g->getNode(i,j)->y);
               y[i][j] = y0 + hscale*(s*g->getNode(i,j)->x+c*g->getNode(i,j)->y);
+              //if(i == 1 && j == 1)
+              //std::cout <<"openlem construct after x:y " << x[i][j] << ":" << y[i][j] << std::endl;
             }
       }
 
       void updateXY()
       {
-        std::cout << "connector updateXY" << std::endl;
+        //std::cout << "connector updateXY" << std::endl;
         double  c = cos(alpha);
         double  s = sin(alpha);
         for ( int i = 0; i < g->m; ++i )
           for ( int j = 0; j < g->n; ++j )
             {
+              //if(i == 1 && j == 1)
+              //std::cout <<"openlem updateXY before x:y " << x[i][j] << ":" << y[i][j] << std::endl;
               x[i][j] = x0 + hscale*(c*i-s*j);
               y[i][j] = y0 + hscale*(s*i+c*j);
+              //if(i == 1 && j == 1)
+              //std::cout <<"openlem updateXY before x:y " << x[i][j] << ":" << y[i][j] << std::endl;
               //if (i == 0 && j == 0)
               //  {
               //    std::cout << "x:y = " << x[i][j] << ":" << y[i][j] << ", x0:y0 = " << x0 << ":" << y0 << ", hscale = " << hscale << std::endl;
@@ -270,8 +279,12 @@ namespace openlem
         for ( int i = 0; i < g->m; ++i )
           for ( int j = 0; j < g->n; ++j )
             {
+              //if(i == 1 && j == 1)
+              //std::cout <<"openlem update before x:y " << x[i][j] << ":" << y[i][j] << std::endl;
               x[i][j] += vx[i][j]*dt;
               y[i][j] += vy[i][j]*dt;
+              //if(i == 1 && j == 1)
+              //std::cout <<"openlem update after x:y " << x[i][j] << ":" << y[i][j] << std::endl;
               if ( g->getNode(i,j)->b == 0 )
                 {
                   ++n;
@@ -546,6 +559,10 @@ namespace openlem
           {
             for (size_t i = 0; i <= x.size()-1; ++i)
               {
+                assert(!isnan(x[i][j]));
+                assert(!isnan(y[i][j]));
+                //if(i == 1 && j == 1)
+                //std::cout <<"openlem vtk x:y " << x[i][j] << ":" << y[i][j] << std::endl;
                 grid_x[counter] = x[i][j];
                 grid_y[counter] = y[i][j];
                 grid_z[counter] = reference_surface_height + g->getNode(i,j)->h;
