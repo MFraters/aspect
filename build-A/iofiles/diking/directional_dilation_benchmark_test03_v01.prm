@@ -1,0 +1,374 @@
+####  Global parameters
+set Dimension                              = 2
+set Start time                             = 0
+set End time                               = 0 #5e60
+set Use years instead of seconds           = false
+set Nonlinear solver scheme                = single Advection, iterated defect correction Stokes
+set Nonlinear solver scheme                = single Advection, iterated Stokes
+set Nonlinear solver tolerance             = 1e-5
+set Max nonlinear iterations               = 5 #200
+set CFL number                             = 0.5
+set Maximum time step                      = 10e30
+set Output directory                       = iofiles/diking/directional_dilation_benchmark_test03_v01_xy_1e-16_v03
+set Pressure normalization                 = no #surface
+
+# Governing equations
+subsection Formulation
+  set Formulation = Boussinesq approximation
+  set Enable prescribed directional dilation = true
+end
+
+# Model geometry (200x100 km, 20 km spacing)
+subsection Geometry model
+  set Model name = box
+
+  subsection Box
+    set X repetitions = 1
+    set Y repetitions = 1
+    set X extent      = 2
+    set Y extent      = 1
+    #set Box origin X coordinate = -250e3
+    #set Box origin Y coordinate = -250e3
+  end
+end
+
+
+
+subsection Nullspace removal
+  set Remove nullspace = net translation
+end
+# Globally refine the mesh to 2.5 km spacing, and then
+# adaptively refine the mesh to 1.25 km spacing above y=50 km
+# and between x=40 and x=160 km. These values ensure areas
+# undergoing brittle deformation are in the high-resolution
+# region.
+subsection Mesh refinement
+  set Initial adaptive refinement        = 0
+  set Initial global refinement          = 7
+  set Time steps between mesh refinement = 0
+  set Strategy = minimum refinement function
+
+  subsection Minimum refinement function
+    set Coordinate system   = cartesian
+    set Variable names      = x,y
+    set Function expression = if ( y>=50e3 && x>=40.e3 && x<=160.e3, 4, 3)
+  end
+end
+
+# Use the Eisenstat Walker method to automatically determine the
+# linear solver tolerance during the defect Picard iterations.
+# Adjusting the Maximum linear solver tolerance will affect how long
+# it takes to reach a solution, but not the actual value of the
+# solution.
+subsection Solver parameters
+  subsection Stokes solver parameters
+    set Stokes solver type = block AMG
+    set Number of cheap Stokes solver steps = 100
+    set Linear solver tolerance             = 1e-14
+    set GMRES solver restart length         = 100
+    set Use full A block as preconditioner  = true
+  end
+end
+
+# Velocity on boundaries characterized by functions
+# The outward velocity (x-direction) on the left and right walls is 0.25 cm/year
+# The vertical velocity at the base is 0.25 cm/year (balances outflow on sides)
+# Velocity components parallel to the base (x-velocity) and side walls (y-velocity)
+# are unconstrained (i.e. 'free').
+subsection Boundary velocity model
+  set Prescribed velocity boundary indicators = top:function, bottom:function, left:function,right:function #,  , #left x: function, right x:function, bottom y:function
+  set Tangential velocity boundary indicators = #top,left,right,bottom #, right #top, bottom #, right, left
+
+  subsection Function
+    set Variable names      = x,y
+    set Function constants  = Lx=2, Ly=1,dx=0.25,dy=0.08333333333333333 #2/8 and 1/12
+    #set Function expression = 0.5*(x-Lx/2+(dx/pi)*sin((pi*(x-Lx/2))/dx));0.5*(y-Ly/2+(dy/pi)*sin((pi*(y-Ly/2))/dy)) #if (x < w/2 , -v, v) ; v*2*d/w
+    #set Function expression = 0.5*(x-(2./2.)+(0.25/3.14159)*sin((3.14159*(x-(2./2.)))/0.25));0.5*(y-(1./2.)+(0.25/3.14159)*sin((3.14159*(y-(1./2.)))/0.25)) #if (x < w/2 , -v, v) ; v*2*d/w
+    #set Function expression = if(abs(x-1)<0.25,0.5*(x-(2.0/2.0)+(0.25/3.14159)*sin((3.14159*(x-(2.0/2.0)))/0.25)),if(x>2./2.,0.5*(1.+0.25-(2.0/2.0)+(0.25/3.14159)*sin((3.14159*(1+0.25-(2.0/2.0)))/0.25)),-0.5*(0.25+(0.25/3.14159)*sin((3.14159*(1-0.25-(2.0/2.0)))/0.25))));if(abs(y-1.0/2.0)<0.25,0.5*(y-(1.0/2.0)+(0.25/3.14159)*sin((3.14159*(y-(1.0/2.0)))/0.25)),if(y>1./2.,0.5*(0.5+0.25-(1.0/2.0)+(0.25/3.14159)*sin((3.14159*(1.+0.25-(1.0/2.0)))/0.25)),-0.5*(0.25+(0.25/3.14159)*sin((3.14159*(1-0.25-(1.0/2.0)))/0.25))))
+    #set Function expression = if(abs(x-1)<0.25,0.5*(x-(2.0/2.0)+(0.25/pi)*sin((pi*(x-(2.0/2.0)))/0.25)),if(x>2./2.,0.125,-0.125));if(abs(y-1.0/2.0)<0.25,0.5*(y-(1.0/2.0)+(0.25/pi)*sin((pi*(y-(1.0/2.0)))/0.25)),if(y>1./2.,0.5*(0.5+0.25-(1.0/2.0)+(0.25/pi)*sin((pi*(1.+0.25-(1.0/2.0)))/0.25)),-0.5*(0.25+(0.25/pi)*sin((pi*(1-0.25-(1.0/2.0)))/0.25))))
+    #set Function expression = if(abs(x-1)<dx,0.5*(x-(Lx/2.0)+(dx/pi)*sin((pi*(x-(Lx/2.0)))/dx)),if(x>2./2.,0.5*(dx-(Lx/2.0)+(dx/pi)*sin((pi*(dx-(Lx/2.0)))/dx)),-0.125));if(abs(y-1.0/2.0)<0.25,0.5*(y-(1.0/2.0)+(0.25/pi)*sin((pi*(y-(1.0/2.0)))/0.25)),if(y>1./2.,0.5*(0.5+0.25-(1.0/2.0)+(0.25/pi)*sin((pi*(1.+0.25-(1.0/2.0)))/0.25)),-0.5*(0.25+(0.25/pi)*sin((pi*(1-0.25-(1.0/2.0)))/0.25))))
+    set Function expression = if(x<=Lx/2-dx, -dx/2, if(x<=Lx/2+dx,0.5*(x-Lx/2+dx/pi*sin(pi*(x-Lx/2)/dx)),dx/2));if(y<=Ly/2-dy, -dy/2, if(y<=Ly/2+dy,0.5*(y-Ly/2+dy/pi*sin(pi*(y-Ly/2)/dy)),dy/2))
+   # set Function expression =0;if(y<=Ly/2-(Ly/12), -(Ly/12)/2, if(y<=Ly/2+(Ly/12),0.5*(y-Ly/2+(Ly/12)/pi*sin(pi*(y-Ly/2)/(Ly/12))),(Ly/12)/2))
+    #set Function expression =0;if(y<=Ly/2-(Ly/12), -(Ly/12)/2, (Ly/12)/2)
+  end
+end
+
+subsection Boundary traction model 
+  set Prescribed traction boundary indicators =  #left: initial lithostatic pressure, right: initial lithostatic pressure
+  subsection Initial lithostatic pressure
+    set Representative point = 100e3,0e3 #6371e3,-100.41,32.01
+  end
+end
+
+# Number and names of compositional fields
+# The five compositional fields represent:
+# 1. The plastic strain that accumulates over time, with the initial plastic strain removed
+# 2. The plastic strain that accumulated over time, including the initial plastic strain values
+# 3. The upper crust
+# 4. The lower crust
+# 5. The mantle lithosphere
+subsection Compositional fields
+  set Number of fields = 1
+  #set Names of fields  = noninitial_plastic_strain, \
+  #                       plastic_strain, \
+  #                       crust_upper, \
+  #                       crust_lower, \
+  #                       mantle_lithosphere
+  #set Types of fields = strain, \
+  #                      strain, \
+  #                      chemical composition, \
+  #                      chemical composition, \
+  #                      chemical composition
+  #set Compositional field methods = particles
+  #set Mapped particle properties  = plastic_strain: plastic_strain, \
+  #                                  noninitial_plastic_strain: noninitial_plastic_strain, \
+  #                                  crust_upper: initial crust_upper, \
+  #                                  crust_lower: initial crust_lower, \
+  #                                  mantle_lithosphere: initial mantle_lithosphere
+end
+
+# Initial values of different compositional fields
+# The upper crust (20 km thick), lower crust (20 km thick)
+# and mantle (60 km thick) are continuous horizontal layers
+# of constant thickness. The non initial plastic strain is
+# set to 0, while the initial plastic strain is randomized
+# between 0.5 and 1.5.
+subsection Initial composition model
+  set Model name = function
+
+  subsection Function
+    set Variable names      = x,y
+    set Function expression = if(x>-25e3 && x < 25e3 && y >-25e3 && y < 25e3,1,if(x>-400e3 && x<-350e3 && y >-25e3 && y < 25e3,1,if(y>-400e3 && y<-350e3 && x>-25e3 && x<25e3,1,0)))
+#    set Function expression = 0; \
+#                              if(x>50.e3 && x<150.e3 && y>50.e3, 0.5 + rand_seed(1), 0); \
+#                              if(y>=80.e3, 1, 0); \
+#                              if(y<80.e3 && y>=60.e3, 1, 0); \
+#                              if(y<60.e3, 1, 0);
+  end
+end
+
+# Composition: fixed on bottom (inflow boundary), free on sides and top
+subsection Boundary composition model
+ # set Fixed composition boundary indicators = bottom
+ # set List of model names = #initial composition
+end
+
+# Temperature boundary conditions
+# Top and bottom (fixed) temperatures are consistent with the initial temperature field
+# Note that while temperatures are specified for the model sides, these values are
+# not used as the sides are not specified "Fixed temperature boundaries".  Rather,
+# these boundaries are insulating (zero net heat flux).
+subsection Boundary temperature model
+  set Fixed temperature boundary indicators = bottom, top, left, right
+  set List of model names = box
+
+  subsection Box
+    set Bottom temperature = 600
+    set Top temperature    =  600
+    set Left temperature = 600
+    set Right temperature = 600
+  end
+end
+
+# Initial temperature field
+# Typical continental geotherm based on equations 4-6 from:
+#   D.S. Chapman (1986), "Thermal gradients in the continental crust",
+#   Geological Society of London Special Publications, v.24, p.63-70.
+# The initial constraints are:
+#   Surface Temperature  - upper crust (ts1) = 273 K
+#   Surface Heat Flow    - upper crust (qs1) = 0.055 W/m^2
+#   Heat Production      - upper crust (A1)  = 1.00e-6 W/m^3;
+#   Heat Production      - lower crust (A2)  = 0.25e-6 W/m^3;
+#   Heat Production      - mantle (A3)       = 0.00e-6 W/m^3;
+#   Thermal Conductivity - all layers        = 2.5 (W/(m K));
+# To satisfy these constraints, the following values are required:
+#   Surface Temperature  - lower crust (ts2) = 633 K
+#                        - mantle (ts3)      = 893 K
+#   Surface Heat Flow    - lower crust (qs2) = 0.035 W/m^2;
+#                        - mantle      (qs3) = 0.030 W/m^2;
+# Note: The continental geotherm initial temperature model
+#       plugin can be used to compute an identical geotherm
+#       for the lithosphere. An example of how to use this
+#       plugin is illustrated in the test for this cookbook
+#       (tests/continental_extension.prm).
+subsection Initial temperature model
+  set Model name = function
+
+  subsection Function
+    set Variable names = x,y
+    set Function constants = h=100e3, ts1=273, ts2=633, ts3=893, \
+                             A1=1.e-6, A2=0.25e-6, A3=0.0, \
+                             k1=2.5, k2=2.5, k3=2.5, \
+                             qs1=0.055, qs2=0.035, qs3=0.030
+    set Function expression = 600 #if( (h-y)<=20.e3, \
+                                  #ts1 + (qs1/k1)*(h-y) - (A1*(h-y)*(h-y))/(2.0*k1), \
+                                  #if( (h-y)>20.e3 && (h-y)<=40.e3, \
+                                  #    ts2 + (qs2/k2)*(h-y-20.e3) - (A2*(h-y-20.e3)*(h-y-20.e3))/(2.0*k2), \
+                                  #    ts3 + (qs3/k3)*(h-y-40.e3) - (A3*(h-y-40.e3)*(h-y-40.e3))/(2.0*k3) ) );
+  end
+end
+
+# Constant internal heat production values (W/m^3) for background material
+# and compositional fields.
+subsection Heating model
+  #set List of model names = compositional heating
+
+  #subsection Compositional heating
+  #  set Use compositional field for heat production averaging = 1, 0, 0, 1, 1, 1
+  #  set Compositional heating values = 0.0, 0.0, 0.0, 1.0e-6, 0.25e-6, 0.
+  #end
+end
+
+# Material model
+# Rheology: Non-linear viscous flow and Drucker Prager Plasticity
+# Values for most rheological parameters are specified for a background material and
+# each compositional field.  Values for viscous deformation are based on dislocation
+# creep flow-laws, with distinct values for the upper crust (wet quartzite), lower
+# crust (wet anorthite) and mantle (dry olivine).  Table 1 of Naliboff and Buiter (2015),
+# Earth Planet. Sci. Lett., v.421, p. 58-67 contains values for each of these flow laws.
+subsection Material model
+  set Model name = simpler #visco plastic
+
+  subsection Simpler model
+    set Viscosity = 1
+  end
+
+  subsection Visco Plastic
+    # Reference temperature and viscosity
+    set Reference temperature = 273
+
+    # The minimum strain-rate helps limit large viscosities values that arise
+    # as the strain-rate approaches zero.
+    # The reference strain-rate is used on the first non-linear iteration
+    # of the first time step when the velocity has not been determined yet.
+    set Minimum strain rate = 1.e-20
+    set Reference strain rate = 1.e-16
+
+    # Limit the viscosity with minimum and maximum values
+    set Minimum viscosity = 1e18
+    set Maximum viscosity = 1e26
+
+    # Thermal diffusivity is adjusted to match thermal conductivities
+    # assumed in assigning the initial geotherm
+    set Define thermal conductivities = true
+    set Thermal conductivities        = 2.5
+    set Heat capacities               = 750.
+
+    # Density values of 1 are assigned to "strain" fields, which are not taken into
+    # account when computing material properties.
+    set Densities                     = background: 3300, \
+                                        crust_upper: 2700, \
+                                        crust_lower: 2900, \
+                                        mantle_lithosphere: 3300
+
+    set Thermal expansivities         = 2e-5
+
+    # Harmonic viscosity averaging
+    set Viscosity averaging scheme = harmonic
+
+    # Choose to have the viscosity (pre-yield) follow a dislocation
+    # diffusion or composite flow law.  Here, dislocation is selected
+    # so no need to specify diffusion creep parameters below, which are
+    # only used if "diffusion" or "composite" option is selected.
+    set Viscous flow law = dislocation
+
+    # Dislocation creep parameters for
+    # 1. Background material/mantle (dry olivine)
+    #    Hirth & Kohlstedt (2004),   https://doi.org/10.1029/138GM06.
+    #    "Rheology of the upper mantle and the mantle wedge:a view from the experimentalists"
+    # 2. Upper crust (wet quartzite)
+    #    Gleason and Tullis (1995), https://doi.org/10.1016/0040-1951(95)00011-B.
+    #    "A flow law for dislocation creep of quartz aggregates determined with the molten salt cell"
+    # 3. Lower crust and weak seed (wet anorthite)
+    #    Rybacki et al. (2006), https://doi.org/10.1029/2005JB003663.
+    #    "Influence of water fugacity and activation volume on the flow properties of fine-grained
+    #    anorthite aggregates"
+    # Note that the viscous pre-factors below are scaled to plane strain from uniaxial strain experiments,
+    # following the approach outlined in Dannberg et al. (2017) - https://doi.org/10.1002/2017GC006944.
+    # Significantly, the exact scaling required for each code depends on how the effective viscosity
+    # is formulated and the definition of the invariant used for the strain rate. The prefactor
+    # values below, relative to previous versions of the cookbook, are now consistent with the correct
+    # scaling procedure outlined in Dannberg et al. (2017).
+    set Prefactors for dislocation creep          = background: 7.37e-15, \
+                                                    crust_upper: 1.37e-26, \
+                                                    crust_lower: 5.71e-23, \
+                                                    mantle_lithosphere: 7.37e-15
+
+    set Stress exponents for dislocation creep    = background: 3.5, \
+                                                    crust_upper: 4.0, \
+                                                    crust_lower: 3.0, \
+                                                    mantle_lithosphere: 3.5
+
+    set Activation energies for dislocation creep = background: 530.e3, \
+                                                    crust_upper: 223.e3, \
+                                                    crust_lower: 345.e3, \
+                                                    mantle_lithosphere: 530.e3
+
+    set Activation volumes for dislocation creep  = background: 18.e-6, \
+                                                    crust_upper: 0, \
+                                                    crust_lower: 0, \
+                                                    mantle_lithosphere: 18.e-6
+
+
+    # Plasticity parameters
+    set Angles of internal friction = 30
+    set Cohesions                   = 20.e6
+
+    # The parameters below weaken the friction and cohesion by a
+    # a factor of 4 between plastic strain values of 0.5 and 1.5.
+    set Strain weakening mechanism                   = plastic weakening with plastic strain only
+    set Start plasticity strain weakening intervals  = 0.5
+    set End plasticity strain weakening intervals    = 1.5
+    set Cohesion strain weakening factors            = 0.25
+    set Friction strain weakening factors            = 0.25
+
+    # Plastic damper term from Duretz et al. (2020), https://doi.org/10.1029/2019GL086027.
+    set Use plastic damper       = true
+    set Plastic damper viscosity = 1e21
+
+  end
+end
+
+# Gravity model
+subsection Gravity model
+  set Model name = vertical
+
+  subsection Vertical
+    set Magnitude = 0 #9.81
+  end
+end
+
+#subsection Particles
+#  set Minimum particles per cell  = 25
+#  set Maximum particles per cell  = 100
+#  set Load balancing strategy     = remove and add particles
+#  set List of particle properties = initial composition, viscoplastic strain invariants, position
+#  set Interpolation scheme        = bilinear least squares
+#  set Particle generator name     = reference cell
+#  subsection Generator
+#    subsection Reference cell
+#      set Number of particles per cell per direction = 7
+#    end
+#  end
+#end
+
+# Post processing
+subsection Postprocess
+  set List of postprocessors = basic statistics, composition statistics, \
+                               heat flux densities, heat flux statistics, \
+                               material statistics, mass flux statistics, \
+                               particles, pressure statistics, \
+                               temperature statistics, topography, \
+                               velocity statistics, visualization
+
+  subsection Visualization
+    set List of output variables = material properties, heat flux map, strain rate, named additional outputs #, strain rate
+    set Output format                 = vtu
+    set Time between graphical output = 0 #100.e3
+    set Interpolate output            = false #true
+
+    subsection Material properties
+      set List of material properties = density, viscosity
+    end
+  end
+end
