@@ -36,380 +36,403 @@
 namespace openlem
 {
   class OceanNode : public Node
-{ 
+  {
 #ifdef DEFORM
-  public:
+    public:
 #ifdef LAYERS
-  union  { struct { float x; float y; }; struct { float u; float bottom[LAYERS-1]; }; } o;
+      union
+      {
+        struct
+        {
+          float x;
+          float y;
+        };
+        struct
+        {
+          float u;
+          float bottom[LAYERS-1];
+        };
+      } o;
 #else
-  union  { struct { float x; float y; }; struct { double u; }; } o;
+      union
+      {
+        struct
+        {
+          float x;
+          float y;
+        };
+        struct
+        {
+          double u;
+        };
+      } o;
 #endif
-  float  ilam;
-  float  jlam;
+      float  ilam;
+      float  jlam;
 #endif
-}; 
+  };
 
-class OceanGrid : public Grid<OceanNode>
-{
-  public:
-  double  odiff;
-
-  OceanGrid ( int m = 1, int n = 1 ) : Grid<OceanNode>(m,n)
+  class OceanGrid : public Grid<OceanNode>
   {
-    addKey ( "od", "od", &odiff, sizeof(odiff), 8, 0 );
-  }
+    public:
+      double  odiff;
 
-  void clearOceans()
-  {
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )  getNode(i,j)->b &= 1;
-  }
+      OceanGrid ( int m = 1, int n = 1 ) : Grid<OceanNode>(m,n)
+      {
+        addKey ( "od", "od", &odiff, sizeof(odiff), 8, 0 );
+      }
 
-  void markOcean ( double l )
-  {
+      void clearOceans()
+      {
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )  getNode(i,j)->b &= 1;
+      }
+
+      void markOcean ( double l )
+      {
 // Misses increased height of flow target
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
-      {
-        getNode(i,j)->b &= 1;
-        if ( getNode(i,j)->h < l )
-        {
-          getNode(i,j)->b |= 2;
-          if ( getNode(i,j)->l < l )  getNode(i,j)->l = l;
-        }
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
+            {
+              getNode(i,j)->b &= 1;
+              if ( getNode(i,j)->h < l )
+                {
+                  getNode(i,j)->b |= 2;
+                  if ( getNode(i,j)->l < l )  getNode(i,j)->l = l;
+                }
+            }
+        computeWaterLevel();
+        /*
+            if ( getNode(p)->h <= l )
+            {
+              getNode(p)->l = l;
+              getNode(p)->b |= 2;
+              vector<Point>  neigh = getNeighbors(p);
+              for ( vector<Point>::iterator u = neigh.begin(); u != neigh.end(); ++u )
+                if ( getNode(u)->drainsTo(p) )
+                  markOcean(*u,l);
+            }
+        */
       }
-    computeWaterLevel();
-/*
-    if ( getNode(p)->h <= l )
-    {
-      getNode(p)->l = l;
-      getNode(p)->b |= 2;
-      vector<Point>  neigh = getNeighbors(p);
-      for ( vector<Point>::iterator u = neigh.begin(); u != neigh.end(); ++u )
-        if ( getNode(u)->drainsTo(p) )
-          markOcean(*u,l);
-    }
-*/
-  }
 
-  vector<PointValue<double> > findDeltas ( double dt, int erodedeltas = 1 )
-  {
-    return emplaceSediments(dt,erodedeltas);
-  }
-
-  vector<PointValue<double> > emplaceSediments ( double dt, int erodedeltas = 1  )
-  {
-    vector <PointValue<double> >  delta;
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
-        if ( getNode(i,j)->b & 2 )
-        {
-          if ( getNode(i,j)->qs )
-            delta.push_back(PointValue<double>(Point(i,j),getNode(i,j)->qs));
-          getNode(i,j)->h += getNode(i,j)->u*dt;
-        }
-    if ( delta.size() == 0 )  return delta; 
-    sort<double>(delta);
-    if ( offset.size() < m*n )
-    {
-      printf ( "Computing offsets\n" );
-      offset.resize(m*n);
-      int  k = 0;
-      for ( int i = 0; i < m; ++i )
-        for ( int j = 0; j < n; ++j )
-        {
-          offset[k].p = Point(i,j);
-          int di = i <= m/2 ? i : m-i;
-          int dj = j <= n/2 ? j : n-j;
-          offset[k++].d = di*di+dj*dj;
-        }
-      offset[0].d = -1;
-      sort(offset);
-    }
-    for ( int i = 0; i < delta.size(); ++i )
-    {
-      double v = delta[i].d*dt;
-      double tmp;
-      double vd = 0;
-      Point p = delta[i].p;
-      vector<PointValue<float> >::iterator  it = offset.begin();
-      while ( it != offset.end() )
+      vector<PointValue<double>> findDeltas ( double dt, int erodedeltas = 1 )
       {
-        if ( erodedeltas || getNode(p)->h < getNode(p)->l )
-#ifdef DEFORM        
-          if ( (tmp=getNode(p)->h+v/getNode(p)->cs) <= getNode(p)->l )
+        return emplaceSediments(dt,erodedeltas);
+      }
+
+      vector<PointValue<double>> emplaceSediments ( double dt, int erodedeltas = 1  )
+      {
+        vector <PointValue<double>>  delta;
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
+            if ( getNode(i,j)->b & 2 )
+              {
+                if ( getNode(i,j)->qs )
+                  delta.push_back(PointValue<double>(Point(i,j),getNode(i,j)->qs));
+                getNode(i,j)->h += getNode(i,j)->u*dt;
+              }
+        if ( delta.size() == 0 )  return delta;
+        sort<double>(delta);
+        if ( offset.size() < m*n )
           {
+            printf ( "Computing offsets\n" );
+            offset.resize(m*n);
+            int  k = 0;
+            for ( int i = 0; i < m; ++i )
+              for ( int j = 0; j < n; ++j )
+                {
+                  offset[k].p = Point(i,j);
+                  int di = i <= m/2 ? i : m-i;
+                  int dj = j <= n/2 ? j : n-j;
+                  offset[k++].d = di*di+dj*dj;
+                }
+            offset[0].d = -1;
+            sort(offset);
+          }
+        for ( int i = 0; i < delta.size(); ++i )
+          {
+            double v = delta[i].d*dt;
+            double tmp;
+            double vd = 0;
+            Point p = delta[i].p;
+            vector<PointValue<float>>::iterator  it = offset.begin();
+            while ( it != offset.end() )
+              {
+                if ( erodedeltas || getNode(p)->h < getNode(p)->l )
+#ifdef DEFORM
+                  if ( (tmp=getNode(p)->h+v/getNode(p)->cs) <= getNode(p)->l )
+                    {
 #ifdef LAYERS
-            getNode(p)->adjustLayers(v/getNode(p)->cs,t);
+                      getNode(p)->adjustLayers(v/getNode(p)->cs,t);
 #endif
 #else
-          if ( (tmp=getNode(p)->h+v) <= getNode(p)->l )
-          {
+                  if ( (tmp=getNode(p)->h+v) <= getNode(p)->l )
+                    {
 #ifdef LAYERS
-            getNode(p)->adjustLayers(v,t);
+                      getNode(p)->adjustLayers(v,t);
 #endif
 #endif
-            getNode(p)->h = tmp;
-            vd += v;
+                      getNode(p)->h = tmp;
+                      vd += v;
 //printf ( "Ready %i\n", it-offset.begin() );
-            break;
-          }
-          else
-          {
+                      break;
+                    }
+                  else
+                    {
 #ifdef DEFORM
-            v = v-(tmp=getNode(p)->l-getNode(p)->h)*getNode(p)->cs;
+                      v = v-(tmp=getNode(p)->l-getNode(p)->h)*getNode(p)->cs;
 #else
-            v = v-(tmp=getNode(p)->l-getNode(p)->h);
+                      v = v-(tmp=getNode(p)->l-getNode(p)->h);
 #endif
 #ifdef LAYERS
-            getNode(p)->adjustLayers(tmp,t);
+                      getNode(p)->adjustLayers(tmp,t);
 #endif
-            getNode(p)->h = getNode(p)->l;
+                      getNode(p)->h = getNode(p)->l;
+                    }
+                do
+                  {
+                    p = (*(it++)).p;
+                    p = Point((delta[i].p.i+p.i)%m,(delta[i].p.j+p.j)%n);
+                  }
+                while ( (getNode(p)->b&2) == 0 );
+              }
           }
-        do
-        {
-          p = (*(it++)).p; 
-          p = Point((delta[i].p.i+p.i)%m,(delta[i].p.j+p.j)%n);
-        }
-        while ( (getNode(p)->b&2) == 0 );
+        return delta;
       }
-    }
-    return delta; 
-  }
 
 #ifdef DEFORM
-  double  det ( Node *pn1, Node *pn2, Node *qn1, Node *qn2, Node *qn3, Node *qn4 )
-  {
-    return  (pn1->x-pn2->x)*(qn1->y-qn2->y+qn3->y-qn4->y)-(qn1->x-qn2->x+qn3->x-qn4->x)*(pn1->y-pn2->y);
-  }
+      double  det ( Node *pn1, Node *pn2, Node *qn1, Node *qn2, Node *qn3, Node *qn4 )
+      {
+        return  (pn1->x-pn2->x)*(qn1->y-qn2->y+qn3->y-qn4->y)-(qn1->x-qn2->x+qn3->x-qn4->x)*(pn1->y-pn2->y);
+      }
 #endif
 
 #ifdef LAYERS
-  void diffuse ( double dt, Point p )
-  {
-    Node  *pn = getNode(p);
-    double  dhsum = 0;
+      void diffuse ( double dt, Point p )
+      {
+        Node  *pn = getNode(p);
+        double  dhsum = 0;
 //  This version requires OpenLEM >= 45; otherwise use
 //  vector<Point>  neigh = getNearestNeighbors(p);
-    vector<Point>  neigh = getNeighbors(p);
-    vector<double>  dh(4);
-    for ( int i = 0; i < 4; ++i ) 
-      if ( getNode(neigh[i])->m )
-        if ( (dh[i]=pn->qp-getNode(neigh[i])->qp) < 0 )
-        {
-          dh[i] = 0;
-          diffuse ( dt, neigh[i] );
-        }
-        else
-        {
+        vector<Point>  neigh = getNeighbors(p);
+        vector<double>  dh(4);
+        for ( int i = 0; i < 4; ++i )
+          if ( getNode(neigh[i])->m )
+            if ( (dh[i]=pn->qp-getNode(neigh[i])->qp) < 0 )
+              {
+                dh[i] = 0;
+                diffuse ( dt, neigh[i] );
+              }
+            else
+              {
 #ifdef DEFORM
-          dh[i] *= 0.25*det(getNode(neigh[i]),pn,getNode(neigh[i+1]),getNode(neigh[(i+3)&3]),getNode(neigh[(i+5)&7]),getNode(neigh[i+4]))/pn->distSquare(getNode(neigh[i]));
+                dh[i] *= 0.25*det(getNode(neigh[i]),pn,getNode(neigh[i+1]),getNode(neigh[(i+3)&3]),getNode(neigh[(i+5)&7]),getNode(neigh[i+4]))/pn->distSquare(getNode(neigh[i]));
 #endif
-          dhsum += dh[i];
-        }
-    dhsum *= dt*odiff;
-    double  avail = pn->h-pn->qp;
-    if ( pn->bottom[0] < 0)  avail -= pn->bottom[0];
+                dhsum += dh[i];
+              }
+        dhsum *= dt*odiff;
+        double  avail = pn->h-pn->qp;
+        if ( pn->bottom[0] < 0)  avail -= pn->bottom[0];
 #ifdef DEFORM
-    avail *= pn->cs;
+        avail *= pn->cs;
 #endif
-    double  f = 1;    
-    if ( dhsum > avail )  f = avail/dhsum;
-    for ( int i = 0; i < 4; ++i ) 
+        double  f = 1;
+        if ( dhsum > avail )  f = avail/dhsum;
+        for ( int i = 0; i < 4; ++i )
 #ifdef DEFORM
-      getNode(neigh[i])->h += f*dt*odiff*dh[i]/getNode(neigh[i])->cs;
-    pn->h -= f*dhsum/pn->cs;
+          getNode(neigh[i])->h += f*dt*odiff*dh[i]/getNode(neigh[i])->cs;
+        pn->h -= f*dhsum/pn->cs;
 #else
-      getNode(neigh[i])->h += f*dt*odiff*dh[i];
-    pn->h -= f*dhsum;
+          getNode(neigh[i])->h += f*dt*odiff*dh[i];
+        pn->h -= f*dhsum;
 #endif
-    pn->adjustLayers(pn->h-pn->qp,t);
-    pn->m = 0;
-  }
+        pn->adjustLayers(pn->h-pn->qp,t);
+        pn->m = 0;
+      }
 
-  void diffuse ( double dt )
-  {
-#ifdef DEFORM
-    for ( int i = 1; i < m-1; ++i )
-      for ( int j = 1; j < n-1; ++j )
-#else
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
-#endif
+      void diffuse ( double dt )
       {
-        Node  *pn = getNode(i,j);
-        if ( pn->b&2 )  pn->qp = pn->h;
-        pn->m = pn->b&2;
-      } 
 #ifdef DEFORM
-    for ( int i = 1; i < m-1; ++i )
-      for ( int j = 1; j < n-1; ++j )
+        for ( int i = 1; i < m-1; ++i )
+          for ( int j = 1; j < n-1; ++j )
 #else
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
 #endif
-        if ( getNode(i,j)->m )  diffuse(dt,Point(i,j));
-  }
+            {
+              Node  *pn = getNode(i,j);
+              if ( pn->b&2 )  pn->qp = pn->h;
+              pn->m = pn->b&2;
+            }
+#ifdef DEFORM
+        for ( int i = 1; i < m-1; ++i )
+          for ( int j = 1; j < n-1; ++j )
+#else
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
+#endif
+            if ( getNode(i,j)->m )  diffuse(dt,Point(i,j));
+      }
 
 #else
 
-  void diffuse ( double dt )
-  {
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
+      void diffuse ( double dt )
       {
-        Node  *pn = getNode(i,j);
-        if ( pn->b&2 )  pn->qp = pn->h;
-      } 
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
+            {
+              Node  *pn = getNode(i,j);
+              if ( pn->b&2 )  pn->qp = pn->h;
+            }
 #ifdef DEFORM
-    for ( int i = 1; i < m-1; ++i )
-      for ( int j = 1; j < n-1; ++j )
-      {
-        Node  *pn = getNode(i,j);
-        if ( pn->b&2 )
-        {
-          if ( getNode(i+1,j)->b&2 )
-          {
-            double  f = 0.25*det(getNode(i+1,j),getNode(i,j),getNode(i,j+1),getNode(i,j-1),getNode(i+1,j+1),getNode(i+1,j-1))/pn->distSquare(getNode(i+1,j));
+        for ( int i = 1; i < m-1; ++i )
+          for ( int j = 1; j < n-1; ++j )
+            {
+              Node  *pn = getNode(i,j);
+              if ( pn->b&2 )
+                {
+                  if ( getNode(i+1,j)->b&2 )
+                    {
+                      double  f = 0.25*det(getNode(i+1,j),getNode(i,j),getNode(i,j+1),getNode(i,j-1),getNode(i+1,j+1),getNode(i+1,j-1))/pn->distSquare(getNode(i+1,j));
 //            printf ( "%i %i %e\n", i, j, f );
-            double  dh = dt*odiff*f*(pn->qp-getNode(i+1,j)->qp); 
-            pn->h -= dh/pn->cs;
-            getNode(i+1,j)->h += dh/getNode(i+1,j)->cs; 
-          }
-          if ( getNode(i,j+1)->b&2 )
-          {
-            double  f = 0.25*det(getNode(i,j+1),getNode(i,j),getNode(i-1,j),getNode(i+1,j),getNode(i-1,j+1),getNode(i+1,j+1))/pn->distSquare(getNode(i,j+1));
+                      double  dh = dt*odiff*f*(pn->qp-getNode(i+1,j)->qp);
+                      pn->h -= dh/pn->cs;
+                      getNode(i+1,j)->h += dh/getNode(i+1,j)->cs;
+                    }
+                  if ( getNode(i,j+1)->b&2 )
+                    {
+                      double  f = 0.25*det(getNode(i,j+1),getNode(i,j),getNode(i-1,j),getNode(i+1,j),getNode(i-1,j+1),getNode(i+1,j+1))/pn->distSquare(getNode(i,j+1));
 //            printf ( "%i %i %e\n", i, j, f );
-            double  dh = dt*odiff*f*(pn->qp-getNode(i,j+1)->qp); 
-            pn->h -= dh/pn->cs;
-            getNode(i,j+1)->h += dh/getNode(i,j+1)->cs; 
-          }
-        }
-      }
+                      double  dh = dt*odiff*f*(pn->qp-getNode(i,j+1)->qp);
+                      pn->h -= dh/pn->cs;
+                      getNode(i,j+1)->h += dh/getNode(i,j+1)->cs;
+                    }
+                }
+            }
 #else
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
-      {
-        Node  *pn = getNode(i,j);
-        if ( pn->b&2 )
-        {
-          if ( getNodeP(i+1,j)->b&2 )
-          {
-            double  dh = dt*odiff* (pn->qp-getNodeP(i+1,j)->qp); 
-            pn->h -= dh;
-            getNodeP(i+1,j)->h += dh; 
-          }
-          if ( getNodeP(i,j+1)->b&2 )
-          {
-            double  dh = dt*odiff*(pn->qp-getNodeP(i,j+1)->qp); 
-            pn->h -= dh;
-            getNodeP(i,j+1)->h += dh; 
-          }
-        }
-      }
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
+            {
+              Node  *pn = getNode(i,j);
+              if ( pn->b&2 )
+                {
+                  if ( getNodeP(i+1,j)->b&2 )
+                    {
+                      double  dh = dt*odiff* (pn->qp-getNodeP(i+1,j)->qp);
+                      pn->h -= dh;
+                      getNodeP(i+1,j)->h += dh;
+                    }
+                  if ( getNodeP(i,j+1)->b&2 )
+                    {
+                      double  dh = dt*odiff*(pn->qp-getNodeP(i,j+1)->qp);
+                      pn->h -= dh;
+                      getNodeP(i,j+1)->h += dh;
+                    }
+                }
+            }
 #endif
-  }
+      }
 #endif
 
 #ifdef DEFORM
-  Vect findPosition ( Point p, Point q1, Point q2 )
-  {
-    double  det = (getNode(q1)->o.x-getNode(p)->o.x)*(getNode(q2)->o.y-getNode(p)->o.y)
-                - (getNode(q2)->o.x-getNode(p)->o.x)*(getNode(q1)->o.y-getNode(p)->o.y);
-    return det ?
-           Vect(((getNode(p)->x-getNode(p)->o.x)*(getNode(q2)->o.y-getNode(p)->o.y)
-                -(getNode(q2)->o.x-getNode(p)->o.x)*(getNode(p)->y-getNode(p)->o.y))/det,
-                ((getNode(q1)->o.x-getNode(p)->o.x)*(getNode(p)->y-getNode(p)->o.y)
-                -(getNode(p)->x-getNode(p)->o.x)*(getNode(q1)->o.y-getNode(p)->o.y))/det) :                
-           Vect(0,0);
-  }
-
-  void equilibrate ( double dt, double tol = 0.1, int maxiter = 10 )
-  {
-    vector<Point>  pts, neigh, movedneigh;
-    OceanNode  *pn;
-    tol *= tol;
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )  getNode(i,j)->m = 0;
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
+      Vect findPosition ( Point p, Point q1, Point q2 )
       {
-        getNode(i,j)->o.x = getNode(i,j)->x;
-        getNode(i,j)->o.y = getNode(i,j)->y;
-        if ( getNode(i,j)->b == 0 )
-        {
-          getNode(i,j)->m = 16;
-          neigh = getNeighbors(Point(i,j));
-          for ( vector<Point>::iterator u = neigh.begin(); u != neigh.end(); ++u )
-            if ( getNode(u)->b && ++getNode(u)->m == 3 )  pts.push_back(*u);
-        }
+        double  det = (getNode(q1)->o.x-getNode(p)->o.x)*(getNode(q2)->o.y-getNode(p)->o.y)
+                      - (getNode(q2)->o.x-getNode(p)->o.x)*(getNode(q1)->o.y-getNode(p)->o.y);
+        return det ?
+               Vect(((getNode(p)->x-getNode(p)->o.x)*(getNode(q2)->o.y-getNode(p)->o.y)
+                     -(getNode(q2)->o.x-getNode(p)->o.x)*(getNode(p)->y-getNode(p)->o.y))/det,
+                    ((getNode(q1)->o.x-getNode(p)->o.x)*(getNode(p)->y-getNode(p)->o.y)
+                     -(getNode(p)->x-getNode(p)->o.x)*(getNode(q1)->o.y-getNode(p)->o.y))/det) :
+               Vect(0,0);
       }
-    for ( int i = 0; i < pts.size(); ++i )
-    {
-      pn = getNode(pts[i]);
-      neigh = getNeighbors(pts[i]);
-      movedneigh.clear();
-      for ( vector<Point>::iterator u = neigh.begin(); u != neigh.end(); ++u )
+
+      void equilibrate ( double dt, double tol = 0.1, int maxiter = 10 )
       {
-        if ( getNode(u)->m&16 )
+        vector<Point>  pts, neigh, movedneigh;
+        OceanNode  *pn;
+        tol *= tol;
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )  getNode(i,j)->m = 0;
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
+            {
+              getNode(i,j)->o.x = getNode(i,j)->x;
+              getNode(i,j)->o.y = getNode(i,j)->y;
+              if ( getNode(i,j)->b == 0 )
+                {
+                  getNode(i,j)->m = 16;
+                  neigh = getNeighbors(Point(i,j));
+                  for ( vector<Point>::iterator u = neigh.begin(); u != neigh.end(); ++u )
+                    if ( getNode(u)->b && ++getNode(u)->m == 3 )  pts.push_back(*u);
+                }
+            }
+        for ( int i = 0; i < pts.size(); ++i )
+          {
+            pn = getNode(pts[i]);
+            neigh = getNeighbors(pts[i]);
+            movedneigh.clear();
+            for ( vector<Point>::iterator u = neigh.begin(); u != neigh.end(); ++u )
+              {
+                if ( getNode(u)->m&16 )
 // Neighbor already at new position
-        {
-          movedneigh.push_back(*u);
-          getNode(u)->m <<= 1;
-        }
-        else
+                  {
+                    movedneigh.push_back(*u);
+                    getNode(u)->m <<= 1;
+                  }
+                else
 // Neigbor not at new position
-          if ( ++getNode(u)->m == 3 )  pts.push_back(*u);
-      }
-      for ( vector<Point>::iterator u = movedneigh.begin(); u != movedneigh.end(); ++u )
-        getNode(u)->m >>= 1;
-      pn->m |= 16;
-      for ( int iter = 0; iter < maxiter; ++iter )
-      {
-        double  sx = 0, sy = 0;
-        for ( vector<Point>::iterator u = movedneigh.begin(); u != movedneigh.end(); ++u )
-        {  
-          double  ax = getNode(u)->x-pn->x;   
-          double  ay = getNode(u)->y-pn->y;   
-          double  f = 1 - sqrt(( pts[i].isDiag(*u) ? 2 : 1 )/(ax*ax+ay*ay));
-          //if(f>0.0)
-          //std::cout << "ax:xy:f = " << ax << ":" << ay << ":" << f << std::endl;
-          sx += f*ax;
-          sy += f*ay;
-        }
-        pn->x += sx/movedneigh.size(); 
-        pn->y += sy/movedneigh.size();
-        if ( sx*sx+sy*sy < tol )  //break;
-        {
-          //if(sx>0.0 || sy > 0.0)
-          //printf ( "%i %e\n", iter, sqrt(sx*sx+sy*sy) );
-          break;
-        } 
-      }
-      if ( (pn->b&1) == 0 )
-      {
-        Vect  lam(pn->ilam,pn->jlam);
-        int  ishift = 1, jshift = 1, n = 0;
-        do
-        {
-          if ( lam.u1 < 0 )  ishift = -ishift;
-          if ( lam.u2 < 0 )  jshift = -jshift;
-          Point  pi(pts[i].i+ishift,pts[i].j);
-          Point  pj(pts[i].i,pts[i].j+jshift);
-          lam = findPosition(pts[i],pi,pj);
-          //printf ( "%i %i %i %i %g %g\n", pts[i].i, pts[i].j, ishift, jshift, lam.u1, lam.u2 );
-          if ( ++n >= 4 )
-          {
-            printf ( "Error: Inconsistent grid deformation\n" );
-            exit(-1);
-          }
-        }
-        while ( lam.u1 < 0 || lam.u2 < 0 );
-        pn->ilam = ishift*lam.u1;
-        pn->jlam = jshift*lam.u2;
+                  if ( ++getNode(u)->m == 3 )  pts.push_back(*u);
+              }
+            for ( vector<Point>::iterator u = movedneigh.begin(); u != movedneigh.end(); ++u )
+              getNode(u)->m >>= 1;
+            pn->m |= 16;
+            for ( int iter = 0; iter < maxiter; ++iter )
+              {
+                double  sx = 0, sy = 0;
+                for ( vector<Point>::iterator u = movedneigh.begin(); u != movedneigh.end(); ++u )
+                  {
+                    double  ax = getNode(u)->x-pn->x;
+                    double  ay = getNode(u)->y-pn->y;
+                    double  f = 1 - sqrt(( pts[i].isDiag(*u) ? 2 : 1 )/(ax*ax+ay*ay));
+                    //if(f>0.0)
+                    //std::cout << "ax:xy:f = " << ax << ":" << ay << ":" << f << std::endl;
+                    sx += f*ax;
+                    sy += f*ay;
+                  }
+                pn->x += sx/movedneigh.size();
+                pn->y += sy/movedneigh.size();
+                if ( sx*sx+sy*sy < tol )  //break;
+                  {
+                    //if(sx>0.0 || sy > 0.0)
+                    //printf ( "%i %e\n", iter, sqrt(sx*sx+sy*sy) );
+                    break;
+                  }
+              }
+            if ( (pn->b&1) == 0 )
+              {
+                Vect  lam(pn->ilam,pn->jlam);
+                int  ishift = 1, jshift = 1, n = 0;
+                do
+                  {
+                    if ( lam.u1 < 0 )  ishift = -ishift;
+                    if ( lam.u2 < 0 )  jshift = -jshift;
+                    Point  pi(pts[i].i+ishift,pts[i].j);
+                    Point  pj(pts[i].i,pts[i].j+jshift);
+                    lam = findPosition(pts[i],pi,pj);
+                    //printf ( "%i %i %i %i %g %g\n", pts[i].i, pts[i].j, ishift, jshift, lam.u1, lam.u2 );
+                    if ( ++n >= 4 )
+                      {
+                        printf ( "Error: Inconsistent grid deformation\n" );
+                        exit(-1);
+                      }
+                  }
+                while ( lam.u1 < 0 || lam.u2 < 0 );
+                pn->ilam = ishift*lam.u1;
+                pn->jlam = jshift*lam.u2;
 //        printf ( "%i %i %g %g\n", pts[i].i, pts[i].j, pn->ilam, pn->jlam );
-      }
-    }    
+              }
+          }
 //    printf ( "\n" );
 //    for ( int i = 0; i < pts.size(); ++i )
 //      if ( ((pn = getNode(pts[i]))->b&1) == 0 )
@@ -427,34 +450,34 @@ class OceanGrid : public Grid<OceanNode>
 //      }
 //    printf ( "\n" );
 
-    for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )
-      {
-        getNode(i,j)->o.u = getNode(i,j)->u;
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )
+            {
+              getNode(i,j)->o.u = getNode(i,j)->u;
 #ifdef LAYERS
-        for ( int k = 0; k < LAYERS-1; ++k )
-          getNode(i,j)->o.bottom[k] = getNode(i,j)->bottom[k];
+              for ( int k = 0; k < LAYERS-1; ++k )
+                getNode(i,j)->o.bottom[k] = getNode(i,j)->bottom[k];
 #endif
-      }
-    for ( int i = 0; i < pts.size(); ++i )
-      if ( ((pn = getNode(pts[i]))->b&1) == 0 )
-      {
-        OceanNode  *pi = getNode(pts[i].i+(pn->ilam<0?-1:1),pts[i].j);
-        OceanNode  *pj = getNode(pts[i].i,pts[i].j+(pn->jlam<0?-1:1));
-        pn->u = pn->o.u + fabs(pn->ilam)*(pi->o.u-pn->o.u+(pi->h-pn->h)/dt)
-                        + fabs(pn->jlam)*(pj->o.u-pn->o.u+(pj->h-pn->h)/dt);
+            }
+        for ( int i = 0; i < pts.size(); ++i )
+          if ( ((pn = getNode(pts[i]))->b&1) == 0 )
+            {
+              OceanNode  *pi = getNode(pts[i].i+(pn->ilam<0?-1:1),pts[i].j);
+              OceanNode  *pj = getNode(pts[i].i,pts[i].j+(pn->jlam<0?-1:1));
+              pn->u = pn->o.u + fabs(pn->ilam)*(pi->o.u-pn->o.u+(pi->h-pn->h)/dt)
+                      + fabs(pn->jlam)*(pj->o.u-pn->o.u+(pj->h-pn->h)/dt);
 #ifdef LAYERS
-        for ( int k = 0; k < LAYERS-1; ++k )
-          pn->bottom[k] = pn->o.bottom[k]
-                        + fabs(pn->ilam)*(pi->o.bottom[k]-pn->o.bottom[k])
-                        + fabs(pn->jlam)*(pj->o.bottom[k]-pn->o.bottom[k]);
+              for ( int k = 0; k < LAYERS-1; ++k )
+                pn->bottom[k] = pn->o.bottom[k]
+                                + fabs(pn->ilam)*(pi->o.bottom[k]-pn->o.bottom[k])
+                                + fabs(pn->jlam)*(pj->o.bottom[k]-pn->o.bottom[k]);
 #endif
+            }
+        for ( int i = 0; i < m; ++i )
+          for ( int j = 0; j < n; ++j )  getNode(i,j)->m = 0;
       }
-      for ( int i = 0; i < m; ++i )
-      for ( int j = 0; j < n; ++j )  getNode(i,j)->m = 0;
-  }
 #endif
-};
+  };
 
 
 
@@ -497,7 +520,14 @@ class OceanGrid : public Grid<OceanNode>
             }
       }
 
-      void update ( double dt )
+      std::string addZeroPaddedNumber(int number, int width)
+      {
+        std::ostringstream oss;
+        oss << std::setw(width) << std::setfill('0') << number;
+        return oss.str();
+      }
+
+      void update ( double dt , unsigned int aspect_timestep_number, unsigned int openlem_iteration)
       {
         int  n = 0;
         double  isum = 0, jsum = 0, xsum = 0, ysum = 0, xi = 0, xj = 0, yi = 0, yj = 0;
@@ -523,7 +553,7 @@ class OceanGrid : public Grid<OceanNode>
                   yj += y[i][j]*j;
                 }
             }
-            //g->equilibrate(dt); // <-- if here no nodge in basin
+        //g->equilibrate(dt); // <-- if here no nodge in basin
         double  dom = (yi*n-ysum*isum)-(xj*n-xsum*jsum);
         double  den = (xi*n-xsum*isum)+(yj*n-ysum*jsum);
 //    alpha = atan2(dom,den);
@@ -537,17 +567,17 @@ class OceanGrid : public Grid<OceanNode>
               g->getNode(i,j)->y = (-s*(x[i][j]-x0)+c*(y[i][j]-y0))/hscale;
               g->getNode(i,j)->u = vz[i][j];
             }
-        g->write("test2","H,L,X,Y,B");
+        g->write("openlem_output_ASP-t"+addZeroPaddedNumber(aspect_timestep_number,3) + "_OLM-i_"+addZeroPaddedNumber(openlem_iteration,3) + ".dat","H,L,X,Y,B");
         g->equilibrate(dt); // <-- if here nodge in basin
         g->computeCellSizes();
-        
+
         for ( int i = 0; i < g->m; ++i )
           for ( int j = 0; j < g->n; ++j )
             {
-        
+
               x[i][j] = x0 + g->getNode(i,j)->x *hscale;//TODO: this is without rotation;//= (c*(x[i][j]-x0)+s*(y[i][j]-y0))/hscale;
               y[i][j] = y0 + g->getNode(i,j)->y *hscale;//= (-s*(x[i][j]-x0)+c*(y[i][j]-y0))/hscale;
-      }
+            }
       }
 
       /*void convertVelocities(bool minimize_advection = true)

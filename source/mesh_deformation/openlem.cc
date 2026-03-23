@@ -963,7 +963,7 @@ namespace aspect
           connector.write_vtk(grid_extent[dim-1].second, 0, 0.0, dirname);
           return;
         }
-        //grid_new.equilibrate(openlem_iterations*openlem_timestep_in_years);
+      //grid_new.equilibrate(openlem_iterations*openlem_timestep_in_years);
 
 
       // Run openlem on single process.
@@ -1477,7 +1477,7 @@ namespace aspect
             //grid.computeWaterLevel();
             //grid.clearOceans();
 
-            connector.update (openlem_timestep_in_years);
+            connector.update (openlem_timestep_in_years,this->get_timestep_number(),openlem_iteration);
             //grid.markOcean(deepest_point, sea_level);
             //grid.equilibrate(openlem_timestep_in_years);
             grid.markOcean(sea_level);
@@ -1517,9 +1517,9 @@ namespace aspect
             //    openlem_set_h_(elevation.data());
             //  }
           }
-          
-          //if(current_timestep == 4)
-          //  grid.write("test.txt","H,L,X,Y,B");
+
+        //if(current_timestep == 4)
+        //  grid.write("test.txt","H,L,X,Y,B");
         std::cout << "deepest point = " << deepest_point.i << ":" << deepest_point.j << ", deepest point q = " <<  grid_new[deepest_point].q << ", deepest point h = " << grid_new[deepest_point].h  << ", b = " << (int)grid_new[deepest_point].b<< std::endl;
         //updateCoordinateSystem
         // Copy h values.
