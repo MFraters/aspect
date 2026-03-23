@@ -1,0 +1,209 @@
+# This is a test that diffuses a 2D model
+# and checks the topography.
+#
+# Enable if: ASPECT_WITH_FASTSCAPE
+
+# At the top, we define the number of space dimensions we would like to
+# work in:
+set Dimension                              = 3
+set Use years in output instead of seconds = true
+set End time                               = 2e5
+set Maximum time step                      = 100000
+set Output directory                       = iofiles/openlem/double_shear_benchmark_v01-08-lowres-mpi02_kt1.0e001_kd1.0e001_minadvect_true_minel1
+set Pressure normalization                 = no
+set Surface pressure                       = 0
+set CFL number = 0.25
+set Timing output frequency = 1
+set Nonlinear solver scheme = single Advection, no Stokes
+
+# A box that has an initial 60x60 km mountain block that is 2.5 km above the initial model surface.
+subsection Geometry model
+  set Model name = box
+
+  subsection Box
+    set X extent = 75e3 #62.5e3 #125e3
+    set Y extent = 75e3 #62.5e3
+    set Z extent = 25e3
+    set X repetitions = 3
+    set Y repetitions = 3
+    set Box origin X coordinate = -50e3 #-31.25e3 #-62.5e3
+    #set Box origin Y coordinate = -62.5e3
+  end
+
+  subsection Initial topography model
+    set Model name = function
+
+    subsection Function
+      set Function expression = if(x>-5e3 & x<5e3 & y > 10e3 & y < 50e3, 2500, if(x>-25e3 & x < -15e3 & y > 10e3 & y < 50e3,-2500,-100))
+    end
+  end
+end
+
+# We do not consider temperature in this setup
+subsection Initial temperature model
+  set Model name = function
+
+  subsection Function
+    set Function expression = 0
+  end
+end
+
+subsection Boundary temperature model
+  set Fixed temperature boundary indicators = bottom, top
+  set List of model names = initial temperature
+end
+
+# X Set all boundaries except the top to freeslip.
+#subsection Boundary velocity model
+#  set Tangential velocity boundary indicators = bottom, left, right, front, back
+#end
+
+ subsection Prescribed Stokes solution
+  set Model name = function
+  subsection Velocity function
+    set Variable names = x,y,z
+    set Function expression = if(y<30e3,-y+10e3,y-50e3);0;0 #if(x>-5e3 && x<5e3 & y > 10e3 & y < 50e3, 0.0, 0)
+
+  end
+ end
+
+# Here we setup the top boundary with fastscape.
+subsection Mesh deformation
+  set Mesh deformation boundary indicators = top : openLEM # free surface #openLEM #fastscape
+  set Additional tangential mesh velocity boundary indicators = left, right, front, back
+
+  subsection OpenLEM #Fastscape
+    set Kd = 1e01
+    set Kt = 1e01
+    set Minimize advection = true #false
+    # As the highest resolution at the surface is 4 in the mesh refinement function, we set this the same.
+    set Maximum surface refinement level = 4
+
+    # Because we only have the same level across the entire surface we set this to zero.
+    # If we had multiple resolutions, e.g. 3 different cell sizes at the surface,
+    # this would be set to 2 (number of cell sizes at surface - 1).
+    set Surface refinement difference = 0
+
+    # We set FastScape as 1 level more resolved than ASPECT's initial global surface resolution.
+    set Additional openlem refinement = 2
+
+    # Number of FastScape timesteps we want per ASPECT timestep.
+    set Number of openlem timesteps per aspect timestep = 100
+
+    # Set the maximum allowable FastScape time step length. If the (ASPECT time step length)/(Number of FastScape steps per ASPECT step)
+    # is greater than this value, then the number of FastScape steps per ASPECT step is automatically doubled.
+    # This is continued until the FastScape timestep length is less than this value.
+    #
+    # The units of this parameter are either years or seconds, dependent on the global parameter that
+    # determines whether an input file uses one or the other.
+    set Maximum timestep length = 1e-3 #00 #000
+
+    # Seed number for initial topography noise
+    #set Fastscape seed = 1000
+
+    # Because no boundaries are periodic, no flux is prescribed, and no advection occurs in FastScape,
+    # we do not need ghost nodes.
+    set Use ghost nodes = false
+    set Vertical exaggeration = 1
+
+    # Fix all boundaries in FastScape.
+    #subsection Boundary conditions
+    #  set Front = 1
+    #  set Right  = 1
+    #  set Back    = 1
+    #  set Left   = 1
+    #end
+
+    # We use both the Stream Power Law (SPL) and hillslope diffusion. The bedrock deposition
+    # variable allows deposition of sediment; however, because
+    # the sediment variables are not set, they are equal to
+    # bedrock values.
+    subsection Erosional parameters
+      set Drainage area exponent = 0.4
+      set Bedrock diffusivity = 1000
+      set Bedrock river incision rate = 0
+      set Slope exponent = 1
+      set Bedrock deposition coefficient = 1
+
+      # A negative value indicates varied flow. 10 is steepest descent, and 1 is uniform distribution.
+      set Multi-direction slope exponent = -1
+    end
+  end
+end
+
+subsection Gravity model
+  set Model name = vertical
+
+  subsection Vertical
+    set Magnitude = 0
+  end
+end
+
+# Dimensionless
+subsection Material model
+  set Model name = simple
+
+  subsection Simple model
+    set Reference density             = 1
+    set Reference specific heat       = 1
+    set Reference temperature         = 0
+    set Thermal conductivity          = 1
+    set Thermal expansion coefficient = 1
+    set Viscosity                     = 1
+  end
+end
+
+# We also have to specify that we want to use the Boussinesq
+# approximation (assuming the density in the temperature
+# equation to be constant, and incompressibility).
+subsection Formulation
+  set Formulation = Boussinesq approximation
+end
+
+# We set a maximum surface refinement level of 4 using the max/minimum refinement level.
+# This will make it so that the ASPECT surface refinement is the same as what we set
+# for our maximum surface refinement level for FastScape.
+subsection Mesh refinement
+  set Initial adaptive refinement              = 2
+  set Initial global refinement                = 2
+  set Minimum refinement level                 = 0
+  	set Time steps between mesh refinement = 0
+  set Strategy = maximum refinement function, minimum refinement function
+
+  subsection Isosurfaces
+    # Although the isosurface entry specifies min/max level 4, refinement level will
+    # not be more than 2 because initial global + initial adaptive = 2
+    set Isosurfaces = max,    max,    Temperature: 0 | 600,   C_2 : 0.0 | 0.5 ;\
+                      0,    0,    Temperature: 1600 | 3000,   C_2 : 0.0 | 0.5
+  end
+  subsection Maximum refinement function
+    set Function constants  =
+    set Coordinate system = depth
+    set Variable names = depth,notused,nu2
+    set Function expression = if(depth > 10000, 2, 100)
+  end
+  subsection Minimum refinement function
+    set Function constants  =
+    set Coordinate system = depth
+    set Variable names = depth, notused,nu2
+    set Function expression = if(depth < 10000, 100, 2)
+  end
+end
+
+subsection Postprocess
+  set List of postprocessors = topography, visualization
+  
+  subsection Visualization
+    set Output mesh velocity = true
+    set Interpolate output = false
+    set Output format                 = vtu
+    set Time between graphical output = 0 #1 #00
+    set List of output variables = depth, partition
+  end
+
+  subsection Topography
+    set Time between text output       = 0
+    set Output to file = true
+  end
+end
+
