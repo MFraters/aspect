@@ -1,25 +1,34 @@
-// OpenLEM Version 44 experimental 2025-07-10
+// OpenLEM Version 45 2026-03-31
 //
-// Copyright (C) 2012-2025 Stefan Hergarten
+// Copyright (C) 2012-2026 Stefan Hergarten
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 3 of the License, or (at your
+// Free Software Foundation; either version 2 of the License, or (at your
 // option) any later version.
 //
 // This program is distributed in the hope that it will be useful, but
 // WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 // or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
 // for more details. To view a copy of this license, visit
-// https://www.gnu.org/licenses/gpl-3.0.txt or write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+// https://www.gnu.org/licenses/gpl-2.0.txt or write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. 
 //
 // For any questions concerning the codes and bug reports, please contact the
-// developer at stefan.hergarten@geologie.uni-freiburg.de.
+// developer at stefan.hergarten@geologie.uni-freiburg.de. 
 //
 // Changelog
 //
-// Version 44 2025-07-10
+// Version 45 2025-03-31
+// Introduced option DEFORM to assign x and y values to nodes to describe
+// deformable grids; very preliminary and not compatible with most of the other
+// options.
+// Added a new method fillLakes2 as an alternative to fillLakes for better
+// efficiency; still experimental.
+// Changed the order of the 8 neighbors; should have an effect only if multiple
+// neighbors have the same elevations.
+//
+// Version 44 2025-07-12
 // Reimplemented the method fillLakes for better efficiency.
 // Fixed problem with flow directions if boundaries are changed during the
 // simulation.
@@ -53,7 +62,7 @@
 // of the options CHANNEL, SHAREDSP, and SPEXP.
 // Introduced exponent uexp for the U-shape of glacial valleys.
 // Reorganized default definitions to fix a problem with the combination
-// CHANNEL and SHAREDSP.
+// CHANNEL and SHAREDSP. 
 //
 // Version 40 2022-07-06
 // Fixed problem in constructor Grid() in combination with option PRECIP.
@@ -61,7 +70,7 @@
 // of LAYERS can be read.
 //
 // Version 39 2022-06-15
-// Changed member spfac to public in order to allow custom stream-power laws.
+// Changed member spfac to public in order to allow custom stream-power laws. 
 // Changed sites that contain ice to channelized in order to achive a
 // compatibility of the options ICE and CHANNEL.
 // Introduced erodibilities kdh and kth for hillslopes used in combination
@@ -77,7 +86,7 @@
 // DIFFSEMIIMPL without DIFFUS and EIGHTNEIGHBORS implements diffusion
 // in D8 flow direction.
 // Added option DEPOS for switching to fully transport-limited conditons
-// in domains of sediment deposition.
+// in domains of sediment deposition. 
 // Added option MELTBOUNDARY for melting all ice at the boundaries.
 // Fixed a problem in constructing a grid of size 1x1.
 // Fixed a problem in reading unrecognized keys.
@@ -92,9 +101,9 @@
 // Included LFPM for orographic precipitation.
 //
 // Version 34 2021-08-03
-// Added option DIFFUSIVITY for spatially variable diffusivity.
+// Added option DIFFUSIVITY for spatially variable diffusivity. 
 // Added option ICEFRAC for using own expressions for the elevation-dependent
-// ice production.
+// ice production.  
 // Added option MELTRATE for defining a melting rate instead of the default
 // mixing model.
 //
@@ -122,7 +131,7 @@
 //
 // Version 29 2020-12-22
 // Fixed problem with option ICE if glacial erosion is not detachment-limited.
-// Changed mean of erodibilities for mixed ice/water conditions.
+// Changed mean of erodibilities for mixed ice/water conditions. 
 // Shared stream-power model is now default for option ICE.
 // Added option NOMELTWATER.
 //
@@ -159,7 +168,7 @@
 // Renamed variable ac to athr (fluvial threshold).
 // Introduced new methods for reading and writing data.
 // Reduced writing precision for the discharge with option PRECIP to 4 Bytes.
-// Changed meaning of the third argument in method write().
+// Changed meaning of the third argument in method write(). 
 // Added option ICE (experimental).
 //
 // Version 22 2020-07-29
@@ -196,6 +205,7 @@
 #include <cstring>
 #include <vector>
 #include <map>
+#include <queue>
 #include <set>
 #include <unordered_set>
 
@@ -204,6 +214,7 @@ namespace openlem
 #define SHAREDSP
 #define LAYERS 2
 #define DEFORM
+
 #ifdef ICE
 #define SHAREDSP
 #define BUFFERS
@@ -244,7 +255,7 @@ class Keymapentry
   char  keystring[4], varname[16];
   int   keyint, offset, size, fsize, grid, readonly, array;
 };
-  
+
 class Point
 {
   public:
@@ -419,6 +430,31 @@ class Vect
     this->u2 = u2;
   }
 
+#ifdef DEFORM
+  Vect ( Node *pn )
+  {
+    this->u1 = pn->x;
+    this->u2 = pn->y;
+  }
+#endif
+
+  Vect operator + ( Vect u )
+  {
+    return  Vect(u1+u.u1,u2+u.u2);
+  }
+
+  Vect operator - ( Vect u )
+  {
+    return  Vect(u1-u.u1,u2-u.u2);
+  }
+
+  Vect operator += ( Vect u )
+  {
+    u1 += u.u1;
+    u2 += u.u2;
+    return *this;
+  }
+
   Vect operator -= ( Vect u )
   {
     u1 -= u.u1;
@@ -478,6 +514,11 @@ class PointValue
   {
     this->p = p;
     this->d = d;
+  }
+
+  bool operator < (const PointValue &p) const
+  {
+    return  d < p.d;
   }
 };
 
@@ -1047,21 +1088,7 @@ class Grid
 //                             Point(nextrow[p.i],nextcol[p.j]) };
     return neigh;
   }
-
-  vector<Node*> getNeighborsN ( Point p )
-// Returns a vector of the 8 nearest and second nearest neighbors
-  {
-    vector<Node*>  neigh = { getNode(nextrow[p.i],p.j), 
-                             getNode(p.i,nextcol[p.j]),
-                             getNode(prevrow[p.i],p.j),
-                             getNode(p.i,prevcol[p.j]), 
-                             getNode(nextrow[p.i],prevcol[p.j]), 
-                             getNode(nextrow[p.i],nextcol[p.j]),
-                             getNode(prevrow[p.i],nextcol[p.j]),
-                             getNode(prevrow[p.i],prevcol[p.j]) };
-    return neigh;
-  }
-
+  
   vector<Point> getNearestNeighbors ( Point p )
 // Returns a vector of the 4 nearest neighbors
   {
@@ -1082,24 +1109,42 @@ class Grid
   }
 
 #ifdef DEFORM
-  double  det ( Node *pn1, Node *pn2, Node *qn1, Node *qn2 )
+  Vect relVect ( Node *pn, Node *qn )
   {
-    return  (pn1->x-pn2->x)*(qn1->y-qn2->y)-(qn1->x-qn2->x)*(pn1->y-pn2->y);
+    return  Vect(pn->x-qn->x,pn->y-qn->y);
   }
+
+  double  det ( Vect a, Vect b )
+  {
+    return  a.u1*b.u2-b.u1*a.u2;
+  }
+
+//  double  det ( Node *pn1, Node *pn2, Node *qn1, Node *qn2 )
+//  {
+//    return  (pn1->x-pn2->x)*(qn1->y-qn2->y)-(qn1->x-qn2->x)*(pn1->y-pn2->y);
+//  }
 
   void computeCellSizes()
   {
     for ( int i = 0; i < m; ++i )
       for ( int j = 0; j < n; ++j )
       {
-        Node  *pn = getNode(i,j); 
-        vector<Node*>  neigh = getNeighborsN(Point(i,j));	    
-        pn->cs = ( det(neigh[0],pn,neigh[5],neigh[4])
-                 + det(neigh[1],pn,neigh[6],neigh[5])
-                 + det(neigh[2],pn,neigh[7],neigh[6])
-                 + det(neigh[3],pn,neigh[0],neigh[7]) ) / 8;
+        vector<Vect>  neigh = { Vect(getNode(nextrow[i],j)), 
+                                Vect(getNode(i,nextcol[j])),
+                                Vect(getNode(prevrow[i],j)),
+                                Vect(getNode(i,prevcol[j])), 
+                                Vect(getNode(nextrow[i],prevcol[j])), 
+                                Vect(getNode(nextrow[i],nextcol[j])),
+                                Vect(getNode(prevrow[i],nextcol[j])),
+                                Vect(getNode(prevrow[i],prevcol[j])) };
+        getNode(i,j)->cs = ( det(neigh[0],neigh[5]-neigh[4])
+                           + det(neigh[1],neigh[6]-neigh[5])
+                           + det(neigh[2],neigh[7]-neigh[6])
+                           + det(neigh[3],neigh[4]-neigh[7]) ) / 8;
       }
   }
+
+
 #endif
 
 #ifdef REDREC
@@ -1306,6 +1351,14 @@ class Grid
 	maxs = s;
       }	
     }
+//if ( pd != pn->d )
+//printf ( "(%i,%i) %f from -> (%i,%i) %f to -> (%i,%i) %f\n",
+//         p.i, p.j, getNode(p)->l,
+//         pd.i, pd.j, getNode(pd)->l,
+//         pn->d.i, pn->d.j, getNode(pn->d)->l );
+
+   
+
     return pd != pn->d;
   }  
 #endif  // NOT LAKEFLOWDIR
@@ -1603,12 +1656,9 @@ class Grid
 
   double computeFluxes ( Point p, double dt = 0. )
   {
-        //printf("Flag computeFluxes 1");
 // Computes the discharge of a node
     Node  *pn = getNode(p);
-        //printf("Flag computeFluxes 2");
     if ( pn->m )  return pn->q;
-        //printf("Flag computeFluxes 3");
     pn->m = 1;
     Point   dest = pn->d;
     Node    *destn = getNode(dest);
@@ -1894,8 +1944,6 @@ class Grid
       destn->channel += 10*pn->channel;
 #endif
     }
-        //printf("Flag computeFluxes end: %d",pn->q);
-        assert(pn->q);
     return  pn->q;
   }  
 
@@ -2045,15 +2093,11 @@ class Grid
     }
 //    printf ( "qdev = %e\n", qdev );
 #else        
-        printf("Flag precomputeFluxes 0 ");
     int  q = 0;
     for ( int i = 0; i < m; ++i )
       for ( int j = 0; j < n; ++j )
       {
-        auto point = Point(i,j);
-        //printf("Flag precomputeFluxes 1");
-        int  tmp = computeFluxes ( point, dt );
-        //printf("Flag postcomputeFluxes 2");
+        int  tmp = computeFluxes ( Point(i,j), dt );
 	if ( getNode(i,j)->b )  q += tmp;
       }	
 #if !defined(PRECIP) && !defined(DEFORM)
@@ -3388,6 +3432,100 @@ class Lake
 //      printf ( "Lake %i, outlet = (%i,%i), area = %i\n", i, lakes[i].outlet.i, lakes[i].outlet.j, lakes[i].points.size() );
   }
 
+  double computeSlope ( Point p, Point q, double l )
+  {
+#ifdef DEFORM
+    return  (getNode(p)->h-l)/getNode(p)->distance(getNode(q));
+#else      
+    double  s = (getNode(p)->h-l);
+    if ( p.isDiag(q) )  s *= sqrt(0.5);
+    return s;
+#endif
+  }  
+
+  void addSlopePoint ( Point p, Point q, double l )
+  {
+    double  s = computeSlope(p,q,l);
+    if ( !getNode(p)->m || s > getNode(p)->l )
+// Not yet considered or steeper towards q than towards old flow target
+    {
+      getNode(p)->d = q;
+      getNode(p)->l = s;
+//      printf ( "Slope %i %i %f -> %i %i %f %f %i\n", p.i, p.j, getNode(p)->h, q.i, q.j, getNode(q)->h, getNode(p)->l, getNode(p)->m );
+    }  
+    getNode(p)->m = 1;
+  }
+
+  void addLakePoint ( Point p, Point q, double l )
+  {
+    getNode(p)->d = q;
+    getNode(p)->l = l;
+//    printf ( "Lake %i %i %f -> %i %i %f %f %i\n", p.i, p.j, getNode(p)->h, q.i, q.j, getNode(q)->h, getNode(p)->l, getNode(p)->m );
+    getNode(p)->m = 2;
+  }
+
+  void fillLakes2()
+  {
+// m = 0: not yet considered
+// m = 1: slope, .l = slope 
+// m = 2: lake, .l = water level
+
+    priority_queue<PointValue<double> >  pq;  
+    for ( int i = 0; i < m; ++i )
+      for ( int j = 0; j < n; ++j )
+      {
+        getNode(i,j)->m = 0;
+        getNode(i,j)->l = getNode(i,j)->h;
+        if ( getNode(i,j)->b )
+        {
+          getNode(i,j)->d = Point(i,j);
+          getNode(i,j)->m = 2;
+          pq.push(PointValue<double>(Point(i,j),-getNode(i,j)->l));
+        }
+      }
+    while (!pq.empty())
+    {
+      Point  p = pq.top().p;
+      double  l = -pq.top().d;
+      pq.pop();
+ //     printf ( "First %i %i %f\n", p.i, p.j, getNode(p)->h );
+      vector<Point>  lake(1,p);	    
+      for ( int i = 0; i < lake.size(); ++i )
+      {
+        vector<Point>  neigh = getNeighbors(lake[i]);	    
+        for ( vector<Point>::iterator u = neigh.begin(); u != neigh.end(); ++u )
+          if ( getNode(u)->m != 2 )
+          {
+            if ( getNode(u)->h > l )
+// Slope
+            {
+              if ( !getNode(u)->m )
+                pq.push(PointValue<double>(*u,-getNode(u)->l));
+              addSlopePoint(*u,lake[i],l);
+            }
+            else
+// Lake
+              if ( !getNode(u)->m )
+              {
+                getNode(u)->d = lake[i];
+                getNode(u)->l = l;
+//    printf ( "Lake %i %i %f -> %i %i %f %f %i\n", p.i, p.j, getNode(p)->h, q.i, q.j, getNode(q)->h, getNode(p)->l, getNode(p)->m );
+                getNode(u)->m = 2;
+//                addLakePoint(*u,lake[i],l);   p q l
+                lake.push_back(*u);
+//printf ( "%i\n", lake.size() );
+              }
+          }  
+        }
+//        exit(0);
+      }
+      for ( int i = 0; i < m; ++i )
+        for ( int j = 0; j < n; ++j )
+        {
+          if ( getNode(i,j)->m == 1 )  getNode(i,j)->l = getNode(i,j)->h;
+          getNode(i,j)->m = 0;
+        }
+    }
 };
 
 class Delta
