@@ -19,6 +19,7 @@
 #include <vector>
 #include <random>
 #include <cmath>
+#include "aspect/material_model/interface.h"
 #include "aspect/material_model/visco_plastic.h"
 
 #include "aspect/material_model/dike_injection.h"
@@ -1353,8 +1354,10 @@ class ChainStream : public MPIChain {
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
+      PrescribedDirectionalDilation<dim> *prescribed_directional_dilation = out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>();
+      //PrescribedPlasticDilation<dim> *prescribed_plastic_dilation = out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>();
       PrescribedPlasticDilation<dim>
-      *prescribed_dilation = (this->get_parameters().enable_prescribed_dilation)
+      *prescribed_plastic_dilation = (this->get_parameters().enable_prescribed_dilation)
                              ? out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()
                              : nullptr;
       ReactionRateOutputs<dim>
@@ -1642,9 +1645,10 @@ class ChainStream : public MPIChain {
         {
           // Activate the dike injection by adding the additional RHS
           // terms of injection to Stokes equations.
-          if (prescribed_dilation != nullptr){
-            prescribed_dilation->dilation[q] = dike_injection_rate[q]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
-           prescribed_dilation->dilation[q] = this->convert_output_to_years() ? prescribed_dilation->dilation[q] *year_in_seconds : prescribed_dilation->dilation[q];
+          if (prescribed_directional_dilation != nullptr){
+            // todo: make dilation_term[q][0] directional
+            prescribed_directional_dilation->dilation_term[q][0] = dike_injection_rate[q]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
+            prescribed_directional_dilation->dilation_term[q][0] = this->convert_output_to_years() ? prescribed_directional_dilation->dilation_term[q][0] *year_in_seconds : prescribed_directional_dilation->dilation_term[q][0];
           }
 
           // User-defined or timestep-dependent injection fraction.
@@ -2183,7 +2187,7 @@ class ChainStream : public MPIChain {
 
       AssertThrow(!this->get_parameters().enable_prescribed_dilation
                   ||
-                  out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()->dilation.size()
+                  out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term.size()
                   == n_points, ExcInternalError());
 
       if (this->get_parameters().use_operator_splitting
