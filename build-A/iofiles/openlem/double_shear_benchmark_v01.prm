@@ -9,7 +9,7 @@ set Dimension                              = 3
 set Use years in output instead of seconds = true
 set End time                               = 2e5
 set Maximum time step                      = 100000
-set Output directory                       = iofiles/openlem/double_shear_benchmark_v01-09-lowres-mpi02_kt1.0e001_kd1.0e001_minadvect_true_minel1
+set Output directory                       = iofiles/openlem/double_shear_benchmark_v01-12.02-lowres-mpi02_kt1.0e001_kd1.0e001_minadvect_true_minel1_diffuse_erode_emplace_sediments
 set Pressure normalization                 = no
 set Surface pressure                       = 0
 set CFL number = 0.25
@@ -34,7 +34,7 @@ subsection Geometry model
     set Model name = function
 
     subsection Function
-      set Function expression = if(x>-5e3 & x<5e3 & y > 10e3 & y < 50e3, 2500, if(x>-25e3 & x < -15e3 & y > 10e3 & y < 50e3,-2500,-100))
+      set Function expression = if(x>-5e3 & x<5e3 & y > 10e3 & y < 50e3, 2500, if(x>-25e3 & x < -15e3 & y > 10e3 & y < 50e3,-2500,-1000))
     end
   end
 end

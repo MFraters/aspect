@@ -235,7 +235,7 @@ namespace aspect
             }
         grid_new[deepest_point].b = 1;
         grid_new.odiff = openlem_ocean_diffusivity;
-        grid_new.fillLakes();
+        grid_new.fillLakes2();
         grid_new.computeFluxes();
         //grid_old = grid_new;
         std::cout << "opelem_dy = " << openlem_dy << ", dox = " << grid_extent[0].first << ", doy" << grid_extent[1].first << ", deepest point = " << deepest_point.i << ":" << deepest_point.j  << ", q of deepest point = " << grid_new[deepest_point].q << ", deepest point h = " << grid_new[deepest_point].h << ", b = " << (int)grid_new[deepest_point].b << std::endl;
@@ -913,6 +913,8 @@ namespace aspect
                   {
                     node->h = this->get_initial_topography_model().value(Point<dim-1>(connector.x[x_i][y_i],connector.y[x_i][y_i]));
                   }
+                  //if((x_i == 217 && y_i == 150) || (x_i == 10 && y_i == 10))
+                  //std::cout << x_i << ":" << y_i << "; " << connector.x[x_i][y_i] << ":" << connector.y[x_i][y_i] << ", h = " << node->h <<std::endl;
 
                 node->l = 0;
                 node->u = openlem_mesh_velocities[x_i][y_i][dim-1];//*100000;//1;//local_aspect_values[dim+2][i];
@@ -1081,8 +1083,8 @@ namespace aspect
                       //min_openlem_h = std::min(min_openlem_h,grid_new.getNode(ix,iy)->h);
                       //max_openlem_h = std::max(max_openlem_h,grid_new.getNode(ix,iy)->h);
                       aspect_mesh_dh[closest_point_ixa][closest_point_iya] += grid_new.getNode(xi,yi)->h - aspect_mesh_z[closest_point_ixa][closest_point_iya];// + grid_extent[dim-1].second;//- mesh_velocity_locations[ix][iy][dim-1]+grid_extent[dim-1].second ;// grid_old.getNode(ix,iy)->h;//TODO: check if this is alright or if I need to get the closest node in the old grid sepeartly. //mesh_velocity_z[ix][iy];
-                      if (xi == 2 && yi > 0 && yi < 10)
-                        std::cout << "Flag 201 x:y " << xi << ":" << yi << ", aspect x:y = " << closest_point_ixa << ":" << closest_point_iya <<  ", aspect_mesh_dh = " << aspect_mesh_dh[closest_point_ixa][closest_point_iya] << ", grid_new.getNode(xi,yi)->h = " << grid_new.getNode(xi,yi)->h << ", aspect_mesh_z = " <<  aspect_mesh_z[closest_point_ixa][closest_point_iya]  << std::endl;
+                      //if (xi == 2 && yi > 0 && yi < 10)
+                      //  std::cout << "Flag 201 x:y " << xi << ":" << yi << ", aspect x:y = " << closest_point_ixa << ":" << closest_point_iya <<  ", aspect_mesh_dh = " << aspect_mesh_dh[closest_point_ixa][closest_point_iya] << ", grid_new.getNode(xi,yi)->h = " << grid_new.getNode(xi,yi)->h << ", aspect_mesh_z = " <<  aspect_mesh_z[closest_point_ixa][closest_point_iya]  << std::endl;
                       //if (grid_new.getNode(ix,iy)->h > 10 )
                       //  std::cout << "rank = " <<  Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) << ", ix:iy = " << ix << ":" << iy << ", ixa:iya = " << closest_point_ixa << ":" << closest_point_iya << ", h = " << grid_new.getNode(ix,iy)->h << ", aspect_mesh_z =" << aspect_mesh_z[closest_point_ixa][closest_point_iya] << ", result = " << aspect_mesh_dh[closest_point_ixa][closest_point_iya] << std::endl;
                       aspect_mesh_counter[closest_point_ixa][closest_point_iya] += 1;
@@ -1486,7 +1488,7 @@ namespace aspect
             //grid.findDeltas(openlem_timestep_in_years);
             grid.emplaceSediments(openlem_timestep_in_years);
             grid.diffuse(openlem_timestep_in_years);
-            printf("it: %i, Changes in flow direction: %i, Maximum elevation change: %e; ",openlem_iteration,nc,ch);
+            //printf("it: %i, Changes in flow direction: %i, Maximum elevation change: %e; ",openlem_iteration,nc,ch);
             unsigned int aspect_timestep_number = this->get_timestep_number();
             //connector.updateCoordinateSystem (openlem_timestep_in_years);
             //connector.write_vtk(grid_extent[dim-1].second, aspect_timestep_number*10000+openlem_iteration,dirname);
