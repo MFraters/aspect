@@ -23,6 +23,7 @@
 #include <aspect/utilities.h>
 
 #include <deal.II/base/signaling_nan.h>
+#include <limits>
 
 namespace aspect
 {
@@ -485,6 +486,7 @@ namespace aspect
               //if (scratch.rebuild_stokes_matrix)
               if (!material_model_is_compressible && prescribed_directional_dilation->dilation_term[0][q] != 0)
                 {
+                  //std::cout << "Flag 1: should not be called!!!" << std::endl;
                   for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i)
                     for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
                       {
@@ -499,15 +501,25 @@ namespace aspect
                 {
                   //data.local_rhs(i_stokes) += -pressure_scaling * scratch.phi_p[i_stokes]*JxW;
                   if (dim == 2)
-                    data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])) * scratch.phi_p[i_stokes]*JxW;
+                    {
+
+                      //if(abs(-pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])) * scratch.phi_p[i_stokes]*JxW)>std::numeric_limits<double>::epsilon()*10)
+                      //std::cout << "Flag 2: should be zero: " << -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])) * scratch.phi_p[i_stokes]*JxW << std::endl;
+                      data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])) * scratch.phi_p[i_stokes]*JxW;
+                    }
                   else
-                    ///std::cout << prescribed_directional_dilation->dilation_term[0][q] << ":" << prescribed_directional_dilation->dilation_term[1][q] << ":" << prescribed_directional_dilation->dilation_term[2][q] << std::endl;
-                    data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q]+prescribed_directional_dilation->dilation_term[2][q])) * scratch.phi_p[i_stokes]*JxW;
+                    {
+                      //std::cout << "Flag 3: should not be called in 2d" << std::endl;
+                      ///std::cout << prescribed_directional_dilation->dilation_term[0][q] << ":" << prescribed_directional_dilation->dilation_term[1][q] << ":" << prescribed_directional_dilation->dilation_term[2][q] << std::endl;
+                      data.local_rhs(i_stokes) += -pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q]+prescribed_directional_dilation->dilation_term[2][q])) * scratch.phi_p[i_stokes]*JxW;
+                    }
                   const unsigned int index_horizon=fe.system_to_component_index(i).first;
                   if (introspection.is_stokes_component(index_horizon))
                     {
                       if (index_horizon<dim) //horizontal x direction
                         {
+                          //if(abs(-pressure_scaling * ((prescribed_directional_dilation->dilation_term[0][q]+prescribed_directional_dilation->dilation_term[1][q])) * scratch.phi_p[i_stokes]*JxW)>std::numeric_limits<double>::epsilon()*10)
+                          // std::cout << "Flag 4: should be zero: " << 2.0 * eta * prescribed_directional_dilation->dilation_term[index_horizon][q] * scratch.div_phi_u[i_stokes] * JxW << std::endl;
                           data.local_rhs(i_stokes) += 2.0 * eta * prescribed_directional_dilation->dilation_term[index_horizon][q] * scratch.div_phi_u[i_stokes] * JxW;
                         }
                       else //if (index_horizon == dim)

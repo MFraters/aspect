@@ -15,6 +15,8 @@
 */
 
 #include <algorithm>
+#include <deal.II/base/exceptions.h>
+#include <deal.II/base/patterns.h>
 #include <limits>
 #include <vector>
 #include <random>
@@ -44,39 +46,45 @@ namespace aspect
   namespace MaterialModel
   {
 
-class ChainStream : public MPIChain {
-    // Uses the MPIChain class to implement a ostream with a serial operator<< implementation.
-    private:
-        std::ostream & s_out;
+    class ChainStream : public MPIChain
+    {
+        // Uses the MPIChain class to implement a ostream with a serial operator<< implementation.
+      private:
+        std::ostream &s_out;
 
-    public:
-        ChainStream(std::ostream & os, int c_rank, int c_size)
-            : MPIChain(0, c_rank, c_size), s_out(os) {};
+      public:
+        ChainStream(std::ostream &os, int c_rank, int c_size)
+          : MPIChain(0, c_rank, c_size), s_out(os) {};
 
-        ChainStream & operator<<(const std::string & os){
-            if(this->get_rank() == 0) {
-                this->s_out << os;
-                // Initiate chain of MPI messages
-                this->next();
-            } else {
-                int msg_count;
-                // Wait untill a message arrives (MPIChain::wait uses a blocking test)
-                this->wait(msg_count);
-                if(msg_count == 1) {
-                    // If the message is well-formed (i.e. only one message is recieved): output string
-                    this->s_out << os;
-                    // Pass onto the next member of the chain (if there is one)
-                    this->next();
+        ChainStream &operator<<(const std::string &os)
+        {
+          if (this->get_rank() == 0)
+            {
+              this->s_out << os;
+              // Initiate chain of MPI messages
+              this->next();
+            }
+          else
+            {
+              int msg_count;
+              // Wait untill a message arrives (MPIChain::wait uses a blocking test)
+              this->wait(msg_count);
+              if (msg_count == 1)
+                {
+                  // If the message is well-formed (i.e. only one message is recieved): output string
+                  this->s_out << os;
+                  // Pass onto the next member of the chain (if there is one)
+                  this->next();
                 }
             }
 
-            // Ensure that the chain is resolved before returning the stream
-            MPI_Barrier(MPI_COMM_WORLD);
+          // Ensure that the chain is resolved before returning the stream
+          MPI_Barrier(MPI_COMM_WORLD);
 
-            // Don't output the ostream! That would break the serial-in-time exuction.
-            return *this;
-       };
-};
+          // Don't output the ostream! That would break the serial-in-time exuction.
+          return *this;
+        };
+    };
 
     template <int dim>
     void clear_compositional_field (const SimulatorAccess<dim> &simulator_access)
@@ -743,21 +751,26 @@ class ChainStream : public MPIChain {
                 {
                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 3.1" << std::endl;
                   iteration++;
-                      if(iteration == 2500){
-                        distance *= 2.;
-                      }
-		      if(iteration == 3000){
-			distance *= 2.;
-		      }
-                      if(iteration == 3500){
-                        distance *= 2.;
-                      }
-                      if(iteration == 4000){
-                        distance *= 2.;
-                      }
-                      if(iteration == 4500){
-                        distance *= 2.;
-                      }
+                  if (iteration == 2500)
+                    {
+                      distance *= 2.;
+                    }
+                  if (iteration == 3000)
+                    {
+                      distance *= 2.;
+                    }
+                  if (iteration == 3500)
+                    {
+                      distance *= 2.;
+                    }
+                  if (iteration == 4000)
+                    {
+                      distance *= 2.;
+                    }
+                  if (iteration == 4500)
+                    {
+                      distance *= 2.;
+                    }
                   if (!(iteration < 10000))
                     {
                       std::string concat = "";
@@ -865,11 +878,11 @@ class ChainStream : public MPIChain {
                       //std::cout << iteration << ":" << iter2 << "(4): parwhileticle lost = " << particle_lost << std::endl;
                       if (n_active_particles == 0)
                         {
-                      //ierr = MPI_Barrier(this->get_mpi_communicator());
-                      //usleep(500);
-                      //std::cout << "Flag 07, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      //ierr = MPI_Barrier(this->get_mpi_communicator());
-                      //usleep(500);
+                          //ierr = MPI_Barrier(this->get_mpi_communicator());
+                          //usleep(500);
+                          //std::cout << "Flag 07, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                          //ierr = MPI_Barrier(this->get_mpi_communicator());
+                          //usleep(500);
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 6" << std::endl;
 
                           //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 7" << std::endl;
@@ -1013,16 +1026,16 @@ class ChainStream : public MPIChain {
                           auto old_position = particle_handler->begin()->get_location();
                           //}
 
-                      //usleep(500);
-                      //std::cout << "Flag 10, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      //usleep(500);
+                          //usleep(500);
+                          //std::cout << "Flag 10, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                          //usleep(500);
                           //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", old position = " << particle_handler->begin()->get_location() << std::endl;
                           particle_integrator->local_integrate_step(particle_handler->begin(),particle_handler->end(),solution_stress, current_linerization_point_stress, distance);
-                      //std::cout << "Flag 11, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
-                      //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << ", locally owned part = " << particle_handler->n_locally_owned_particles()<< std::endl;
+                          //std::cout << "Flag 11, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << ", particle lost = " << particle_lost << std::endl << std::flush;
+                          //std::cout << iteration << ": world_rank = " << world_rank << "/" << world_size << ", new position: " << particle_handler->begin()->get_location() << ", distance = " << distance << ", actual distance = " << (old_position-particle_handler->begin()->get_location()).norm() << ", locally owned part = " << particle_handler->n_locally_owned_particles()<< std::endl;
 
                         }
-          
+
                       //usleep(1000);
                       //std::cout << "Flag 12, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", locally owned part = " << particle_handler->n_locally_owned_particles() << std::endl << std::flush;
                       //usleep(1000);
@@ -1164,9 +1177,9 @@ class ChainStream : public MPIChain {
                       //}
                       if (std::get<1>(particle_statuses[local_position_i]) == 0 || std::get<1>(particle_statuses[local_position_i]) == 1)
                         {
-                      
-                  //ierr = MPI_Barrier(this->get_mpi_communicator());
-                  //AssertThrowMPI(ierr);
+
+                          //ierr = MPI_Barrier(this->get_mpi_communicator());
+                          //AssertThrowMPI(ierr);
 
                           //std::cout << "world_rank = " << world_rank << "/" << world_size << ":Flag 15: dike = " << local_position_i << ", particle_statuses.size() = " << particle_statuses.size() << ", particle_statuses[local_position_i] = " << std::get<1>(particle_statuses[local_position_i]) << std::endl;
                           // check whether this is still active on all processes (0 is active, so if sum is not zero, it is inactive)
@@ -1200,7 +1213,7 @@ class ChainStream : public MPIChain {
                                   new_dike_locations[local_position_i][dim_i] = Utilities::MPI::sum(new_dike_locations[local_position_i][dim_i],this->get_mpi_communicator());
                                   //std::cout << "ifworld_rank = " << world_rank << "/" << world_size << ": Flag 25: local_position_i = " << local_position_i << ", dim_i = " << dim_i << "value = " <<  std::endl;
                                 }
-                                  //std::cout << "Flag 25, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it: " << iteration << ", local_position_i = " << local_position_i << ", position = " << new_dike_locations[local_position_i] <<  ", distance p = " << distance << ", distance c = " << (new_dike_locations[local_position_i]-dike_locations[local_position_i].back()).norm() <<std::endl << std::flush;;
+                              //std::cout << "Flag 25, it: " << iteration << ":" << iter2 << ", world_rank = " << world_rank << "/" << world_size << ", it: " << iteration << ", local_position_i = " << local_position_i << ", position = " << new_dike_locations[local_position_i] <<  ", distance p = " << distance << ", distance c = " << (new_dike_locations[local_position_i]-dike_locations[local_position_i].back()).norm() <<std::endl << std::flush;;
                               //
 
                               // If we have not reach the yielding region yet, replace the current bottom, otherwise, add to the dike.
@@ -1358,8 +1371,8 @@ class ChainStream : public MPIChain {
       //PrescribedPlasticDilation<dim> *prescribed_plastic_dilation = out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>();
       PrescribedPlasticDilation<dim>
       *prescribed_plastic_dilation = (this->get_parameters().enable_prescribed_dilation)
-                             ? out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()
-                             : nullptr;
+                                     ? out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>()
+                                     : nullptr;
       ReactionRateOutputs<dim>
       *reaction_rate_out = (this->get_parameters().use_operator_splitting)
                            ? out.template get_additional_output<MaterialModel::ReactionRateOutputs<dim>>()
@@ -1380,7 +1393,7 @@ class ChainStream : public MPIChain {
       //AssertThrow(in.current_cell.state() == IteratorState::valid, ExcMessage("error"));
 
       // Strore dike injection rate for each evaluation point
-      std::vector<double> dike_injection_rate(in.n_evaluation_points());
+      std::vector<Tensor<1,dim>> dike_injection_rate(in.n_evaluation_points());
 
       for (unsigned int q=0; q < in.n_evaluation_points(); ++q)
         {
@@ -1553,6 +1566,7 @@ class ChainStream : public MPIChain {
               // for now just add dike composition to this cell
               const size_t n_dikes = dike_locations.size();
               std::vector<double> min_distance_per_dike(n_dikes,std::numeric_limits<double>::max());
+              std::vector<Tensor<1,dim>> normal_min_distance_dike(n_dikes);
               double total_min_distance = std::numeric_limits<double>::max();
 
               double distance;
@@ -1612,6 +1626,11 @@ class ChainStream : public MPIChain {
                               //if (in.position[q][0] > -2000. && in.position[q][0] < -1000. && in.position[q][1] > 40000 && in.position[q][1] < 41000)
                               // //std::cout << "distance = " << distance << ", min_distance = " << min_distance << std::endl;
                               min_distance_per_dike[dike_i] = distance;
+                              Tensor<1,dim> tmp = (X2-X1)/(X2-X1).norm();
+                              // Note: this is only 2D, TODO: 3d
+                              normal_min_distance_dike[dike_i][0] = -tmp[1];
+                              normal_min_distance_dike[dike_i][1] = tmp[0];
+
                             }
                           if (distance < total_min_distance)
                             {
@@ -1620,7 +1639,7 @@ class ChainStream : public MPIChain {
                         }
                     }
                 }
-              dike_injection_rate[q] = 0;
+              dike_injection_rate[q]= Tensor<1,dim>();
               for (unsigned int dike_i = 0; dike_i < n_dikes; ++dike_i)
                 {
                   if (min_distance_per_dike[dike_i] < max_dike_distance && this->get_timestep_number() > 0)
@@ -1631,9 +1650,17 @@ class ChainStream : public MPIChain {
 
                       out.viscosities[q] = std::min(max_dike_viscosity,std::max(min_dike_viscosity,out.viscosities[q]));
                       const double dike_injection_rate_double = 1.0*distance_factor;//1e-134;
-                      dike_injection_rate[q] += this->convert_output_to_years()
-                                                ? dike_injection_rate_double / year_in_seconds
-                                                : dike_injection_rate_double;
+                      for (unsigned int direction =0; direction < dim; ++direction)
+                        {
+                          dike_injection_rate[q][direction] = -normal_min_distance_dike[dike_i][direction] * (this->convert_output_to_years()
+                                                              ? dike_injection_rate_double / year_in_seconds
+                                                              : dike_injection_rate_double);
+                          //std::cout << "dike_injection_rate[" << direction << "][" << q << "] = " << dike_injection_rate[q][direction] << ", normal = " << normal_min_distance_dike[dike_i][direction] << ", total = " <<  normal_min_distance_dike[dike_i][direction] * (this->convert_output_to_years()
+                          //? dike_injection_rate_double / year_in_seconds
+                          //: dike_injection_rate_double) << std::endl;
+                          AssertThrow(!isnan(dike_injection_rate[q][direction]), ExcMessage("dilation is nan, direction = " + std::to_string(direction) + ", q = " + std::to_string(q)));
+
+                        }
 
 
                     }
@@ -1645,15 +1672,22 @@ class ChainStream : public MPIChain {
         {
           // Activate the dike injection by adding the additional RHS
           // terms of injection to Stokes equations.
-          if (prescribed_directional_dilation != nullptr){
-            // todo: make dilation_term[q][0] directional
-            prescribed_directional_dilation->dilation_term[q][0] = dike_injection_rate[q]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity). 
-            prescribed_directional_dilation->dilation_term[q][0] = this->convert_output_to_years() ? prescribed_directional_dilation->dilation_term[q][0] *year_in_seconds : prescribed_directional_dilation->dilation_term[q][0];
-          }
+          if (prescribed_directional_dilation != nullptr)
+            {
+              // todo: make dilation_term[q][0] directional
+              for (unsigned int direction =0; direction < dim; ++direction)
+                {
+                  prescribed_directional_dilation->dilation_term[direction][q] = abs(dike_injection_rate[q][direction]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance)*dilation_scaling_constant); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity).
+                  prescribed_directional_dilation->dilation_term[direction][q] = this->convert_output_to_years() ? prescribed_directional_dilation->dilation_term[direction][q] *year_in_seconds : prescribed_directional_dilation->dilation_term[direction][q];
+                  //if(abs(prescribed_directional_dilation->dilation_term[direction][q]) > std::numeric_limits<double>::epsilon()*10)
+                  //  std::cout << "dilation term[" << direction << "][" << q << "] = " << prescribed_directional_dilation->dilation_term[direction][q] << std::endl;
+                  AssertThrow(!isnan(prescribed_directional_dilation->dilation_term[direction][q]), ExcMessage("dilation is nan, direction = " + std::to_string(direction) + ", q = " + std::to_string(q)));
+                }
+            }
 
           // User-defined or timestep-dependent injection fraction.
           if (this->simulator_is_past_initialization())
-            dike_injection_fraction = dike_injection_rate[q];// * this->get_timestep();
+            dike_injection_fraction = dike_injection_rate[q].norm();// * this->get_timestep();
 
           //if (dike_material_injection_fraction != 0.0)
           //  dike_injection_fraction = dike_material_injection_fraction;
@@ -1693,7 +1727,7 @@ class ChainStream : public MPIChain {
               // Loop only in chemical copositional fields
               for (unsigned int c : chemical_composition_indices)
                 {
-                  if ((c == injection_phase_index && dike_injection_rate[q] > 0.0) || (c == injection_phase_current_index && dike_injection_rate[q] > 0.0 ))
+                  if ((c == injection_phase_index && dike_injection_rate[q].norm() > 0.0) || (c == injection_phase_current_index && dike_injection_rate[q].norm() > 0.0 ))
                     {
                       // Only create the evaluator the first time we get here
                       if (!composition_evaluators[c])
@@ -1873,6 +1907,8 @@ class ChainStream : public MPIChain {
                             "are the names of models that are also valid for the "
                             "``Material models/Model name'' parameter. See the documentation for "
                             "that for more information.");
+          prm.declare_entry("Dilation scaling constant","1e-5",Patterns::Double(0),
+                            "WIP variable to scale the dilation in models.");
           prm.declare_entry("Dike material injection fraction", "0.0", Patterns::Double(0),
                             "Amount of new injected material from the dike. Units: none.");
           prm.declare_entry("Dike bottom temperature", "873.0", Patterns::Double(0),
@@ -2063,6 +2099,7 @@ class ChainStream : public MPIChain {
           if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(base_model.get()))
             sim->initialize_simulator (this->get_simulator());
 
+          dilation_scaling_constant = prm.get_double("Dilation scaling constant");
           dike_material_injection_fraction = prm.get_double ("Dike material injection fraction");
           T_bottom_dike = prm.get_double ("Dike bottom temperature");
           enable_random_dike_generation = prm.get_bool("Enable random dike generation");
@@ -2178,17 +2215,30 @@ class ChainStream : public MPIChain {
 
       //Stokes additional RHS for prescribed dilation
       const unsigned int n_points = out.n_evaluation_points();
-      if (this->get_parameters().enable_prescribed_dilation
-          && out.template get_additional_output<MaterialModel::PrescribedPlasticDilation<dim>>() == nullptr)
+      if (this->get_parameters().enable_prescribed_directional_dilation
+          && out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>() == nullptr)
         {
           out.additional_outputs.push_back(
-            std::make_unique<MaterialModel::PrescribedPlasticDilation<dim>> (n_points));
+            std::make_unique<MaterialModel::PrescribedDirectionalDilation<dim>> (n_points));
+          //std::cout << "n_points = " << n_points << out.additional_outputs[out.additional_outputs.size()-1].size() << std::endl;
         }
 
-      AssertThrow(!this->get_parameters().enable_prescribed_dilation
+      AssertThrow(!this->get_parameters().enable_prescribed_directional_dilation
                   ||
-                  out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term.size()
-                  == n_points, ExcInternalError());
+                  (
+                    //out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>() != nullptr &&
+                    out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term[0].size()
+                    == n_points
+                    &&
+                    out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term[1].size()
+                    == n_points
+                    &&
+                    out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term[dim-1].size()
+                    == n_points
+                  )
+                  , ExcMessage("n_points = " + std::to_string(n_points) + ", dilation_term.size() = "
+                               + std::to_string(out.template get_additional_output<MaterialModel::PrescribedDirectionalDilation<dim>>()->dilation_term[0].size())
+                               + ", this->get_parameters().enable_prescribed_directional_dilation = "));
 
       if (this->get_parameters().use_operator_splitting
           && out.template get_additional_output<MaterialModel::ReactionRateOutputs<dim>>() == nullptr)
