@@ -21,6 +21,7 @@
 #include <vector>
 #include <random>
 #include <cmath>
+#include <filesystem>
 #include "aspect/material_model/interface.h"
 #include "aspect/material_model/visco_plastic.h"
 
@@ -45,6 +46,234 @@ namespace aspect
   unsigned int clear_composition_field_index;
   namespace MaterialModel
   {
+
+    struct DataSetEntry
+    {
+      double timestep;
+      std::string file;
+    };
+
+    std::string format_timestep(int t)
+    {
+      std::ostringstream ss;
+      ss << std::setw(5) << std::setfill('0') << t;
+      return ss.str();
+    }
+
+    // --- Parse existing DataSet entries ---
+    std::vector<DataSetEntry> parse_datasets(const std::string &content)
+    {
+      std::vector<DataSetEntry> entries;
+
+      std::string tag = "<DataSet";
+      size_t pos = 0;
+
+      while ((pos = content.find(tag, pos)) != std::string::npos)
+        {
+          size_t end = content.find("/>", pos);
+          if (end == std::string::npos) break;
+
+          std::string element = content.substr(pos, end - pos);
+
+          // Extract timestep
+          size_t t_pos = element.find("timestep=\"");
+          size_t f_pos = element.find("file=\"");
+
+          if (t_pos == std::string::npos || f_pos == std::string::npos)
+            {
+              pos = end + 2;
+              continue;
+            }
+
+          t_pos += 10;
+          size_t t_end = element.find("\"", t_pos);
+
+          f_pos += 6;
+          size_t f_end = element.find("\"", f_pos);
+
+          double timestep = std::stod(element.substr(t_pos, t_end - t_pos));
+          std::string file = element.substr(f_pos, f_end - f_pos);
+
+          entries.push_back({timestep, file});
+
+          pos = end + 2;
+        }
+
+      return entries;
+    }
+
+
+    void create_empty_pvd_if_needed(const std::string &filename)
+    {
+      if (std::filesystem::exists(filename))
+        {
+          return; // already there → do nothing
+        }
+
+      std::ofstream file(filename);
+
+      if (!file.is_open())
+        {
+          throw std::runtime_error("Could not create PVD file: " + filename);
+        }
+
+      file << "<?xml version=\"1.0\"?>\n";
+      file << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
+      file << "  <Collection>\n";
+      file << "  </Collection>\n";
+      file << "</VTKFile>\n";
+    }
+
+
+    void add_or_update_timestep(const std::string &filename,
+                                double timestep,
+                                const std::string &vtp_file)
+    {
+// --- Read file ---
+      std::ifstream in(filename);
+      if (!in.is_open())
+        {
+          throw std::runtime_error("Could not open PVD file: " + filename);
+        }
+
+      std::stringstream buffer;
+      buffer << in.rdbuf();
+      std::string content = buffer.str();
+      in.close();
+
+// --- Parse existing entries ---
+      auto entries = parse_datasets(content);
+
+// --- Replace or insert ---
+      bool replaced = false;
+
+      for (auto &e : entries)
+        {
+          if (e.timestep == timestep)
+            {
+              e.file = vtp_file;
+              replaced = true;
+              break;
+            }
+        }
+
+      if (!replaced)
+        {
+          entries.push_back({timestep, vtp_file});
+        }
+
+// --- Sort by timestep ---
+      std::sort(entries.begin(), entries.end(),
+                [](const DataSetEntry& a, const DataSetEntry& b)
+      {
+        return a.timestep < b.timestep;
+      });
+
+// --- Rebuild XML ---
+      std::ostringstream out;
+      out << "<?xml version=\"1.0\"?>\n";
+      out << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
+      out << "  <Collection>\n";
+
+      for (const auto &e : entries)
+        {
+          out << "    <DataSet timestep=\"" << std::fixed << std::setprecision(0) << e.timestep
+              << "\" group=\"\" part=\"0\" file=\""
+              << e.file << "\"/>\n";
+        }
+
+      out << "  </Collection>\n";
+      out << "</VTKFile>\n";
+
+// --- Write back ---
+      std::ofstream file(filename);
+      if (!file.is_open())
+        {
+          throw std::runtime_error("Could not write PVD file");
+        }
+
+      file << out.str();
+    }
+
+
+
+    void write_vtp(const std::string &filename,
+                   const std::vector<std::vector<Point<2>>> &lines)
+    {
+      std::ofstream file(filename);
+
+      if (!file.is_open())
+        {
+          throw std::runtime_error("Could not open VTP file: " + filename);
+        }
+
+// Count total points
+      size_t total_points = 0;
+      for (const auto &line : lines)
+        {
+          total_points += line.size();
+        }
+
+// XML header
+      file << "<?xml version=\"1.0\"?>\n";
+      file << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
+      file << "  <PolyData>\n";
+      file << "    <Piece NumberOfPoints=\"" << total_points
+           << "\" NumberOfLines=\"" << lines.size() << "\">\n";
+
+// ---- Points ----
+      file << "      <Points>\n";
+      file << "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">\n";
+
+      for (const auto &line : lines)
+        {
+          for (const auto &p : line)
+            {
+              file << p[0] << " " << p[1] << " 0.0\n";
+            }
+        }
+
+      file << "        </DataArray>\n";
+      file << "      </Points>\n";
+
+// ---- Lines (connectivity + offsets) ----
+      file << "      <Lines>\n";
+
+// Connectivity
+      file << "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">\n";
+
+      int point_index = 0;
+      for (const auto &line : lines)
+        {
+          for (size_t i = 0; i < line.size(); ++i)
+            {
+              file << point_index++ << " ";
+            }
+          file << "\n";
+        }
+
+      file << "        </DataArray>\n";
+
+// Offsets
+      file << "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">\n";
+
+      int offset = 0;
+      for (const auto &line : lines)
+        {
+          offset += line.size();
+          file << offset << " ";
+        }
+
+      file << "\n";
+      file << "        </DataArray>\n";
+
+      file << "      </Lines>\n";
+
+// Footer
+      file << "    </Piece>\n";
+      file << "  </PolyData>\n";
+      file << "</VTKFile>\n";
+    }
 
     class ChainStream : public MPIChain
     {
@@ -115,6 +344,7 @@ namespace aspect
       // between processors, create a new one.
       this->random_number_generator.seed(random_number_seed);
       this->get_signals().start_timestep.connect(&clear_compositional_field<dim>);
+
     }
 
     template <int dim>
@@ -1278,19 +1508,31 @@ namespace aspect
 
 
 
-          if (world_rank == 0)
+          if (world_rank == 0)// && dike_locations.size() != 0)
             {
-              //std::cout << "dike_location = ";
+              std::vector<std::vector<Point<2>>> dike_locations_2d(dike_locations.size());
+              std::cout << "dike_location = ";
               for (unsigned int dike_i = 0; dike_i < dike_locations.size(); ++dike_i)
                 {
-                  //std::cout << "dike " << dike_i << ": ";
+                  std::cout << "dike " << dike_i << ": ";
+                  dike_locations_2d[dike_i].resize(dike_locations[dike_i].size());
                   for (unsigned int segment_i = 0; segment_i < dike_locations[dike_i].size(); ++segment_i)
                     {
-                      //std::cout << dike_locations[dike_i][segment_i] << ", ";
+                      dike_locations_2d[dike_i][segment_i][0] = dike_locations[dike_i][segment_i][0];
+                      dike_locations_2d[dike_i][segment_i][1] = dike_locations[dike_i][segment_i][1];
+                      std::cout << dike_locations[dike_i][segment_i] << ", ";
                     }
-                  //std::cout << std::endl;
+                  std::cout << std::endl;
                 }
-              //std::cout << std::endl;
+              std::cout << std::endl;
+
+              if (dim == 2)
+                {
+                  create_empty_pvd_if_needed(this->get_parameters().output_directory + "dike_paths.pvd");
+                  std::filesystem::create_directories(this->get_parameters().output_directory + "dike_paths");
+                  add_or_update_timestep(this->get_parameters().output_directory+"dike_paths.pvd",std::round(this->get_time()/(this->convert_output_to_years() ? year_in_seconds : 1.0)), "dike_paths/dike_paths."+format_timestep(this->get_timestep_number())+".vtp");
+                  write_vtp(this->get_parameters().output_directory + "dike_paths/dike_paths."+format_timestep(this->get_timestep_number())+".vtp",dike_locations_2d);
+                }
             }
 
           // If using random dike generation
