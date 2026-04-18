@@ -1276,6 +1276,7 @@ namespace aspect
          * A vector containing the scalar value per evaluation point
          */
         std::vector<std::vector<double>> dilation_term;
+        std::vector<std::vector<double>> dike_normal;
 
     };
 

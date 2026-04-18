@@ -331,6 +331,8 @@ namespace aspect
       const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_current_linearization_point()).block(adv_field.block_index(simulator_access.introspection())) = 0;
       //std::cout << "after on rank " << my_rank  << std::endl;// ": " << const_cast<LinearAlgebra::BlockVector &>(simulator_access.get_solution()).block(adv_field.block_index(simulator_access.introspection()))[0] << std::endl;
     }
+
+
     template <int dim>
     void
     DikeInjection<dim>::initialize()
@@ -675,6 +677,12 @@ namespace aspect
       double z_min = std::numeric_limits<double>::infinity();
       double z_max = -std::numeric_limits<double>::infinity();
       double melt_volume_integrals = 0;
+      // check if we need to create a new dike or if we are in a rest period
+      if(this->get_time() > start_last_diking_event+diking_event_duration)
+      {
+        dike_locations.resize(0);
+        if(this->get_time() > start_last_diking_event+diking_event_duration+after_diking_event_rest_time)
+        {
       for (const auto &cell : this->get_dof_handler().active_cell_iterators())
         {
           if (cell->is_locally_owned())
@@ -821,11 +829,13 @@ namespace aspect
 
       dikes_created += n_dikes;
       std::cout << "dikes_created = " << dikes_created << std::endl;
-      if (std::isfinite(x_min) && std::isfinite(x_max) &&
+      if (n_dikes > 0 && 
+        std::isfinite(x_min) && std::isfinite(x_max) &&
           std::isfinite(y_min) && std::isfinite(y_max) &&
           (std::isfinite(z_min) && std::isfinite(z_max) || dim == 2))
         {
-
+          AssertThrow(!abort_on_first_dike, ExcMessage("You requested to abort when the first dike is created. The first dike would be created in this timestep, so we abort for you!" + std::to_string(abort_on_first_dike)));
+          start_last_diking_event = this->get_time();
           dike_locations.resize(n_dikes);
           //std::cout << "flag 0" << std::endl;
           std::uniform_real_distribution<double> uniform_distribution_x(x_min,x_max);
@@ -1600,7 +1610,9 @@ namespace aspect
               top_depth_random_dike = ref_top_depth_random_dike + depth_change_random_dike;
             }*/
           particle_statuses.resize(0);
-        }
+        }     
+      }
+    }
     }
 
     template <int dim>
@@ -1919,7 +1931,8 @@ namespace aspect
               // todo: make dilation_term[q][0] directional
               for (unsigned int direction =0; direction < dim; ++direction)
                 {
-                  prescribed_directional_dilation->dilation_term[direction][q] = abs(dike_injection_rate[q][direction]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance)*dilation_scaling_constant); // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity).
+                  prescribed_directional_dilation->dike_normal[direction][q] = dike_injection_rate[q][direction];
+                  prescribed_directional_dilation->dilation_term[direction][q] = dike_injection_rate[q][direction]*dike_dilation_velocity/(2.0*max_dike_distance*max_dike_distance)*dilation_scaling_constant; // todo: adjust -> The input should be velocity in m/yr (mm/yr), and that should be smeared out over the width of the dike propostional to the distance from the center, basially proposional to the compositoinal field (2 dikes create 2* the velocity).
                   prescribed_directional_dilation->dilation_term[direction][q] = this->convert_output_to_years() ? prescribed_directional_dilation->dilation_term[direction][q] *year_in_seconds : prescribed_directional_dilation->dilation_term[direction][q];
                   //if(abs(prescribed_directional_dilation->dilation_term[direction][q]) > std::numeric_limits<double>::epsilon()*10)
                   //  std::cout << "dilation term[" << direction << "][" << q << "] = " << prescribed_directional_dilation->dilation_term[direction][q] << std::endl;
@@ -2182,6 +2195,10 @@ namespace aspect
                             "only time dependent and independent of the xyz-coordinate.");
           prm.declare_entry("Dike viscosity multiply factor", "0.1", Patterns::Double(0),
                             "");
+          prm.declare_entry("Diking event duration", "15000", Patterns::Double(0),"How long a single diking event takes in years.");
+          prm.declare_entry("After diking event rest time", "5000", Patterns::Double(0), "How long after a diking event/episode there is no more diking.");
+          prm.declare_entry("Abort on first dike","false",Patterns::Bool(),"Abort is we start making a dike. This is a nice feature if you want to start checkpointing there.");
+
           prm.enter_subsection("Dike injection function");
           {
             Functions::ParsedFunction<dim>::declare_parameters(prm,1);
@@ -2354,6 +2371,9 @@ namespace aspect
           dike_width = prm.get_double ("Dike width");
           dike_visosity_multiply_factor = prm.get_double("Dike viscosity multiply factor");
           dike_dilation_velocity = prm.get_double ("Dike dilation velocity");
+          diking_event_duration = prm.get_double("Diking event duration");
+          after_diking_event_rest_time = prm.get_double("After diking event rest time");
+          abort_on_first_dike = prm.get_bool("Abort on first dike");
 
           //prm.enter_subsection("Dike injection function");
           //{

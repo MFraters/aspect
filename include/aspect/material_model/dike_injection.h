@@ -144,6 +144,10 @@ namespace aspect
         create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const override;
 
       private:
+        double start_last_diking_event;
+        double diking_event_duration;
+        double after_diking_event_rest_time;
+        bool abort_on_first_dike;
         std::vector<std::vector<Point<dim>>> dike_locations;
         std::unique_ptr<Particles::ParticleHandler<dim>> particle_handler;
         std::unique_ptr<aspect::Particle::Integrator::Interface<dim>> particle_integrator;

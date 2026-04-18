@@ -1019,6 +1019,10 @@ namespace aspect
         names.emplace_back("dilation_term_y");
         if (dim == 3)
           names.emplace_back("dilation_term_z");
+        names.emplace_back("dike_normal_x");
+        names.emplace_back("dike_normal_y");
+        if (dim == 3)
+          names.emplace_back("dike_normal_z");
         return names;
       }
     }
@@ -1056,7 +1060,8 @@ namespace aspect
     template <int dim>
     PrescribedDirectionalDilation<dim>::PrescribedDirectionalDilation (const unsigned int n_points)
       : NamedAdditionalMaterialOutputs<dim>(make_prescribed_directional_dilation_outputs_names(dim)),
-        dilation_term(dim,std::vector<double>(n_points, numbers::signaling_nan<double>()))
+      dilation_term(dim,std::vector<double>(n_points, numbers::signaling_nan<double>())),
+      dike_normal(dim,std::vector<double>(n_points, numbers::signaling_nan<double>()))
     {
       //std::cout << "constructor n_points = " << n_points << std::endl;
     }
@@ -1066,7 +1071,7 @@ namespace aspect
     template <int dim>
     std::vector<double> PrescribedDirectionalDilation<dim>::get_nth_output(const unsigned int idx) const
     {
-      AssertIndexRange (idx, dim);
+      AssertIndexRange (idx, 2*dim);
       switch (idx)
         {
           case 0:
@@ -1076,10 +1081,15 @@ namespace aspect
             return dilation_term[1];
 
           case 2:
-            AssertThrow(dim>2, ExcInternalError());
-            return dilation_term[2];
+            //AssertThrow(dim>2, ExcInternalError());
+            return dike_normal[0];
+
+          case 3:
+            //AssertThrow(dim>2, ExcInternalError());
+            return dike_normal[1];
 
           default:
+            std::cout << "i = " << idx << std::endl;
             AssertThrow(false, ExcInternalError());
         }
       // we will never get here, so just return something
