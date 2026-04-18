@@ -1060,8 +1060,8 @@ namespace aspect
     template <int dim>
     PrescribedDirectionalDilation<dim>::PrescribedDirectionalDilation (const unsigned int n_points)
       : NamedAdditionalMaterialOutputs<dim>(make_prescribed_directional_dilation_outputs_names(dim)),
-      dilation_term(dim,std::vector<double>(n_points, numbers::signaling_nan<double>())),
-      dike_normal(dim,std::vector<double>(n_points, numbers::signaling_nan<double>()))
+        dilation_term(dim,std::vector<double>(n_points, numbers::signaling_nan<double>())),
+        dike_normal(dim,std::vector<double>(n_points, numbers::signaling_nan<double>()))
     {
       //std::cout << "constructor n_points = " << n_points << std::endl;
     }
